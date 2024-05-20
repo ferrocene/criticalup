@@ -126,7 +126,7 @@ impl State {
         let manifest = canonicalize_or_err(manifest)?;
         let mut inner = self.inner.borrow_mut();
         let existing_installation_in_state_exists =
-            inner.repr.installations.get(installation_id).is_some();
+            inner.repr.installations.contains_key(installation_id);
         let installation_path_on_disk_exists = config
             .paths
             .installation_dir

@@ -34,7 +34,6 @@ impl Sha256Hasher {
     }
 }
 
-///
 impl Hasher for Sha256Hasher {
     /// This method is unreachable and here to appease the compiler, mandatory method.
     fn finish(&self) -> u64 {
