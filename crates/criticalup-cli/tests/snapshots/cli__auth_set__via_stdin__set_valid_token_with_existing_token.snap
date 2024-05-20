@@ -1,0 +1,12 @@
+---
+source: crates/criticalup-cli/tests/cli/auth_set.rs
+assertion_line: 50
+expression: repr
+
+---
+exit: exit status: 0
+
+empty stdout
+
+empty stderr
+

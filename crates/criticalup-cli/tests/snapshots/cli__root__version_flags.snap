@@ -1,0 +1,15 @@
+---
+source: crates/criticalup-cli/tests/cli/root.rs
+assertion_line: 36
+expression: repr
+
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+criticalup-test 0.0.0
+------
+

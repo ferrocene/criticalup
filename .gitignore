@@ -1,0 +1,4 @@
+/target
+/docs/node_modules
+/docs/build
+*.snap.new

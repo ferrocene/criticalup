@@ -1,0 +1,138 @@
+---
+
+name: CI
+on:
+  push:
+    branches: [staging, trying]
+  pull_request: {}
+
+permissions:
+  # Allow write access to the source code to enable GitHub Pages publishing.
+  contents: write
+
+jobs:
+  build-test:
+    name: Build and test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Windows seems to have an existing non-RustUp tools in `~/.cargo/bin/` which have to be removed
+      - if: ${{ matrix.os == 'windows-latest' }}
+        shell: bash
+        run: |
+          rm -rv C://Users/runneradmin/.cargo/bin/rust-analyzer.exe
+          rm -rv C://Users/runneradmin/.cargo/bin/rustfmt.exe
+          rm -rv C://Users/runneradmin/.cargo/bin/cargo-fmt.exe
+      - name: Make sure Rust stable is installed
+        shell: bash
+        run: |
+          rustup update stable --no-self-update
+          rustup default stable
+
+      - name: Cache Rust dependencies
+        uses: ferrous-systems/shared-github-actions/cache-rust@main
+
+      - name: Check formatting
+        if: ${{ matrix.os == 'ubuntu-latest' }}  
+        shell: bash
+        run: cargo fmt --all --check
+
+      - name: Check Clippy warnings
+        shell: bash
+        run: cargo clippy --workspace --tests --locked -- -Dwarnings
+
+      - name: Prepare file to record snapshots used by insta
+        shell: bash
+        run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
+
+      - name: Run the test suite
+        shell: bash
+        run: cargo test --timings --workspace --locked
+
+      # Incompatible with Windows, insta snapshots output Windows paths
+      # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        name: Ensure there are no unused insta snapshots
+        shell: bash
+        run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
+
+      - name: Upload criticalup debug build
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-${{ matrix.os }}
+          path: target/debug/criticalup
+
+      - name: Upload upload criticalup-dev debug build
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-dev-${{ matrix.os }}
+          path: target/debug/criticalup-dev
+
+      - name: Upload cargo timings
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timings-${{ matrix.os }}
+          path: target/cargo-timings/cargo-timing.html
+
+  docs:
+    name: Build documentation
+    permissions:
+      contents: read
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+
+      - name: Build documentation and check links
+        working-directory: ./docs
+        run: ./make.py --check-links
+
+      - name: Install Python dependencies
+        working-directory: ./docs
+        run: python3 -m pip install reuse black flake8
+
+      - name: Verify Python code formatting
+        working-directory: ./docs
+        run: black . --check --diff --color
+
+      - name: Lint Python code with flake8
+        working-directory: ./docs
+        run: flake8 . --exclude .venv
+
+      - name: Upload built documentation as an artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs
+          path: docs/build/html
+          if-no-files-found: error
+          retention-days: 1
+
+  build-finished:
+    name: CI build successful
+    runs-on: ubuntu-latest
+    if: success()
+    needs:
+      - build-test
+      - docs
+    steps:
+      - name: Download built documentation for publishing
+        uses: actions/download-artifact@v3
+        with:
+          name: docs
+          path: /tmp/docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+
+      - name: Publish the documentation to GitHub Pages
+        uses: ferrous-systems/shared-github-actions/github-pages@main
+        with:
+          path: /tmp/docs
+          token: ${{ secrets.GITHUB_TOKEN }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+
+      - name: Mark the build as successful
+        run: exit 0

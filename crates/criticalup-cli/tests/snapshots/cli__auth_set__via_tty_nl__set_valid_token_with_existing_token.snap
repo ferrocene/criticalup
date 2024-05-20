@@ -1,0 +1,12 @@
+---
+source: crates/criticalup-cli/tests/cli/auth_set.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+Visit https://customers-test.ferrocene.dev/users/tokens to create a new token, then enter it below.
+enter the authentication token: ------

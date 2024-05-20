@@ -1,0 +1,10 @@
+# Sphinx ignored files
+/build
+/.venv
+
+# Python ignored files
+__pycache__
+*.py[co]
+
+# Linkchecker ignored files
+/.linkchecker

@@ -1,0 +1,15 @@
+---
+source: crates/criticalup-cli/tests/cli/auth_set.rs
+assertion_line: 50
+expression: repr
+
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+error: invalid authentication token provided
+------
+

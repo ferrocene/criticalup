@@ -1,0 +1,16 @@
+---
+source: crates/criticalup-cli/tests/cli/clean.rs
+expression: repr
+---
+exit: exit status: 0
+
+stdout
+------
+[1minfo:[0m deleting unused installation installation_id_2
+[1minfo:[0m deleting unused installation directory /path/to/toolchain/installation/installation_id_2/
+[1minfo:[0m deleting unused installation installation_id_3
+[1minfo:[0m deleting unused installation directory /path/to/toolchain/installation/installation_id_3/
+[1minfo:[0m no untracked installation directories found
+------
+
+empty stderr

@@ -1,0 +1,16 @@
+---
+source: crates/criticalup-cli/tests/cli/clean.rs
+expression: repr
+---
+exit: exit status: 1
+
+stdout
+------
+[1minfo:[0m deleting unused installation installation_id_2
+[1minfo:[0m deleting unused installation installation_id_3
+------
+
+stderr
+------
+error: No such file or directory (os error 2)
+------

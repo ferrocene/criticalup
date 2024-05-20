@@ -1,0 +1,18 @@
+[package]
+name = "criticalup"
+version = "0.1.0"
+edition = "2021"
+authors = ["The CriticalUp Developers"]
+description = "Ferrocene toolchain manager"
+
+[package.metadata.wix]
+upgrade-guid = "CB83A96F-1F5B-4C75-A077-876EB03EEA67"
+path-guid = "5DABF654-7C2A-4DE4-8CAD-21CCC843B105"
+license = false
+eula = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+criticaltrust = { path = "../criticaltrust" }
+criticalup-cli = { path = "../criticalup-cli" }

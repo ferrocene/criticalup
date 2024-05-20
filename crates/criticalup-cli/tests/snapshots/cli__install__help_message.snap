@@ -1,0 +1,19 @@
+---
+source: crates/criticalup-cli/tests/cli/install.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+Install the toolchain for the given project based on the manifest `criticalup.toml`
+
+Usage:
+  criticalup-test install [OPTIONS]
+
+Options:
+      --project <PROJECT>  Path to the manifest `criticalup.toml`
+  -h, --help               Print help
+------

@@ -1,0 +1,16 @@
+---
+source: crates/criticalup-cli/tests/cli/binary_proxies.rs
+expression: repr
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+error: criticalup could not invoke the binary you requested
+  caused by: 'sample' is not installed for this project.
+
+Please make sure that the correct package for 'sample' is listed in the packages section of your project's criticalup.toml and run 'criticalup install' command again.
+
+------

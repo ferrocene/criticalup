@@ -1,0 +1,19 @@
+---
+source: crates/criticalup-cli/tests/cli/auth_remove.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+Remove the authentication token used to interact with the download server
+
+Usage:
+  criticalup-test auth remove
+
+Options:
+  -h, --help  Print help
+------
+

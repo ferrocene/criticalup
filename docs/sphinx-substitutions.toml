@@ -1,0 +1,15 @@
+# This file defines all the substitutions available in the Sphinx documentation
+# sites using the `ferrocene_qualification` extension.
+
+# look at substitutions.py for the rest of the substitutions
+
+ferrocene_ASIL = "ASIL D"
+ferrocene_TCL = "TCL 3"
+ferrocene_TQL = "class T3"
+
+iso_ref = "ISO-26262:2018"
+iso_doc = "Road Vehicles - Functional Safety"
+iec_ref = "IEC-61508:2010"
+iec_doc = "Functional safety of electrical/electronic/programmable electronic safety-related systems"
+9001_ref = "ISO-9001:2015"
+9001_doc = "Quality management systems — Requirements"

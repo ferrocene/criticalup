@@ -1,0 +1,16 @@
+---
+source: crates/criticalup-cli/tests/cli/auth.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+valid authentication token present
+
+token name:         dummy token 2
+organization name:  ferrous-systems
+expires at:         2022-01-01T00:00:00+00:00
+------

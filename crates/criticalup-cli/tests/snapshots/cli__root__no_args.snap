@@ -1,0 +1,27 @@
+---
+source: crates/criticalup-cli/tests/cli/root.rs
+expression: repr
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+CriticalUp is the official tool to download and install Ferrocene
+
+Usage:
+  criticalup-test <COMMAND>
+
+Commands:
+  auth     Show and change authentication with the download server
+  install  Install the toolchain for the given project based on the manifest `criticalup.toml`
+  clean    Delete all unused and untracked installations
+  run      Run a command for a given toolchain
+  remove   Delete all the products specified in the manifest `criticalup.toml`
+  which    Display which binary will be run for a given command
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+------

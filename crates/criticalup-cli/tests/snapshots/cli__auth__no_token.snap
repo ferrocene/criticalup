@@ -1,0 +1,21 @@
+---
+source: crates/criticalup-cli/tests/cli/auth.rs
+assertion_line: 14
+expression: repr
+
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+error: failed to authenticate with the download server
+
+The authentication token could be missing, invalid or expired.
+You can set a new authentication token by running:
+
+    criticalup auth set
+
+------
+

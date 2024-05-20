@@ -1,0 +1,22 @@
+---
+source: crates/criticalup-cli/tests/cli/auth_set.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+Set the authentication token used to interact with the download server
+
+Usage:
+  criticalup-test auth set [TOKEN]
+
+Arguments:
+  [TOKEN]  Authentication token to use; if not provided, it will be read from stdin
+
+Options:
+  -h, --help  Print help
+------
+

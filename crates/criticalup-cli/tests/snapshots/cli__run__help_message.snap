@@ -1,0 +1,22 @@
+---
+source: crates/criticalup-cli/tests/cli/run.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+Run a command for a given toolchain
+
+Usage:
+  criticalup-test run [OPTIONS] <COMMAND>...
+
+Arguments:
+  <COMMAND>...  Command with possible args to run
+
+Options:
+      --project <PROJECT>  Path to the manifest `criticalup.toml`
+  -h, --help               Print help
+------

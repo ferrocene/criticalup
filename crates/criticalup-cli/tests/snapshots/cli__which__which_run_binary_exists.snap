@@ -1,0 +1,13 @@
+---
+source: crates/criticalup-cli/tests/cli/which.rs
+expression: repr
+---
+exit: exit status: 0
+
+stdout
+------
+/path/to/toolchain/installation/eee0c78b0f09ca88069fa1b14c35a6e70ffbfcce50f6ffb1e567f26a76ff7e89/bin/rustc
+
+------
+
+empty stderr

@@ -1,0 +1,14 @@
+---
+source: crates/criticalup-cli/tests/cli/binary_proxies.rs
+assertion_line: 77
+expression: repr
+---
+exit: exit status: 0
+
+stdout
+------
+proxies work!
+------
+
+empty stderr
+
