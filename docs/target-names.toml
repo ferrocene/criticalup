@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 # This file defines the human-readable names for the targets supported by
 # Ferrocene, to provide consistency across documents on how we refer to them.
 #

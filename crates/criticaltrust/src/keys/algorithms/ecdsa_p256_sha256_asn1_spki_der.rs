@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::keys::algorithms::Algorithm;
 use crate::keys::newtypes::{PayloadBytes, PrivateKeyBytes, PublicKeyBytes, SignatureBytes};
 use crate::Error;

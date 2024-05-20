@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 pub(crate) mod auth;
 pub(crate) mod auth_remove;
 pub(crate) mod auth_set;

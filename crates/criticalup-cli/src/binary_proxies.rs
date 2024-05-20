@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::errors::Error;
 use crate::spawn;
 use criticalup_core::config::{Config, WhitelabelConfig};

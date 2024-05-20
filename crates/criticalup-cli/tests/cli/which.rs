@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::assert_output;
 use crate::utils::{construct_toolchains_product_path, TestEnvironment};
 use criticalup_core::project_manifest::ProjectManifest;

@@ -1,3 +1,6 @@
+<!-- SPDX-FileCopyrightText: The Ferrocene Developers -->
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+
 # CriticalUp
 
 Criticalup is a toolchain manager for [Ferrocene][ferrocene], similar to [`rustup`][rustup].

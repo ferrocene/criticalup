@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use criticaltrust::keys::newtypes::PublicKeyBytes;
 use criticaltrust::keys::{KeyAlgorithm, KeyRole, PublicKey};
 

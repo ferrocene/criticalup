@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use criticaltrust::Error as TrustError;
 use reqwest::Error as ReqError;
 use reqwest::StatusCode;

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 mod ecdsa_p256_sha256_asn1_spki_der;
 
 use crate::keys::algorithms::ecdsa_p256_sha256_asn1_spki_der::EcdsaP256Sha256Asn1SpkiDer;

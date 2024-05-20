@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::errors::{Error, LibError};
 use crate::Context;
 use criticalup_core::download_server_client::DownloadServerClient;

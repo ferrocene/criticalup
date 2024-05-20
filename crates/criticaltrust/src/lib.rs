@@ -1,5 +1,8 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 pub mod errors;
 pub mod integrity;
 pub mod keys;

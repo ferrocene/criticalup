@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use criticaltrust::integrity::IntegrityError;
 pub(crate) use criticaltrust::Error as TrustError;
 pub(crate) use criticalup_core::errors::BinaryProxyUpdateError;
