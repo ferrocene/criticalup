@@ -82,6 +82,18 @@ jobs:
           name: cargo-timings-${{ matrix.os }}
           path: target/cargo-timings/cargo-timing.html
 
+  license:
+    name: Check licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install REUSE
+        run: pipx install reuse
+
+      - name: Check compliance with REUSE
+        run: reuse lint
+
   docs:
     name: Build documentation
     permissions:
@@ -122,6 +134,7 @@ jobs:
     needs:
       - build-test
       - docs
+      - license
     steps:
       - name: Download built documentation for publishing
         uses: actions/download-artifact@v3
