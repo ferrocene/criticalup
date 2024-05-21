@@ -119,13 +119,25 @@ jobs:
         working-directory: ./docs
         run: flake8 . --exclude .venv
 
-      - name: Upload built documentation as an artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: docs
           path: docs/build/html
-          if-no-files-found: error
-          retention-days: 1
+
+
+  deploy-docs:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docs
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        id: github-pages
+
 
   build-finished:
     name: CI build successful
