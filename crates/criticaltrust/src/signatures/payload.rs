@@ -109,7 +109,7 @@ fn verify_signature<T: Signable>(
             None => continue,
         };
 
-        match key.verify(T::SIGNED_BY_ROLE, &signed, &signature.signature) {
+        match key.verify(T::SIGNED_BY_ROLE, &signed, &signature.signature, None) {
             Ok(()) => {}
             Err(Error::VerificationFailed) => continue,
             Err(other) => return Err(other),

@@ -128,7 +128,7 @@ mod tests {
         let signature = keypair.sign(&payload).expect("failed to sign");
         keypair
             .public()
-            .verify(KeyRole::Root, &payload, &signature)
+            .verify(KeyRole::Root, &payload, &signature, None)
             .expect("failed to verify");
     }
 
