@@ -66,8 +66,9 @@ impl<'a> IntegrityVerifier<'a> {
     pub fn add(&mut self, path: &Path, mode: u32, contents: &[u8]) {
         let path_str = path.to_string_lossy().to_string();
         if !self.loaded_files.insert(path_str.clone()) {
-            self.errors
-                .push(IntegrityError::FileLoadedMultipleTimes { path: path_str.clone() });
+            self.errors.push(IntegrityError::FileLoadedMultipleTimes {
+                path: path_str.clone(),
+            });
             return;
         }
 
@@ -99,7 +100,9 @@ impl<'a> IntegrityVerifier<'a> {
         }
 
         for path in self.referenced_by_manifests_but_missing.into_keys() {
-            self.errors.push(IntegrityError::MissingFile { path: path.to_string_lossy().to_string() });
+            self.errors.push(IntegrityError::MissingFile {
+                path: path.to_string_lossy().to_string(),
+            });
         }
 
         for path in self.added_but_not_referenced_by_manifests.into_keys() {
@@ -115,7 +118,9 @@ impl<'a> IntegrityVerifier<'a> {
                     }
                 }
             } else {
-                self.errors.push(IntegrityError::UnexpectedFile { path: path.to_string_lossy().to_string() });
+                self.errors.push(IntegrityError::UnexpectedFile {
+                    path: path.to_string_lossy().to_string(),
+                });
             }
         }
 
@@ -188,8 +193,7 @@ impl<'a> IntegrityVerifier<'a> {
         }
 
         for managed_prefix in manifest.managed_prefixes {
-            self.managed_prefixes
-                .insert(prefix.join(&managed_prefix));
+            self.managed_prefixes.insert(prefix.join(&managed_prefix));
         }
 
         self.verified_packages.push(VerifiedPackage {
