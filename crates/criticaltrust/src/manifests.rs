@@ -4,6 +4,7 @@ use crate::keys::{KeyRole, PublicKey};
 use crate::signatures::{Signable, SignedPayload};
 use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 /// Typed representation of a manifest version number.
 ///
@@ -151,12 +152,26 @@ pub struct PackageFile {
     pub needs_proxy: bool,
 }
 
+// Revocations
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RevocationInfo {
+    pub revoked_content_sha256: Vec<String>,
+    pub expires_at: OffsetDateTime,
+}
+
+impl Signable for RevocationInfo {
+    const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
+}
+
 // Keys
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeysManifest {
     pub version: ManifestVersion<1>,
     pub keys: Vec<SignedPayload<PublicKey>>,
+    pub revoked_signatures: Option<SignedPayload<RevocationInfo>>,
 }
 
 #[cfg(test)]

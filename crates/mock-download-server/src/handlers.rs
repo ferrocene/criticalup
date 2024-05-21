@@ -36,6 +36,7 @@ fn handle_v1_keys(data: &Data) -> Result<Resp, Resp> {
     Ok(Resp::json(&criticaltrust::manifests::KeysManifest {
         version: ManifestVersion,
         keys: data.keys.clone(),
+        revoked_signatures: data.revoked_signatures.clone(),
     }))
 }
 
