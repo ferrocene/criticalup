@@ -4,6 +4,7 @@ use crate::manifests::{PackageFile, PackageManifest};
 use crate::sha256::hash_sha256;
 use crate::signatures::Keychain;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::path::{Path, PathBuf};
 
 /// Verify the integrity of a CriticalUp archive or installation.
 ///
@@ -20,10 +21,10 @@ pub struct IntegrityVerifier<'a> {
     verified_packages: Vec<VerifiedPackage>,
     allow_external_files: bool,
 
-    managed_prefixes: HashSet<String>,
+    managed_prefixes: HashSet<PathBuf>,
     loaded_files: HashSet<String>,
-    referenced_by_manifests_but_missing: HashMap<String, PackageFile>,
-    added_but_not_referenced_by_manifests: HashMap<String, FoundFile>,
+    referenced_by_manifests_but_missing: HashMap<PathBuf, PackageFile>,
+    added_but_not_referenced_by_manifests: HashMap<PathBuf, FoundFile>,
 }
 
 impl<'a> IntegrityVerifier<'a> {
@@ -62,15 +63,16 @@ impl<'a> IntegrityVerifier<'a> {
     /// The order in which files are added does not matter, but the same file can't be added twice.
     /// The verifier will not store in memory the contents of the file, but it will keep track of
     /// the metadata potentially until [`verify`](IntegrityVerifier::verify) is called.
-    pub fn add(&mut self, path: &str, mode: u32, contents: &[u8]) {
-        if !self.loaded_files.insert(path.into()) {
+    pub fn add(&mut self, path: &Path, mode: u32, contents: &[u8]) {
+        let path_str = path.to_string_lossy().to_string();
+        if !self.loaded_files.insert(path_str.clone()) {
             self.errors
-                .push(IntegrityError::FileLoadedMultipleTimes { path: path.into() });
+                .push(IntegrityError::FileLoadedMultipleTimes { path: path_str.clone() });
             return;
         }
 
-        if let Some(found) = is_package_manifest(path) {
-            if let Err(err) = self.add_package_manifest(path, &found, contents) {
+        if let Some(found) = is_package_manifest(&path_str) {
+            if let Err(err) = self.add_package_manifest(&path_str, &found, contents) {
                 self.errors.push(err);
             }
         } else {
@@ -80,7 +82,7 @@ impl<'a> IntegrityVerifier<'a> {
             };
 
             if let Some(manifest) = self.referenced_by_manifests_but_missing.remove(path) {
-                self.verify_file(path, &manifest, &entry);
+                self.verify_file(&path_str, &manifest, &entry);
             } else {
                 self.added_but_not_referenced_by_manifests
                     .insert(path.into(), entry);
@@ -97,7 +99,7 @@ impl<'a> IntegrityVerifier<'a> {
         }
 
         for path in self.referenced_by_manifests_but_missing.into_keys() {
-            self.errors.push(IntegrityError::MissingFile { path });
+            self.errors.push(IntegrityError::MissingFile { path: path.to_string_lossy().to_string() });
         }
 
         for path in self.added_but_not_referenced_by_manifests.into_keys() {
@@ -106,14 +108,14 @@ impl<'a> IntegrityVerifier<'a> {
                     if path.starts_with(prefix) {
                         self.errors
                             .push(IntegrityError::UnexpectedFileInManagedPrefix {
-                                path,
-                                prefix: prefix.clone(),
+                                path: path.to_string_lossy().to_string(),
+                                prefix: prefix.to_string_lossy().to_string(),
                             });
                         break;
                     }
                 }
             } else {
-                self.errors.push(IntegrityError::UnexpectedFile { path });
+                self.errors.push(IntegrityError::UnexpectedFile { path: path.to_string_lossy().to_string() });
             }
         }
 
@@ -156,15 +158,16 @@ impl<'a> IntegrityVerifier<'a> {
         }
 
         let mut proxies_paths = BTreeMap::new();
-        let prefix = found.prefix.map(String::from).unwrap_or_default();
+        let prefix = found.prefix.map(PathBuf::from).unwrap_or_default();
         for file in manifest.files {
-            let file_path = prefix.clone() + &file.path;
+            let file_path = prefix.join(&file.path);
+            let file_str = file_path.to_string_lossy().to_string();
 
             if file.needs_proxy {
-                let proxy_name = file_path
+                let proxy_name = file_str
                     .rsplit_once('/')
                     .map(|(_dir, name)| name)
-                    .unwrap_or(&file_path);
+                    .unwrap_or(&file_str);
                 proxies_paths.insert(proxy_name.into(), file_path.clone());
             }
 
@@ -172,21 +175,21 @@ impl<'a> IntegrityVerifier<'a> {
                 .added_but_not_referenced_by_manifests
                 .remove(&file_path)
             {
-                self.verify_file(&file_path, &file, &found);
-            } else if self.loaded_files.contains(&file_path)
+                self.verify_file(&file_str, &file, &found);
+            } else if self.loaded_files.contains(&file_str)
                 || self
                     .referenced_by_manifests_but_missing
                     .insert(file_path.clone(), file)
                     .is_some()
             {
                 self.errors
-                    .push(IntegrityError::FileReferencedByMultipleManifests { path: file_path });
+                    .push(IntegrityError::FileReferencedByMultipleManifests { path: file_str });
             }
         }
 
         for managed_prefix in manifest.managed_prefixes {
             self.managed_prefixes
-                .insert(prefix.clone() + &managed_prefix);
+                .insert(prefix.join(&managed_prefix));
         }
 
         self.verified_packages.push(VerifiedPackage {
@@ -199,6 +202,7 @@ impl<'a> IntegrityVerifier<'a> {
     }
 
     fn verify_file(&mut self, path: &str, manifest: &PackageFile, actual: &FoundFile) {
+        #[cfg(not(windows))] // Windows does not do file modes.
         if manifest.posix_mode != actual.mode {
             self.errors.push(IntegrityError::WrongPosixPermissions {
                 path: path.into(),
@@ -221,10 +225,11 @@ pub struct VerifiedPackage {
     /// Name of the package.
     pub package: String,
     /// List of the paths of all binaries that need a proxy.
-    pub proxies_paths: BTreeMap<String, String>,
+    pub proxies_paths: BTreeMap<String, PathBuf>,
 }
 
 struct FoundFile {
+    #[cfg_attr(windows, allow(dead_code))] // Windows does not do file modes
     mode: u32,
     sha256: Vec<u8>,
 }
@@ -380,6 +385,7 @@ mod tests {
             ]);
     }
 
+    #[cfg(not(windows))] // Windows does not have file modes
     #[test]
     fn test_files_with_wrong_mode() {
         IntegrityTest::new()
@@ -406,6 +412,7 @@ mod tests {
             ]);
     }
 
+    #[cfg(not(windows))] // Windows does not have file modes
     #[test]
     fn test_files_with_both_wrong_mode_and_wrong_checksum() {
         IntegrityTest::new()
@@ -695,6 +702,7 @@ mod tests {
             self
         }
 
+        #[cfg_attr(windows, allow(dead_code))]
         fn mode(mut self, new: u32) -> Self {
             self.mode = new;
             self
@@ -884,7 +892,8 @@ mod tests {
                     let mut verifier = IntegrityVerifier::new(self.env.keychain());
                     verifier.allow_external_files(self.allow_external_files);
                     for file in files {
-                        verifier.add(&file.path, file.mode, &file.contents);
+                        let path_str: &str = &file.path;
+                        verifier.add(Path::new(path_str), file.mode, &file.contents);
                     }
                     f(verifier.verify());
                 })

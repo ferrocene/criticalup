@@ -253,7 +253,7 @@ mod tests {
         fn verified_packages(proxies: &[&str]) -> Vec<VerifiedPackage> {
             let mut proxies_paths = BTreeMap::new();
             for proxy in proxies {
-                proxies_paths.insert(proxy.to_string(), format!("bin/{proxy}"));
+                proxies_paths.insert(proxy.to_string(), Path::new("bin").join(proxy));
             }
 
             vec![VerifiedPackage {
