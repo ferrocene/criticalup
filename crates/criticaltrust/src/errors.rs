@@ -41,4 +41,6 @@ pub enum Error {
             aws_smithy_runtime_api::client::orchestrator::HttpResponse,
         >,
     ),
+    #[error("failed verification while converting signature to string")]
+    SignatureConversionFailure,
 }

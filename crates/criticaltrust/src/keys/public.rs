@@ -4,8 +4,9 @@
 use super::newtypes::SignatureBytes;
 use crate::keys::newtypes::{PayloadBytes, PublicKeyBytes};
 use crate::keys::KeyAlgorithm;
+use crate::manifests::RevocationInfo;
 use crate::sha256::hash_sha256;
-use crate::signatures::{PublicKeysRepository, Signable};
+use crate::signatures::{PublicKeysRepository, Signable, SignedPayload};
 use crate::Error;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -34,7 +35,30 @@ impl PublicKey {
         role: KeyRole,
         payload: &PayloadBytes<'_>,
         signature: &SignatureBytes<'_>,
+        signed_revocation_info: Option<SignedPayload<RevocationInfo>>,
     ) -> Result<(), Error> {
+        // We need to check if there is revoked content. If the following checks pass, then bail out
+        // early with an error.
+        //  1. Check if the expiration date has passed.
+        //  2. Check whether the `signature` is inside the vector
+        //     `RevocationInfo.revoked_content_sha256`.
+        if let Some(revoked_hashes) = signed_revocation_info {
+            let verified_revoked_content = revoked_hashes.get_verified(self)?;
+
+            if OffsetDateTime::now_utc() > verified_revoked_content.expires_at {
+                return Err(Error::VerificationFailed);
+            }
+
+            let signature_as_string = String::from_utf8(signature.as_bytes().to_vec())
+                .map_err(|_err| Error::SignatureConversionFailure)?;
+            if verified_revoked_content
+                .revoked_content_sha256
+                .contains(&signature_as_string)
+            {
+                return Err(Error::VerificationFailed);
+            }
+        }
+
         if role != self.role || role == KeyRole::Unknown {
             return Err(Error::VerificationFailed);
         }
@@ -121,7 +145,7 @@ mod tests {
 
         assert!(key
             .public()
-            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
+            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature, None)
             .is_ok())
     }
 
@@ -132,7 +156,7 @@ mod tests {
 
         assert!(key
             .public()
-            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
+            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature, None)
             .is_ok());
     }
 
@@ -143,7 +167,7 @@ mod tests {
 
         assert!(matches!(
             key.public()
-                .verify(KeyRole::Packages, &SAMPLE_PAYLOAD, &signature),
+                .verify(KeyRole::Packages, &SAMPLE_PAYLOAD, &signature, None),
             Err(Error::VerificationFailed)
         ));
     }
@@ -155,7 +179,7 @@ mod tests {
 
         assert!(matches!(
             key.public()
-                .verify(KeyRole::Unknown, &SAMPLE_PAYLOAD, &signature),
+                .verify(KeyRole::Unknown, &SAMPLE_PAYLOAD, &signature, None),
             Err(Error::VerificationFailed)
         ));
     }
@@ -167,7 +191,7 @@ mod tests {
 
         assert!(matches!(
             key.public()
-                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature, None),
             Err(Error::VerificationFailed)
         ));
     }
@@ -184,7 +208,8 @@ mod tests {
             key.public().verify(
                 KeyRole::Root,
                 &SAMPLE_PAYLOAD,
-                &SignatureBytes::owned(bad_signature)
+                &SignatureBytes::owned(bad_signature),
+                None
             ),
             Err(Error::VerificationFailed)
         ));
@@ -199,7 +224,8 @@ mod tests {
             key.public().verify(
                 KeyRole::Root,
                 &PayloadBytes::borrowed("Hello world!".as_bytes()),
-                &signature
+                &signature,
+                None
             ),
             Err(Error::VerificationFailed)
         ));
@@ -213,7 +239,8 @@ mod tests {
             key.public().verify(
                 KeyRole::Root,
                 &SAMPLE_PAYLOAD,
-                &SignatureBytes::borrowed(&[])
+                &SignatureBytes::borrowed(&[]),
+                None
             ),
             Err(Error::VerificationFailed)
         ));
@@ -228,7 +255,7 @@ mod tests {
 
         assert!(matches!(
             key2.public()
-                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature, None),
             Err(Error::VerificationFailed)
         ));
     }
@@ -242,7 +269,7 @@ mod tests {
         public.algorithm = KeyAlgorithm::Unknown;
 
         assert!(matches!(
-            public.verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+            public.verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature, None),
             Err(Error::UnsupportedKey)
         ));
     }
@@ -298,6 +325,7 @@ mod tests {
             KeyRole::Root,
             &SAMPLE_PAYLOAD,
             &SignatureBytes::owned(base64_decode(SAMPLE_SIGNATURE).unwrap()),
+            None,
         )
         .unwrap();
     }
