@@ -167,7 +167,7 @@ pub struct RevocationInfo {
 }
 
 impl Signable for RevocationInfo {
-    const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
+    const SIGNED_BY_ROLE: KeyRole = KeyRole::Root;
 }
 
 // Keys
