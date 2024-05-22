@@ -29,7 +29,7 @@ impl PublicKey {
     /// Signature verification could fail if:
     /// * The signature is present in the `RevocationInfo`.
     /// * The `RevocationInfo` cannot be verified.
-    /// * [`verify_payload`](PublicKey::verify_payload) fails.
+    /// * [`verify_payload`](PublicKey::verify_without_checking_revocations) fails.
     pub fn verify(
         &self,
         role: KeyRole,
@@ -63,7 +63,7 @@ impl PublicKey {
             }
         }
 
-        self.verify_payload(role, payload, signature)?;
+        self.verify_without_checking_revocations(role, payload, signature)?;
 
         Ok(())
     }
@@ -75,7 +75,7 @@ impl PublicKey {
     /// * The current key expired.
     /// * The signature doesn't match the payload.
     /// * The signature wasn't performed by the current key.
-    pub fn verify_payload(
+    pub fn verify_without_checking_revocations(
         &self,
         role: KeyRole,
         payload: &PayloadBytes<'_>,
