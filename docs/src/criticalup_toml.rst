@@ -26,8 +26,8 @@ A typical ``criticalup.toml`` manifest looks like this:
         "rust-src",
     ]
 
-This manifest would install most of what the average person would need for
-development of a Ferrocene based project.
+This manifest will install what the average developer needs for a Ferrocene
+based project.
 
 
 Manifest Settings
@@ -100,7 +100,10 @@ release.
 If ``${rustc-host}`` is present within a package name it is replaced with the
 full host triple of the build host.
 
-TODO: How to find which packages are available for a release?
+Each supported Ferrocene target lists requires packages in the on it's page
+under "Compilation Targets" in the Ferrocene User Manual of the release. For
+example, the `X86-64 Linux (glibc) target of the rolling release
+<https://docs.ferrocene.dev/rolling/user-manual/targets/x86_64-unknown-linux-gnu.html#archives-to-install>`_.
 
 .. code-block::
 
