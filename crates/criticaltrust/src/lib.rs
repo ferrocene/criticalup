@@ -12,3 +12,6 @@ pub mod signatures;
 mod test_utils;
 
 pub use errors::Error;
+
+/// Trait to make sure that verification of only certain types does not check for revocation.
+pub trait NoRevocationCheck {}

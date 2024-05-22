@@ -2,6 +2,7 @@
 
 use crate::keys::{KeyRole, PublicKey};
 use crate::signatures::{Signable, SignedPayload};
+use crate::NoRevocationCheck;
 use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -173,6 +174,11 @@ pub struct KeysManifest {
     pub keys: Vec<SignedPayload<PublicKey>>,
     pub revoked_signatures: SignedPayload<RevocationInfo>,
 }
+
+/// Make sure verification of `RevocationInfo` type does no checks for revocations.
+///
+/// If we did, then this would be a circular logic. We say no to such logic.
+impl NoRevocationCheck for SignedPayload<RevocationInfo> {}
 
 #[cfg(test)]
 mod tests {

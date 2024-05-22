@@ -4,7 +4,7 @@ use crate::keys::KeyAlgorithm;
 use crate::manifests::RevocationInfo;
 use crate::sha256::hash_sha256;
 use crate::signatures::{PublicKeysRepository, Signable, SignedPayload};
-use crate::Error;
+use crate::{Error, NoRevocationCheck};
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -23,8 +23,13 @@ pub struct PublicKey {
     pub public: PublicKeyBytes<'static>,
 }
 
+/// Make sure verification of `PublicKey` type does no checks for revocations.
+///
+/// This is done because when decoding the public keys, we haven't yet decoded the revocation key.
+impl NoRevocationCheck for SignedPayload<PublicKey> {}
+
 impl PublicKey {
-    /// Verify whether the provided payload matches the provided signature and, if provided, the
+    /// Verify whether the provided payload matches the provided signature and check if the
     /// revoked content does not match the payload.
     ///
     /// Signature verification could fail if:
@@ -71,7 +76,10 @@ impl PublicKey {
     /// * The current key expired.
     /// * The signature doesn't match the payload.
     /// * The signature wasn't performed by the current key.
-    pub fn verify_without_checking_revocations(
+    ///
+    /// This method is local to this crate only to makes sure external API users do not use this
+    /// directly.
+    pub(crate) fn verify_without_checking_revocations(
         &self,
         role: KeyRole,
         payload: &PayloadBytes<'_>,
