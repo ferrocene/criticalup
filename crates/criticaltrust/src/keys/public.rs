@@ -8,6 +8,9 @@ use crate::Error;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+/// Expiration of `RevocationInfo` should be at least this many number of days out from now.
+const MAX_REVOCATION_INFO_EXPIRATION_DURATION: i64 = 90;
+
 /// Public key used for verification of signed payloads.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct PublicKey {
@@ -20,13 +23,13 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
-    /// Verify whether the provided payload matches the provided signature. Signature verification
-    /// could fail if:
+    /// Verify whether the provided payload matches the provided signature and, if provided, the
+    /// revoked content does not match the payload.
     ///
-    /// * The expected key role is different than the current key role.
-    /// * The current key expired.
-    /// * The signature doesn't match the payload.
-    /// * The signature wasn't performed by the current key.
+    /// Signature verification could fail if:
+    /// * The signature is present in the `RevocationInfo`.
+    /// * The `RevocationInfo` cannot be verified.
+    /// * [`verify_payload`](PublicKey::verify_payload) fails.
     pub fn verify(
         &self,
         role: KeyRole,
@@ -42,12 +45,16 @@ impl PublicKey {
         if let Some(revoked_hashes) = signed_revocation_info {
             let verified_revoked_content = revoked_hashes.get_verified(self)?;
 
-            if OffsetDateTime::now_utc() > verified_revoked_content.expires_at {
+            let expiration_in_days =
+                (verified_revoked_content.expires_at - OffsetDateTime::now_utc()).whole_days();
+            if expiration_in_days < MAX_REVOCATION_INFO_EXPIRATION_DURATION {
                 return Err(Error::VerificationFailed);
             }
 
-            let signature_as_string = String::from_utf8(signature.as_bytes().to_vec())
-                .map_err(|_err| Error::SignatureConversionFailure)?;
+            let signature_as_string = match serde_json::to_string(signature) {
+                Ok(sig) => sig,
+                Err(_) => return Err(Error::SignatureConversionFailure),
+            };
             if verified_revoked_content
                 .revoked_content_sha256
                 .contains(&signature_as_string)
@@ -56,6 +63,24 @@ impl PublicKey {
             }
         }
 
+        self.verify_payload(role, payload, signature)?;
+
+        Ok(())
+    }
+
+    /// Verify whether the provided payload matches the provided signature. Signature verification
+    /// could fail if:
+    ///
+    /// * The expected key role is different than the current key role.
+    /// * The current key expired.
+    /// * The signature doesn't match the payload.
+    /// * The signature wasn't performed by the current key.
+    pub fn verify_payload(
+        &self,
+        role: KeyRole,
+        payload: &PayloadBytes<'_>,
+        signature: &SignatureBytes<'_>,
+    ) -> Result<(), Error> {
         if role != self.role || role == KeyRole::Unknown {
             return Err(Error::VerificationFailed);
         }
@@ -426,12 +451,78 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_simple_revocation_key_valid_revoked_content_in_payload() {
+        let key = generate(KeyRole::Root, None);
+        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+
+        let signed_revocation_info = SignedPayload::new(&RevocationInfo {
+            revoked_content_sha256: vec![SAMPLE_SIGNATURE.to_string()],
+            expires_at: days_diff(10000).unwrap(),
+        })
+        .unwrap();
+        assert!(matches!(
+            key.public().verify(
+                KeyRole::Root,
+                &SAMPLE_PAYLOAD,
+                &signature,
+                Some(signed_revocation_info)
+            ),
+            Err(Error::VerificationFailed)
+        ));
+    }
+
+    /// MAX_REVOCATION_INFO_EXPIRATION_DURATION is set in public.rs. This test makes sure that
+    /// that is honored.
+    #[test]
+    fn test_simple_revocation_key_invalid_duration_less_than_max() {
+        let days: i64 = 10;
+        assert!(MAX_REVOCATION_INFO_EXPIRATION_DURATION > days);
+
+        let key = generate(KeyRole::Root, None);
+        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let rev_key = generate(KeyRole::Revocation, Some(days_diff(200).unwrap()));
+
+        let mut signed_revocation_info = SignedPayload::new(&RevocationInfo {
+            revoked_content_sha256: Vec::new(),
+            expires_at: days_diff(days).unwrap(),
+        })
+        .unwrap();
+        signed_revocation_info.add_signature(&key).unwrap();
+        signed_revocation_info.add_signature(&rev_key).unwrap();
+
+        // Check both keys, Root and Revocation.
+        assert!(matches!(
+            key.public().verify(
+                KeyRole::Root,
+                &SAMPLE_PAYLOAD,
+                &signature,
+                Some(signed_revocation_info.clone())
+            ),
+            Err(Error::VerificationFailed)
+        ));
+
+        assert!(matches!(
+            rev_key.public().verify(
+                KeyRole::Revocation,
+                &SAMPLE_PAYLOAD,
+                &signature,
+                Some(signed_revocation_info)
+            ),
+            Err(Error::VerificationFailed)
+        ));
+    }
+
     fn date(rfc3339: &str) -> OffsetDateTime {
         OffsetDateTime::parse(rfc3339, &time::format_description::well_known::Rfc3339).unwrap()
     }
 
     fn hours_diff(diff: i64) -> Option<OffsetDateTime> {
         Some(OffsetDateTime::now_utc() + Duration::hours(diff))
+    }
+
+    fn days_diff(diff: i64) -> Option<OffsetDateTime> {
+        Some(OffsetDateTime::now_utc() + Duration::days(diff))
     }
 
     fn generate(role: KeyRole, expiry: Option<OffsetDateTime>) -> EphemeralKeyPair {
