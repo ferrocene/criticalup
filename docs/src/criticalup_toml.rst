@@ -22,8 +22,8 @@ A typical ``criticalup.toml`` manifest looks like this:
         "cargo-${rustc-host}",
         "rustc-${rustc-host}",
         "rust-std-${rustc-host}",
-        "llvm-tools-${rustc-host}"
-        "rust-src",
+        "llvm-tools-${rustc-host}".
+        "rust-src"
     ]
 
 This manifest will install what the average developer needs for a Ferrocene
@@ -65,7 +65,7 @@ A map of ``product`` entries, as defined :ref:`in 'Product Settings' below
     release = "nightly-2024-05-22"
     packages = [
         "rustc-${rustc-host}",
-        "rust-std-aarch64-unknown-none",
+        "rust-std-aarch64-unknown-none"
     ]
 
 
@@ -105,7 +105,7 @@ example, the `X86-64 Linux (glibc) target of the rolling release
     # ...
     packages = [
         "rustc-${rustc-host}",
-        "rust-std-aarch64-unknown-none",
+        "rust-std-aarch64-unknown-none"
     ]
 
 If ``${rustc-host}`` is present within a package name it is replaced with the
