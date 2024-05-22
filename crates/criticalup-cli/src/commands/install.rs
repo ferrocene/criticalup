@@ -140,7 +140,7 @@ fn install_product_afresh(
 
             if entry_path_on_disk.is_file() {
                 integrity_verifier.add(
-                    &entry_path_on_disk.display().to_string(),
+                    &entry_path_on_disk,
                     entry.header().mode()?,
                     &std::fs::read(&entry_path_on_disk)?,
                 );
