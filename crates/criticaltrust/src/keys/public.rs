@@ -8,6 +8,7 @@ use crate::manifests::RevocationInfo;
 use crate::sha256::hash_sha256;
 use crate::signatures::{PublicKeysRepository, Signable, SignedPayload};
 use crate::Error;
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -54,13 +55,11 @@ impl PublicKey {
                 return Err(Error::VerificationFailed);
             }
 
-            let signature_as_string = match serde_json::to_string(signature) {
-                Ok(sig) => sig,
-                Err(_) => return Err(Error::SignatureConversionFailure),
-            };
+            let based_signature =
+                base64::engine::general_purpose::STANDARD.encode(signature.as_bytes());
             if verified_revoked_content
                 .revoked_content_sha256
-                .contains(&signature_as_string)
+                .contains(&based_signature)
             {
                 return Err(Error::VerificationFailed);
             }
