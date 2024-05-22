@@ -30,6 +30,10 @@ Where the ``criticalup.toml`` contains the following content:
       "cargo-x86_64-unknown-linux-gnu",
    ]
 
+.. note::
+
+   Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
+
 .. _install_toolchain:
 
 Installing Toolchains
@@ -47,7 +51,7 @@ toolchain.
    cd project
    criticalup install
 
-To change the installed products, edit the ``criticalup.toml`` as desired, for example:
+To change the installed products, edit the ``criticalup.toml`` as desired. For example:
 
 .. code-block::
 
@@ -58,7 +62,7 @@ To change the installed products, edit the ``criticalup.toml`` as desired, for e
    packages = [
       "rustc-x86_64-unknown-linux-gnu",
       "cargo-x86_64-unknown-linux-gnu",
-      "rustfmt-x86_64-unknown-linux-gnu", # Line added
+      "rust-std-aarch64-unknown-none", # Line added
    ]
 
 Then run the install command again:
@@ -72,7 +76,7 @@ Removing Toolchains
 ^^^^^^^^^^^^^^^^^^^
 
 An installation can be removed by running the ``criticalup remove`` command
-from the directory containing the ```criticalup.toml```:
+from the directory containing the ``criticalup.toml``:
 
 .. code-block::
 

@@ -25,7 +25,8 @@ From a terminal run:
 
    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/download/criticalup-cli-v0.0.0/criticalup-cli-installer.sh | sh
 
-CriticalUp will install into ``$XDG_DATA_HOME/criticalup``, or if that environment variable is not set, ``$HOME/.local/share/criticalup``.
+CriticalUp will install into ``$XDG_DATA_HOME/criticalup``, or if that
+environment variable is not set, ``$HOME/.local/share/criticalup``.
 
 
 MacOS
