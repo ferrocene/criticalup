@@ -6,8 +6,8 @@
 criticalup.toml
 ===============
 
-CriticalUp's per-repository configuration resides in a ``criticalup.toml``
-manifest  that acts as an equivalent to a ``rust-toolchain.toml`` file
+CriticalUp's per-project configuration resides in a ``criticalup.toml``
+manifest that is similar to a ``rust-toolchain.toml`` file
 `(documentation) <https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file>`__.
 
 A typical ``criticalup.toml`` manifest looks like this:
@@ -94,10 +94,7 @@ A set of package names as listed in the release page, for example the `beta-roll
 <https://releases.ferrocene.dev/ferrocene/files/rolling-2024-04-30/index.html>`_
 release.
 
-If ``${rustc-host}`` is present within a package name it is replaced with the
-full host triple of the build host.
-
-Each supported Ferrocene target lists requires packages in the on it's page
+Each supported Ferrocene target lists required packages in the on it's page
 under "Compilation Targets" in the Ferrocene User Manual of the release. For
 example, the `X86-64 Linux (glibc) target of the rolling release
 <https://docs.ferrocene.dev/rolling/user-manual/targets/x86_64-unknown-linux-gnu.html#archives-to-install>`_.
@@ -111,3 +108,5 @@ example, the `X86-64 Linux (glibc) target of the rolling release
         "rust-std-aarch64-unknown-none",
     ]
 
+If ``${rustc-host}`` is present within a package name it is replaced with the
+full host triple of the build host.
