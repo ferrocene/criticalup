@@ -62,7 +62,7 @@ A map of ``product`` entries, as defined :ref:`in 'Product Settings' below
 .. code-block::
 
     [products.ferrocene]
-    release = "stable-23.06"
+    release = "rolling-2024-04-30"
     packages = [
         "rustc-${rustc-host}",
         "rust-std-aarch64-unknown-none",
@@ -80,21 +80,18 @@ Product Settings
 The desired release of the product, releases are listed on the `release
 channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
 
-TODO: How to find which releases can be downloaded from the download server.
-TODO: How to find older releases from channels.
-
 
 .. code-block::
 
     [products.ferrocene]
-    release = "stable-23.06"
+    release = "rolling-2024-04-30"
     # ...
 
 ``packages``
 ^^^^^^^^^^^^
 
-A set of package names as listed in the release page, for example the `stable-23.06
-<https://releases.ferrocene.dev/ferrocene/files/stable-23.06.0/index.html>`_
+A set of package names as listed in the release page, for example the `beta-rolling-2024-04-30
+<https://releases.ferrocene.dev/ferrocene/files/rolling-2024-04-30/index.html>`_
 release.
 
 If ``${rustc-host}`` is present within a package name it is replaced with the
