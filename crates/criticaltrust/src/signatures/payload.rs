@@ -3,7 +3,7 @@
 
 use crate::keys::newtypes::{PayloadBytes, SignatureBytes};
 use crate::keys::{KeyId, KeyPair, KeyRole, PublicKey};
-use crate::Error;
+use crate::{Error, NoRevocationCheck};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell};
 
@@ -95,6 +95,33 @@ impl<T: Signable> SignedPayload<T> {
                 PayloadBytes::borrowed(self.signed.as_bytes()),
             )
         }
+    }
+}
+
+impl<T: Signable + NoRevocationCheck> SignedPayload<T> {
+    pub fn get_verified_without_checking_revocations(
+        &self,
+        keys: &dyn PublicKeysRepository,
+    ) -> Result<Ref<'_, T>, Error> {
+        let borrow = self.verified_deserialized.borrow();
+
+        if borrow.is_none() {
+            let value = verify_signature(
+                keys,
+                &self.signatures,
+                PayloadBytes::borrowed(self.signed.as_bytes()),
+            )?;
+
+            // In theory, `borrow_mut()` could panic if an immutable borrow was alive at the same
+            // time. In practice that won't happen, as we only populate the cache before returning
+            // any reference to the cached data.
+            drop(borrow);
+            *self.verified_deserialized.borrow_mut() = Some(value);
+        }
+
+        Ok(Ref::map(self.verified_deserialized.borrow(), |b| {
+            b.as_ref().unwrap()
+        }))
     }
 }
 
