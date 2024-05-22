@@ -109,7 +109,11 @@ fn verify_signature<T: Signable>(
             None => continue,
         };
 
-        match key.verify_payload(T::SIGNED_BY_ROLE, &signed, &signature.signature) {
+        match key.verify_without_checking_revocations(
+            T::SIGNED_BY_ROLE,
+            &signed,
+            &signature.signature,
+        ) {
             Ok(()) => {}
             Err(Error::VerificationFailed) => continue,
             Err(other) => return Err(other),
