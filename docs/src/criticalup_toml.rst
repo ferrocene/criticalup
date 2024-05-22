@@ -22,7 +22,7 @@ A typical ``criticalup.toml`` manifest looks like this:
         "cargo-${rustc-host}",
         "rustc-${rustc-host}",
         "rust-std-${rustc-host}",
-        "llvm-tools-${rustc-host}".
+        "llvm-tools-${rustc-host}",
         "rust-src"
     ]
 
