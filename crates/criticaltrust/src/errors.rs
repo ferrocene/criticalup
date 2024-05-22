@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::KeyRole;
+use std::string::FromUtf8Error;
 use thiserror::Error;
 
 #[non_exhaustive]
@@ -41,4 +42,6 @@ pub enum Error {
             aws_smithy_runtime_api::client::orchestrator::HttpResponse,
         >,
     ),
+    #[error("failed to calculate SHA256 from payload")]
+    PayloadSha256CalcFailed(#[source] FromUtf8Error),
 }

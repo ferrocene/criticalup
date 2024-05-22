@@ -8,7 +8,6 @@ use crate::manifests::RevocationInfo;
 use crate::sha256::hash_sha256;
 use crate::signatures::{PublicKeysRepository, Signable, SignedPayload};
 use crate::{Error, NoRevocationCheck};
-use base64::Engine;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -58,11 +57,13 @@ impl PublicKey {
             return Err(Error::VerificationFailed);
         }
 
-        let based_signature =
-            base64::engine::general_purpose::STANDARD.encode(signature.as_bytes());
+        let sha256_payload = match String::from_utf8(hash_sha256(payload.as_bytes())) {
+            Ok(sha) => sha,
+            Err(err) => return Err(Error::PayloadSha256CalcFailed(err)),
+        };
         if verified_revoked_content
             .revoked_content_sha256
-            .contains(&based_signature)
+            .contains(&sha256_payload)
         {
             return Err(Error::VerificationFailed);
         }
@@ -163,6 +164,8 @@ mod tests {
     use time::Duration;
 
     const SAMPLE_PAYLOAD: PayloadBytes<'static> = PayloadBytes::borrowed(b"Hello world");
+    const SAMPLE_REVOKED_PAYLOAD: PayloadBytes<'static> =
+        PayloadBytes::borrowed(b"Yes, I am a revoked payload, you cruel world! :(");
     const SAMPLE_KEY_ID: &str = "nvb7o7wel0FvL/hZ/P4yI3JJRfYYjTXZPpdV+xNQqTA=";
     const SAMPLE_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAGDPB8wZg17bAny3c0jPNg8wmnylcKtCLuPnX3GfwEQDf6ydkD1qnOPtMCZBh0P521Q5evvQ1e/rHsjrbBVPMQ==";
     const SAMPLE_SIGNATURE: &str = "MEYCIQC8MN8dk0jkZo1GIY8EZSaLpnDPUqR29E9eerKPjRyeJwIhAOd21m1VqpldE4kagUVZOUL0Pb/EZTQ0ry8ltbC446sh";
@@ -469,17 +472,18 @@ mod tests {
     #[test]
     fn test_simple_revocation_key_valid_revoked_content_in_payload() {
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_REVOKED_PAYLOAD).unwrap();
 
+        let payload_sha256 = String::from_utf8(SAMPLE_REVOKED_PAYLOAD.as_bytes().to_vec()).unwrap();
         let signed_revocation_info = SignedPayload::new(&RevocationInfo {
-            revoked_content_sha256: vec![SAMPLE_SIGNATURE.to_string()],
+            revoked_content_sha256: vec![payload_sha256],
             expires_at: days_diff(10000).unwrap(),
         })
         .unwrap();
         assert!(matches!(
             key.public().verify(
                 KeyRole::Root,
-                &SAMPLE_PAYLOAD,
+                &SAMPLE_REVOKED_PAYLOAD,
                 &signature,
                 signed_revocation_info
             ),
@@ -495,7 +499,7 @@ mod tests {
         assert!(MAX_REVOCATION_INFO_EXPIRATION_DURATION > days);
 
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_REVOKED_PAYLOAD).unwrap();
         let rev_key = generate(KeyRole::Revocation, Some(days_diff(200).unwrap()));
 
         let mut signed_revocation_info = SignedPayload::new(&RevocationInfo {
@@ -510,7 +514,7 @@ mod tests {
         assert!(matches!(
             key.public().verify(
                 KeyRole::Root,
-                &SAMPLE_PAYLOAD,
+                &SAMPLE_REVOKED_PAYLOAD,
                 &signature,
                 signed_revocation_info.clone()
             ),
