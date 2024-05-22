@@ -171,7 +171,7 @@ impl Signable for RevocationInfo {
 pub struct KeysManifest {
     pub version: ManifestVersion<1>,
     pub keys: Vec<SignedPayload<PublicKey>>,
-    pub revoked_signatures: Option<SignedPayload<RevocationInfo>>,
+    pub revoked_signatures: SignedPayload<RevocationInfo>,
 }
 
 #[cfg(test)]

@@ -21,7 +21,7 @@ pub struct AuthenticationToken {
 pub struct Data {
     pub tokens: HashMap<String, AuthenticationToken>,
     pub keys: Vec<SignedPayload<PublicKey>>,
-    pub revoked_signatures: Option<SignedPayload<RevocationInfo>>,
+    pub revoked_signatures: SignedPayload<RevocationInfo>,
     pub release_manifests: HashMap<(String, String), ReleaseManifest>,
 }
 
@@ -30,13 +30,11 @@ pub fn new() -> Builder {
         data: Data {
             tokens: HashMap::new(),
             keys: Vec::new(),
-            revoked_signatures: Some(
-                SignedPayload::new(&RevocationInfo {
-                    revoked_content_sha256: Vec::new(),
-                    expires_at: OffsetDateTime::now_utc(),
-                })
-                .unwrap(),
-            ),
+            revoked_signatures: SignedPayload::new(&RevocationInfo {
+                revoked_content_sha256: Vec::new(),
+                expires_at: OffsetDateTime::now_utc(),
+            })
+            .unwrap(),
             release_manifests: HashMap::new(),
         },
     }

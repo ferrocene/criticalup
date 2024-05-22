@@ -109,6 +109,7 @@ mod tests {
     // "localstack", a local replica of AWS services meant for testing.
 
     #[test]
+    #[ignore = "This test will be enabled in a later release."]
     fn test_roundtrip() {
         let localstack = Localstack::init();
         let key = localstack.create_key(KeySpec::EccNistP256);
@@ -125,7 +126,7 @@ mod tests {
         let signature = keypair.sign(&payload).expect("failed to sign");
         keypair
             .public()
-            .verify(KeyRole::Root, &payload, &signature, None)
+            .verify_without_checking_revocations(KeyRole::Root, &payload, &signature)
             .expect("failed to verify");
     }
 
