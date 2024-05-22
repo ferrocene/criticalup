@@ -11,7 +11,7 @@ on:
 
 permissions:
   # Allow write access to the source code to enable GitHub Pages publishing.
-  contents: write
+  contents: read
 
 jobs:
   build-test:
@@ -96,8 +96,6 @@ jobs:
 
   docs:
     name: Build documentation
-    permissions:
-      contents: read
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout the source code
