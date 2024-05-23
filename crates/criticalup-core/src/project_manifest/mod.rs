@@ -50,7 +50,6 @@ impl ProjectManifest {
     /// If the path is not provided then tries to find the manifest iterating over parent
     /// directories looking for one, and stopping at the closest parent directory with the file.
     pub fn discover_canonical_path(project_path: Option<&Path>) -> Result<PathBuf, Error> {
-        let curr_directory = env::current_dir().map_err(Error::FailedToReadDirectory)?;
         match project_path {
             Some(path) => {
                 Ok(
@@ -61,6 +60,7 @@ impl ProjectManifest {
                 )
             }
             None => {
+                let curr_directory = env::current_dir().map_err(Error::FailedToReadDirectory)?;
                 let path = ProjectManifest::discover(&curr_directory)?;
                 Ok(std::fs::canonicalize(&path)
                     .map_err(|err| FailedToFindCanonicalPath { path, kind: err })?)

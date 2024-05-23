@@ -172,11 +172,11 @@ impl<'a> IntegrityVerifier<'a> {
             let file_str = file_path.to_string_lossy().to_string();
 
             if file.needs_proxy {
-                let proxy_name = file_str
-                    .rsplit_once('/')
-                    .map(|(_dir, name)| name)
-                    .unwrap_or(&file_str);
-                proxies_paths.insert(proxy_name.into(), file_path.clone());
+                let proxy_name = file_path
+                    .file_name()
+                    .map(|v| v.to_string_lossy().to_string())
+                    .unwrap_or(file_str.clone());
+                proxies_paths.insert(proxy_name, file_path.clone());
             }
 
             if let Some(found) = self

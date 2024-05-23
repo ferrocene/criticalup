@@ -198,6 +198,8 @@ macro_rules! assert_output {
         #[cfg(windows)]
         settings.add_filter("exit code: ", "exit status: ");
         #[cfg(windows)]
+        settings.add_filter(r"bin\\rustc", r"bin/rustc");
+        #[cfg(windows)]
         settings.add_filter("criticalup-test.exe", "criticalup-test");
         settings.bind(|| {
             insta::assert_snapshot!(repr);
