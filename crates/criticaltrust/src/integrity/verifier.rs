@@ -199,7 +199,6 @@ impl<'a> IntegrityVerifier<'a> {
             self.managed_prefixes.insert(prefix.join(&managed_prefix));
         }
 
-
         self.verified_packages.push(VerifiedPackage {
             product: manifest.product,
             package: manifest.package,
