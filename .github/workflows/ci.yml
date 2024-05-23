@@ -122,7 +122,6 @@ jobs:
         with:
           path: docs/build/html
 
-
   deploy-docs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
     environment:
@@ -138,7 +137,6 @@ jobs:
         uses: actions/deploy-pages@v4
         id: github-pages
 
-
   build-finished:
     name: CI build successful
     runs-on: ubuntu-latest
@@ -148,19 +146,5 @@ jobs:
       - docs
       - license
     steps:
-      - name: Download built documentation for publishing
-        uses: actions/download-artifact@v3
-        with:
-          name: docs
-          path: /tmp/docs
-        if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-
-      - name: Publish the documentation to GitHub Pages
-        uses: ferrous-systems/shared-github-actions/github-pages@main
-        with:
-          path: /tmp/docs
-          token: ${{ secrets.GITHUB_TOKEN }}
-        if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-
       - name: Mark the build as successful
         run: exit 0
