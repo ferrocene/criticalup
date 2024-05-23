@@ -75,7 +75,7 @@ jobs:
           cat plan-dist-manifest.json
           echo "manifest=$(jq -c "." plan-dist-manifest.json)" >> "$GITHUB_OUTPUT"
       - name: "Upload dist-manifest.json"
-        uses: ./.github/actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts-plan-dist-manifest
           path: plan-dist-manifest.json
@@ -115,14 +115,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: ./.github/actions/rust-cache
+      - uses: swatinem/rust-cache@v2
         with:
           key: ${{ join(matrix.targets, '-') }}
       - name: Install cargo-dist
         run: ${{ matrix.install_dist }}
       # Get the dist-manifest
       - name: Fetch local artifacts
-        uses: ./.github/actions/download-artifact
+        uses: actions/download-artifact@v4
         with:
           pattern: artifacts-*
           path: target/distrib/
@@ -149,7 +149,7 @@ jobs:
 
           cp dist-manifest.json "$BUILD_MANIFEST_NAME"
       - name: "Upload artifacts"
-        uses: ./.github/actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts-build-local-${{ join(matrix.targets, '_') }}
           path: |
@@ -174,7 +174,7 @@ jobs:
         run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.15.0-prerelease.20/cargo-dist-installer.sh | sh"
       # Get all the local artifacts for the global tasks to use (for e.g. checksums)
       - name: Fetch local artifacts
-        uses: ./.github/actions/download-artifact
+        uses: actions/download-artifact@v4
         with:
           pattern: artifacts-*
           path: target/distrib/
@@ -192,7 +192,7 @@ jobs:
 
           cp dist-manifest.json "$BUILD_MANIFEST_NAME"
       - name: "Upload artifacts"
-        uses: ./.github/actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts-build-global
           path: |
@@ -219,7 +219,7 @@ jobs:
         run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.15.0-prerelease.20/cargo-dist-installer.sh | sh"
       # Fetch artifacts from scratch-storage
       - name: Fetch artifacts
-        uses: ./.github/actions/download-artifact
+        uses: actions/download-artifact@v4
         with:
           pattern: artifacts-*
           path: target/distrib/
@@ -233,7 +233,7 @@ jobs:
           cat dist-manifest.json
           echo "manifest=$(jq -c "." dist-manifest.json)" >> "$GITHUB_OUTPUT"
       - name: "Upload dist-manifest.json"
-        uses: ./.github/actions/upload-artifact
+        uses: actions/upload-artifact@v4
         with:
           # Overwrite the previous copy
           name: artifacts-dist-manifest
@@ -256,7 +256,7 @@ jobs:
         with:
           submodules: recursive
       - name: "Download GitHub Artifacts"
-        uses: ./.github/actions/download-artifact
+        uses: actions/download-artifact@v4
         with:
           pattern: artifacts-*
           path: artifacts
@@ -266,7 +266,7 @@ jobs:
           # Remove the granular manifests
           rm -f artifacts/*-dist-manifest.json
       - name: Create GitHub Release
-        uses: ./.github/actions/release-action
+        uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.plan.outputs.tag }}
           name: ${{ fromJson(needs.host.outputs.val).announcement_title }}
