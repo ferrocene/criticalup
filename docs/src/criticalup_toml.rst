@@ -17,7 +17,7 @@ A typical ``criticalup.toml`` manifest looks like this:
     manifest-version = 1
 
     [products.ferrocene]
-    release = "nightly-2024-05-22"
+    release = "stable-24.05.0"
     packages = [
         "cargo-${rustc-host}",
         "rustc-${rustc-host}",
@@ -62,7 +62,7 @@ A map of ``product`` entries, as defined :ref:`in 'Product Settings' below
 .. code-block::
 
     [products.ferrocene]
-    release = "nightly-2024-05-22"
+    release = "stable-24.05.0"
     packages = [
         "rustc-${rustc-host}",
         "rust-std-aarch64-unknown-none"
@@ -84,14 +84,14 @@ channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
 .. code-block::
 
     [products.ferrocene]
-    release = "nightly-2024-05-22"
+    release = "stable-24.05.0"
     # ...
 
 ``packages``
 ^^^^^^^^^^^^
 
-A set of package names as listed in the release page, for example the `beta-nightly-2024-05-22
-<https://releases.ferrocene.dev/ferrocene/files/nightly-2024-05-22/index.html>`_
+A set of package names as listed in the release page, for example the `beta-stable-24.05.0
+<https://releases.ferrocene.dev/ferrocene/files/stable-24.05.0/index.html>`_
 release.
 
 Each supported Ferrocene target lists required packages in the on it's page
