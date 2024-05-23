@@ -125,6 +125,9 @@ jobs:
 
   deploy-docs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    environment:
+      name: github-pages
+      url: ${{ steps.github-pages.outputs.page_url }}
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write      # to deploy to Pages
