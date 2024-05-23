@@ -28,7 +28,7 @@ pr-run-mode = "plan"
 # Whether to install an updater program
 install-updater = false
 ssldotcom-windows-sign = "prod"
-vendor_workflow_deps = true
+vendor-workflow-deps = true
 
 [workspace.metadata.dist.dependencies.apt]
 gcc-aarch64-linux-gnu = "*"
