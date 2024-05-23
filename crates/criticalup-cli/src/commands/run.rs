@@ -23,7 +23,6 @@ pub(crate) fn run(
     let proxies_dir = &ctx.config.paths.proxies_dir;
 
     if let Some(binary_command) = command.first() {
-
         let mut binary_executable = PathBuf::new();
         binary_executable.set_file_name(binary_command);
         // On Windows, the user can pass (for example) `cargo` or `cargo.exe`

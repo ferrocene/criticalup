@@ -14,7 +14,7 @@ pub(crate) fn run(ctx: &Context, tool: String, project: Option<PathBuf>) -> Resu
 
     for product in manifest.products() {
         let abs_installation_dir_path = installation_dir.join(product.installation_id());
-        
+
         let bin_path = PathBuf::from("bin");
 
         let mut tool_executable = PathBuf::new();
