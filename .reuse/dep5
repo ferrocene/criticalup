@@ -15,7 +15,7 @@ License: MIT
 
 Files: .github/actions/rust-cache/*
 Copyright: Arpad Borsos
-License: LGPL
+License: LGPL-3.0-or-later
 
 Files: .github/actions/upload-artifact/*
 Copyright: GitHub, Inc. and contributors
