@@ -254,10 +254,10 @@ mod tests {
     // Note that the tests verify all possible permutations of input files, ensuring the expected
     // behavior regardless of the order files are provided to the verifier.
 
-    const BIN_A: Lazy<TestFile> = Lazy::new(|| TestFile::new("bin/a", 0o755, b"foo binary"));
-    const BIN_B: Lazy<TestFile> = Lazy::new(|| TestFile::new("bin/b", 0o755, b"bar binary"));
-    const SHARE_A: Lazy<TestFile> = Lazy::new(|| TestFile::new("share/a", 0o644, b"a file"));
-    const SHARE_B: Lazy<TestFile> = Lazy::new(|| TestFile::new("share/b", 0o644, b"b file"));
+    static BIN_A: Lazy<TestFile> = Lazy::new(|| TestFile::new("bin/a", 0o755, b"foo binary"));
+    static BIN_B: Lazy<TestFile> = Lazy::new(|| TestFile::new("bin/b", 0o755, b"bar binary"));
+    static SHARE_A: Lazy<TestFile> = Lazy::new(|| TestFile::new("share/a", 0o644, b"a file"));
+    static SHARE_B: Lazy<TestFile> = Lazy::new(|| TestFile::new("share/b", 0o644, b"b file"));
 
     macro_rules! btreemap {
         ($($key:expr => $value:expr),*$(,)?) => {{
@@ -409,12 +409,12 @@ mod tests {
                     path,
                     expected: 0o755,
                     found: 0o644,
-                } if path == "bin/a",
+                } if path == Path::new("bin/a"),
                 IntegrityError::WrongPosixPermissions {
                     path,
                     expected: 0o755,
                     found: 0o644,
-                } if path == "bin/b",
+                } if path == Path::new("bin/b"),
             ]);
     }
 
@@ -431,7 +431,7 @@ mod tests {
                     expected: 0o755,
                     found: 0o644,
                 } if path == "bin/a",
-                IntegrityError::WrongChecksum { path } if path == "bin/a",
+                IntegrityError::WrongChecksum { path } if path == Path::new("bin/a"),
             ]);
     }
 
@@ -811,7 +811,7 @@ mod tests {
 
         fn manifest(self, builder: ManifestBuilder) -> Self {
             self.manifest_in(
-                builder.prefix.join(&format!(
+                builder.prefix.join(format!(
                     "share/criticaltrust/{}/{}.json",
                     builder.manifest.product, builder.manifest.package
                 )),
