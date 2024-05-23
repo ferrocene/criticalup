@@ -124,6 +124,8 @@ jobs:
 
   deploy-docs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    needs:
+      - docs
     environment:
       name: github-pages
       url: ${{ steps.github-pages.outputs.page_url }}
@@ -144,7 +146,7 @@ jobs:
     needs:
       - build-test
       - docs
-      - license
+      - deploy-docs
     steps:
       - name: Mark the build as successful
         run: exit 0
