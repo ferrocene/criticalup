@@ -4,3 +4,19 @@ Files: *.snap
        Cargo.lock
 Copyright: The Ferrocene Developers
 License: MIT OR Apache-2.0
+
+Files: .github/actions/download-artifact/*
+Copyright: GitHub, Inc. and contributors
+License: MIT
+
+Files: .github/actions/release-action/*
+Copyright: GitHub, Inc. and contributors
+License: MIT
+
+Files: .github/actions/rust-cache/*
+Copyright: Arpad Borsos
+License: LGPL
+
+Files: .github/actions/upload-artifact/*
+Copyright: GitHub, Inc. and contributors
+License: MIT
