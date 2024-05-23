@@ -176,7 +176,7 @@ impl<'a> IntegrityVerifier<'a> {
                     .file_name()
                     .map(|v| v.to_string_lossy().to_string())
                     .unwrap_or(file_str.clone());
-                proxies_paths.insert(proxy_name.into(), file_path.clone());
+                proxies_paths.insert(proxy_name, file_path.clone());
             }
 
             if let Some(found) = self
@@ -199,7 +199,6 @@ impl<'a> IntegrityVerifier<'a> {
             self.managed_prefixes.insert(prefix.join(&managed_prefix));
         }
 
-        println!("VERIFIER {proxies_paths:#?}");
 
         self.verified_packages.push(VerifiedPackage {
             product: manifest.product,
