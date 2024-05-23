@@ -19,14 +19,21 @@ pub(crate) fn run(ctx: &Context, tool: String, project: Option<PathBuf>) -> Resu
 
         let mut tool_executable = PathBuf::new();
         tool_executable.set_file_name(&tool);
-        // On Windows, the user can pass (for example) `cargo` or `cargo.exe`
-        #[cfg(windows)]
-        tool_executable.set_extension("exe");
 
-        let tools_bin_path = abs_installation_dir_path.join(bin_path.join(tool_executable));
+        let tools_bin_path = abs_installation_dir_path.join(bin_path.join(&tool_executable));
+
         if tools_bin_path.exists() {
             println!("{}\n", tools_bin_path.display());
         } else {
+            // On Windows, the user can pass (for example) `cargo` or `cargo.exe`
+            #[cfg(windows)]
+            {
+                let mut tools_bin_path_with_exe = tools_bin_path.clone();
+                tools_bin_path_with_exe.set_extension("exe");
+                if tools_bin_path_with_exe.exists() {
+                    println!("{}\n", tools_bin_path_with_exe.display());
+                }
+            }
             return Err(BinaryNotInstalled(tool));
         }
     }

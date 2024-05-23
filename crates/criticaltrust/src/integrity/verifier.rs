@@ -7,7 +7,7 @@ use crate::manifests::{PackageFile, PackageManifest};
 use crate::sha256::hash_sha256;
 use crate::signatures::Keychain;
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::path::{Path, PathBuf, MAIN_SEPARATOR};
+use std::path::{Path, PathBuf};
 
 /// Verify the integrity of a CriticalUp archive or installation.
 ///
@@ -172,10 +172,10 @@ impl<'a> IntegrityVerifier<'a> {
             let file_str = file_path.to_string_lossy().to_string();
 
             if file.needs_proxy {
-                let proxy_name = file_str
-                    .rsplit_once(MAIN_SEPARATOR)
-                    .map(|(_dir, name)| name)
-                    .unwrap_or(&file_str);
+                let proxy_name = file_path
+                    .file_name()
+                    .map(|v| v.to_string_lossy().to_string())
+                    .unwrap_or(file_str.clone());
                 proxies_paths.insert(proxy_name.into(), file_path.clone());
             }
 
