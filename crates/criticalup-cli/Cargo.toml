@@ -19,21 +19,21 @@ path = "tests/cli/main.rs"
 
 [dependencies]
 atty = "0.2.14"
-clap = { version = "4.2.4", features = ["std", "derive", "help", "usage"] }
+clap = { version = "4.5.4", features = ["std", "derive", "help", "usage"] }
 criticaltrust = { path = "../criticaltrust" }
 criticalup-core = { path = "../criticalup-core" }
 owo-colors = { version = "4.0.0", default-features = false, features = ["supports-colors"] }
-serde_json = "1.0.79"
+serde_json = "1.0.117"
 tar = "0.4.40"
-thiserror = "1.0.30"
+thiserror = "1.0.61"
 xz2 = "0.1.7"
 
 [dev-dependencies]
-insta = { version = "1.12.0", features = ["filters"] }
+insta = { version = "1.39.0", features = ["filters"] }
 mock-download-server = { path = "../mock-download-server" }
-serde = { version = "1.0.136", features = ["derive"] }
-tempfile = "3.3.0"
-regex = "1.7.0"
+serde = { version = "1.0.202", features = ["derive"] }
+tempfile = "3.10.1"
+regex = "1.10.4"
 
 [target.x86_64-pc-windows-msvc.dependencies]
 windows-sys = { version = "0.52.0", features = ["Win32_Foundation", "Win32_System_Console"] }
