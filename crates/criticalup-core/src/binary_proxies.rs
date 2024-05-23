@@ -6,7 +6,7 @@
 //! binary inside of the chosen criticalup installation.
 
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::config::Config;
 use crate::errors::BinaryProxyUpdateError;
@@ -39,14 +39,7 @@ pub fn update(
             for entry in iter {
                 let entry = entry.map_err(list_dir_error)?;
 
-                let entry_name = match entry.file_name().to_str().map(|s| s.to_string()) {
-                    Some(name) => name,
-                    None => {
-                        // No binary proxy will have a non-UTF-8 name.
-                        remove_unexpected(&entry.path())?;
-                        continue;
-                    }
-                };
+                let entry_name = PathBuf::from(entry.file_name());
 
                 if expected_proxies.remove(&*entry_name) {
                     ensure_link(proxy_binary, &entry.path())?;
@@ -166,6 +159,7 @@ fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
 mod tests {
     use std::collections::BTreeMap;
     use std::io::Write;
+    use std::path::PathBuf;
 
     use tempfile::{tempdir, NamedTempFile};
 
@@ -257,7 +251,7 @@ mod tests {
         fn verified_packages(proxies: &[&str]) -> Vec<VerifiedPackage> {
             let mut proxies_paths = BTreeMap::new();
             for proxy in proxies {
-                proxies_paths.insert(proxy.to_string(), Path::new("bin").join(proxy));
+                proxies_paths.insert(PathBuf::from(proxy), Path::new("bin").join(proxy));
             }
 
             vec![VerifiedPackage {

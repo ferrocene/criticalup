@@ -25,7 +25,7 @@ pub struct IntegrityVerifier<'a> {
     allow_external_files: bool,
 
     managed_prefixes: HashSet<PathBuf>,
-    loaded_files: HashSet<String>,
+    loaded_files: HashSet<PathBuf>,
     referenced_by_manifests_but_missing: HashMap<PathBuf, PackageFile>,
     added_but_not_referenced_by_manifests: HashMap<PathBuf, FoundFile>,
 }
@@ -68,15 +68,15 @@ impl<'a> IntegrityVerifier<'a> {
     /// the metadata potentially until [`verify`](IntegrityVerifier::verify) is called.
     pub fn add(&mut self, path: &Path, mode: u32, contents: &[u8]) {
         let path_str = path.to_string_lossy().to_string();
-        if !self.loaded_files.insert(path_str.clone()) {
+        if !self.loaded_files.insert(path.to_owned()) {
             self.errors.push(IntegrityError::FileLoadedMultipleTimes {
-                path: path_str.clone(),
+                path: path.to_owned(),
             });
             return;
         }
 
         if let Some(found) = is_package_manifest(&path_str) {
-            if let Err(err) = self.add_package_manifest(&path_str, &found, contents) {
+            if let Err(err) = self.add_package_manifest(&path, &found, contents) {
                 self.errors.push(err);
             }
         } else {
@@ -104,7 +104,7 @@ impl<'a> IntegrityVerifier<'a> {
 
         for path in self.referenced_by_manifests_but_missing.into_keys() {
             self.errors.push(IntegrityError::MissingFile {
-                path: path.to_string_lossy().to_string(),
+                path: path,
             });
         }
 
@@ -114,15 +114,15 @@ impl<'a> IntegrityVerifier<'a> {
                     if path.starts_with(prefix) {
                         self.errors
                             .push(IntegrityError::UnexpectedFileInManagedPrefix {
-                                path: path.to_string_lossy().to_string(),
-                                prefix: prefix.to_string_lossy().to_string(),
+                                path: path,
+                                prefix: prefix.clone(),
                             });
                         break;
                     }
                 }
             } else {
                 self.errors.push(IntegrityError::UnexpectedFile {
-                    path: path.to_string_lossy().to_string(),
+                    path: path,
                 });
             }
         }
@@ -136,7 +136,7 @@ impl<'a> IntegrityVerifier<'a> {
 
     fn add_package_manifest(
         &mut self,
-        path: &str,
+        path: &Path,
         found: &FoundPackageManifest,
         contents: &[u8],
     ) -> Result<(), IntegrityError> {
@@ -174,9 +174,10 @@ impl<'a> IntegrityVerifier<'a> {
             if file.needs_proxy {
                 let proxy_name = file_path
                     .file_name()
-                    .map(|v| v.to_string_lossy().to_string())
-                    .unwrap_or(file_str.clone());
-                proxies_paths.insert(proxy_name, file_path.clone());
+                    .map(|v| PathBuf::from(v))
+                    .unwrap_or(file_path.clone());
+
+                proxies_paths.insert(proxy_name.into(), file_path.clone());
             }
 
             if let Some(found) = self
@@ -184,14 +185,14 @@ impl<'a> IntegrityVerifier<'a> {
                 .remove(&file_path)
             {
                 self.verify_file(&file_str, &file, &found);
-            } else if self.loaded_files.contains(&file_str)
+            } else if self.loaded_files.contains(&file_path)
                 || self
                     .referenced_by_manifests_but_missing
                     .insert(file_path.clone(), file)
                     .is_some()
             {
                 self.errors
-                    .push(IntegrityError::FileReferencedByMultipleManifests { path: file_str });
+                    .push(IntegrityError::FileReferencedByMultipleManifests { path: file_path });
             }
         }
 
@@ -232,7 +233,7 @@ pub struct VerifiedPackage {
     /// Name of the package.
     pub package: String,
     /// List of the paths of all binaries that need a proxy.
-    pub proxies_paths: BTreeMap<String, PathBuf>,
+    pub proxies_paths: BTreeMap<PathBuf, PathBuf>,
 }
 
 struct FoundFile {
@@ -251,14 +252,16 @@ mod tests {
     use crate::Error;
     use itertools::Itertools;
     use std::borrow::Cow;
+    use std::ffi::OsStr;
+    use once_cell::sync::Lazy;
 
     // Note that the tests verify all possible permutations of input files, ensuring the expected
     // behavior regardless of the order files are provided to the verifier.
 
-    const BIN_A: TestFile = TestFile::new("bin/a", 0o755, b"foo binary");
-    const BIN_B: TestFile = TestFile::new("bin/b", 0o755, b"bar binary");
-    const SHARE_A: TestFile = TestFile::new("share/a", 0o644, b"a file");
-    const SHARE_B: TestFile = TestFile::new("share/b", 0o644, b"b file");
+    const BIN_A: Lazy<TestFile> = Lazy::new(|| TestFile::new("bin/a", 0o755, b"foo binary"));
+    const BIN_B: Lazy<TestFile> = Lazy::new(|| TestFile::new("bin/b", 0o755, b"bar binary"));
+    const SHARE_A: Lazy<TestFile> = Lazy::new(|| TestFile::new("share/a", 0o644, b"a file"));
+    const SHARE_B: Lazy<TestFile> = Lazy::new(|| TestFile::new("share/b", 0o644, b"b file"));
 
     macro_rules! btreemap {
         ($($key:expr => $value:expr),*$(,)?) => {{
@@ -306,8 +309,8 @@ mod tests {
                     .file(&SHARE_A)
                     .prefix("foo/"),
             )
-            .file(&BIN_A.prefix("foo/"))
-            .file(&SHARE_A.prefix("foo/"))
+            .file(&BIN_A.clone().prefix("foo/"))
+            .file(&SHARE_A.clone().prefix("foo/"))
             .assert_verified(&[("a", "b")]);
     }
 
@@ -326,10 +329,10 @@ mod tests {
                     .file(&SHARE_A)
                     .prefix("bar/"),
             )
-            .file(&BIN_A.prefix("foo/"))
-            .file(&BIN_A.prefix("bar/"))
-            .file(&SHARE_A.prefix("foo/"))
-            .file(&SHARE_A.prefix("bar/"))
+            .file(&BIN_A.clone().prefix("foo/"))
+            .file(&BIN_A.clone().prefix("bar/"))
+            .file(&SHARE_A.clone().prefix("foo/"))
+            .file(&SHARE_A.clone().prefix("bar/"))
             .assert_verified(&[("a", "b"), ("a", "c")]);
     }
 
@@ -356,8 +359,8 @@ mod tests {
                     .prefix("share/foo/"),
             )
             .file(&BIN_A)
-            .file(&BIN_A.prefix("share/foo/"))
-            .file(&SHARE_A.prefix("share/foo/"))
+            .file(&BIN_A.clone().prefix("share/foo/"))
+            .file(&SHARE_A.clone().prefix("share/foo/"))
             .file(&SHARE_A)
             .assert_verified(&[("a", "b"), ("a", "c")]);
     }
@@ -370,7 +373,7 @@ mod tests {
             .file(&BIN_A)
             .file(&BIN_B)
             .assert_errors(errors![
-                IntegrityError::FileReferencedByMultipleManifests { path } if path == "bin/a",
+                IntegrityError::FileReferencedByMultipleManifests { path } if path == Path::new("bin/a"),
             ]);
     }
 
@@ -383,12 +386,12 @@ mod tests {
                     .file(&BIN_B)
                     .file(&SHARE_A),
             )
-            .file(&BIN_A.add_content(b"!"))
-            .file(&BIN_B.add_content(b"!"))
+            .file(&BIN_A.clone().add_content(b"!"))
+            .file(&BIN_B.clone().add_content(b"!"))
             .file(&SHARE_A)
             .assert_errors(errors![
-                IntegrityError::WrongChecksum { path } if path == "bin/a",
-                IntegrityError::WrongChecksum { path } if path == "bin/b",
+                IntegrityError::WrongChecksum { path } if path == Path::new("bin/a"),
+                IntegrityError::WrongChecksum { path } if path == Path::new("bin/b"),
             ]);
     }
 
@@ -446,10 +449,10 @@ mod tests {
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::WrongProductName { path, expected }
-                    if expected == "a" && path == "share/criticaltrust/z/b.json",
+                    if expected == "a" && path == Path::new("share/criticaltrust/z/b.json"),
                 // The manifest is completely ignored, resulting in more errors.
                 IntegrityError::NoPackageManifestFound,
-                IntegrityError::UnexpectedFile { path } if path == "bin/a",
+                IntegrityError::UnexpectedFile { path } if path == Path::new("bin/a"),
             ]);
     }
 
@@ -463,10 +466,10 @@ mod tests {
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::WrongPackageName { path, expected }
-                    if expected == "b" && path == "share/criticaltrust/a/z.json",
+                    if expected == "b" && path == Path::new("share/criticaltrust/a/z.json"),
                 // The manifest is completely ignored, resulting in more errors.
                 IntegrityError::NoPackageManifestFound,
-                IntegrityError::UnexpectedFile { path } if path == "bin/a",
+                IntegrityError::UnexpectedFile { path } if path == Path::new("bin/a"),
             ]);
     }
 
@@ -477,7 +480,7 @@ mod tests {
             .file(&BIN_A)
             .file(&SHARE_A)
             .assert_errors(errors![
-                IntegrityError::UnexpectedFile { path } if path == "share/a",
+                IntegrityError::UnexpectedFile { path } if path == Path::new("share/a"),
             ]);
     }
 
@@ -487,7 +490,7 @@ mod tests {
             .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
             .file(&BIN_A)
             .assert_errors(errors![
-                IntegrityError::MissingFile { path } if path == "share/a",
+                IntegrityError::MissingFile { path } if path == Path::new("share/a"),
             ]);
     }
 
@@ -515,7 +518,7 @@ mod tests {
                 IntegrityError::PackageManifestVerification {
                     path,
                     inner: Error::VerificationFailed,
-                } if path == "share/criticaltrust/a/b.json",
+                } if path == Path::new("share/criticaltrust/a/b.json"),
                 // No valid one was found:
                 IntegrityError::NoPackageManifestFound,
             ]);
@@ -531,7 +534,7 @@ mod tests {
             ))
             .assert_errors(errors![
                 IntegrityError::PackageManifestDeserialization { path, inner }
-                     if path == "share/criticaltrust/a/b.json" && inner.is_syntax(),
+                     if path == Path::new("share/criticaltrust/a/b.json") && inner.is_syntax(),
                 // No valid one was found:
                 IntegrityError::NoPackageManifestFound,
             ]);
@@ -541,13 +544,13 @@ mod tests {
     fn test_unprefixed_manifest_with_prefixed_files() {
         IntegrityTest::new()
             .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
-            .file(&BIN_A.prefix("foo/"))
-            .file(&SHARE_A.prefix("foo/"))
+            .file(&BIN_A.clone().prefix("foo/"))
+            .file(&SHARE_A.clone().prefix("foo/"))
             .assert_errors(errors![
-                IntegrityError::MissingFile { path } if path == "bin/a",
-                IntegrityError::MissingFile { path } if path == "share/a",
-                IntegrityError::UnexpectedFile { path } if path == "foo/bin/a",
-                IntegrityError::UnexpectedFile { path } if path == "foo/share/a",
+                IntegrityError::MissingFile { path } if path == Path::new("bin/a"),
+                IntegrityError::MissingFile { path } if path == Path::new("share/a"),
+                IntegrityError::UnexpectedFile { path } if path == Path::new("foo/bin/a"),
+                IntegrityError::UnexpectedFile { path } if path == Path::new("foo/share/a"),
             ]);
     }
 
@@ -563,10 +566,10 @@ mod tests {
             .file(&BIN_A)
             .file(&SHARE_A)
             .assert_errors(errors![
-                IntegrityError::MissingFile { path } if path == "foo/bin/a",
-                IntegrityError::MissingFile { path } if path == "foo/share/a",
-                IntegrityError::UnexpectedFile { path } if path == "bin/a",
-                IntegrityError::UnexpectedFile { path } if path == "share/a",
+                IntegrityError::MissingFile { path } if path == Path::new("foo/bin/a"),
+                IntegrityError::MissingFile { path } if path == Path::new("foo/share/a"),
+                IntegrityError::UnexpectedFile { path } if path == Path::new("bin/a"),
+                IntegrityError::UnexpectedFile { path } if path == Path::new("share/a"),
             ]);
     }
 
@@ -577,7 +580,7 @@ mod tests {
             .file(&BIN_A)
             .file(&BIN_A)
             .assert_errors(errors![
-                IntegrityError::FileLoadedMultipleTimes { path } if path == "bin/a",
+                IntegrityError::FileLoadedMultipleTimes { path } if path == Path::new("bin/a"),
             ]);
     }
 
@@ -589,7 +592,7 @@ mod tests {
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::FileLoadedMultipleTimes { path }
-                    if path == "share/criticaltrust/a/b.json"
+                    if path == Path::new("share/criticaltrust/a/b.json")
             ]);
     }
 
@@ -598,7 +601,7 @@ mod tests {
         IntegrityTest::new()
             .manifest(
                 ManifestBuilder::new("a", "b")
-                    .file(&BIN_A.needs_proxy())
+                    .file(&BIN_A.clone().needs_proxy())
                     .file(&BIN_B),
             )
             .file(&BIN_A)
@@ -615,12 +618,12 @@ mod tests {
         IntegrityTest::new()
             .manifest(
                 ManifestBuilder::new("a", "b")
-                    .file(&BIN_A.needs_proxy())
+                    .file(&BIN_A.clone().needs_proxy())
                     .file(&BIN_B)
                     .prefix("foo/"),
             )
-            .file(&BIN_A.prefix("foo/"))
-            .file(&BIN_B.prefix("foo/"))
+            .file(&BIN_A.clone().prefix("foo/"))
+            .file(&BIN_B.clone().prefix("foo/"))
             .assert_verified(&[VerifiedPackage {
                 product: "a".into(),
                 package: "b".into(),
@@ -651,7 +654,7 @@ mod tests {
             .allow_external_files()
             .assert_errors(errors![
                 IntegrityError::UnexpectedFileInManagedPrefix { path, prefix }
-                    if path == "bin/b" && prefix == "bin/"
+                    if path == Path::new("bin/b") && prefix == Path::new("bin/")
             ]);
     }
 
@@ -664,13 +667,13 @@ mod tests {
                     .managed_prefix("bin/")
                     .prefix("foo/"),
             )
-            .file(&BIN_A.prefix("foo/"))
-            .file(&BIN_B.prefix("foo/"))
+            .file(&BIN_A.clone().prefix("foo/"))
+            .file(&BIN_B.clone().prefix("foo/"))
             .file(&BIN_A)
             .allow_external_files()
             .assert_errors(errors![
                 IntegrityError::UnexpectedFileInManagedPrefix { path, prefix }
-                    if path == "foo/bin/b" && prefix == "foo/bin/"
+                    if path == Path::new("foo/bin/b") && prefix == Path::new("foo/bin/")
             ]);
     }
 
@@ -678,8 +681,8 @@ mod tests {
     fn test_allowing_external_files_inside_a_prefix() {
         IntegrityTest::new()
             .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).prefix("foo/"))
-            .file(&BIN_A.prefix("foo/"))
-            .file(&BIN_B.prefix("foo/"))
+            .file(&BIN_A.clone().prefix("foo/"))
+            .file(&BIN_B.clone().prefix("foo/"))
             .file(&BIN_A)
             .allow_external_files()
             .assert_verified(&[("a", "b")]);
@@ -687,25 +690,25 @@ mod tests {
 
     #[derive(Clone)]
     struct TestFile {
-        path: Cow<'static, str>,
+        path: PathBuf,
         mode: u32,
         contents: Cow<'static, [u8]>,
         needs_proxy: bool,
     }
 
     impl TestFile {
-        const fn new(path: &'static str, mode: u32, contents: &'static [u8]) -> Self {
+        fn new(path: impl AsRef<OsStr>, mode: u32, contents: &'static [u8]) -> Self {
             Self {
-                path: Cow::Borrowed(path),
+                path: path.as_ref().into(),
                 mode,
                 contents: Cow::Borrowed(contents),
                 needs_proxy: false,
             }
         }
 
-        fn prefix(mut self, prefix: &str) -> Self {
-            let path = self.path.into_owned();
-            self.path = Cow::Owned(format!("{prefix}{path}"));
+        fn prefix(mut self, prefix: impl AsRef<OsStr>) -> Self {
+            let path = self.path.to_owned();
+            self.path = PathBuf::from(prefix.as_ref()).join(path);
             self
         }
 
@@ -732,7 +735,7 @@ mod tests {
 
     struct ManifestBuilder {
         manifest: Package,
-        prefix: String,
+        prefix: PathBuf,
     }
 
     impl ManifestBuilder {
@@ -745,7 +748,7 @@ mod tests {
                     files: Vec::new(),
                     managed_prefixes: Vec::new(),
                 },
-                prefix: String::new(),
+                prefix: Default::default(),
             }
         }
 
@@ -756,7 +759,7 @@ mod tests {
 
         fn file(mut self, file: &TestFile) -> Self {
             self.manifest.files.push(PackageFile {
-                path: file.path.as_ref().into(),
+                path: file.path.clone(),
                 posix_mode: file.mode,
                 sha256: hash_sha256(&file.contents),
                 needs_proxy: file.needs_proxy,
@@ -764,8 +767,8 @@ mod tests {
             self
         }
 
-        fn prefix(mut self, prefix: &str) -> Self {
-            self.prefix = prefix.into();
+        fn prefix(mut self, prefix: impl AsRef<OsStr>) -> Self {
+            self.prefix = prefix.as_ref().into();
             self
         }
 
@@ -812,17 +815,17 @@ mod tests {
 
         fn manifest(self, builder: ManifestBuilder) -> Self {
             self.manifest_in(
-                &format!(
-                    "{}share/criticaltrust/{}/{}.json",
-                    builder.prefix, builder.manifest.product, builder.manifest.package
-                ),
+                builder.prefix.join(&format!(
+                    "share/criticaltrust/{}/{}.json",
+                    builder.manifest.product, builder.manifest.package
+                )),
                 builder,
             )
         }
 
-        fn manifest_in(mut self, path: &str, builder: ManifestBuilder) -> Self {
+        fn manifest_in(mut self, path: impl AsRef<OsStr>, builder: ManifestBuilder) -> Self {
             self.files.push(TestFile {
-                path: path.to_string().into(),
+                path: path.as_ref().into(),
                 mode: 0o644,
                 contents: builder.finish(&self.key).into(),
                 needs_proxy: false,
@@ -899,8 +902,7 @@ mod tests {
                     let mut verifier = IntegrityVerifier::new(self.env.keychain());
                     verifier.allow_external_files(self.allow_external_files);
                     for file in files {
-                        let path_str: &str = &file.path;
-                        verifier.add(Path::new(path_str), file.mode, &file.contents);
+                        verifier.add(&file.path, file.mode, &file.contents);
                     }
                     f(verifier.verify());
                 })

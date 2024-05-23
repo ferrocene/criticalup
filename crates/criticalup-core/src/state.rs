@@ -209,14 +209,14 @@ impl State {
     pub fn resolve_binary_proxy(
         &self,
         installation: &InstallationId,
-        name: &str,
+        name: impl AsRef<Path>,
     ) -> Option<PathBuf> {
         self.inner
             .borrow()
             .repr
             .installations
             .get(installation)
-            .and_then(|i| i.binary_proxies.get(name))
+            .and_then(|i| i.binary_proxies.get(name.as_ref()))
             .map(|name| name.into())
     }
 
@@ -225,7 +225,7 @@ impl State {
         Ref::map(self.inner.borrow(), |v| &v.repr.installations)
     }
 
-    pub fn all_binary_proxy_names(&self) -> Vec<String> {
+    pub fn all_binary_proxy_names(&self) -> Vec<PathBuf> {
         let mut result: Vec<_> = self
             .inner
             .borrow()
@@ -349,7 +349,7 @@ impl Default for StateRepr {
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(test, derive(PartialEq, Eq, Debug))]
 pub struct StateInstallation {
-    binary_proxies: BTreeMap<String, PathBuf>,
+    binary_proxies: BTreeMap<PathBuf, PathBuf>,
     #[serde(default)]
     manifests: BTreeSet<PathBuf>,
 }
@@ -458,9 +458,9 @@ mod tests {
 
         // Prepare env with one installation that has one manifest file path.
         let installation_id = InstallationId("installation-id-1".to_string());
-        let binary_proxies: BTreeMap<String, PathBuf> = btreemap! {
-            "cargo".to_string() => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/cargo"),
-            "rustc".to_string() => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/rustc"),
+        let binary_proxies: BTreeMap<_, _> = btreemap! {
+            PathBuf::from("cargo") => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/cargo"),
+            PathBuf::from("rustc") => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/rustc"),
         };
         let verified_package = VerifiedPackage {
             product: "ferrocene".to_string(),
@@ -513,9 +513,9 @@ mod tests {
         let state = test_env.state();
         // Prepare env with one installation that has one manifest file path.
         let installation_id = InstallationId("installation-id-1".to_string());
-        let binary_proxies: BTreeMap<String, PathBuf> = btreemap! {
-            "cargo".to_string() => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/cargo"),
-            "rustc".to_string() => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/rustc"),
+        let binary_proxies: BTreeMap<_, _> = btreemap! {
+            PathBuf::from("cargo") => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/cargo"),
+            PathBuf::from("rustc") => PathBuf::from("/path/to/").join(installation_id.0.clone()).join("bin/rustc"),
         };
         let verified_package = VerifiedPackage {
             product: "ferrocene".to_string(),
@@ -586,9 +586,9 @@ mod tests {
 
         // Installation 1.
         let installation_id_1 = InstallationId("installation-id-1".to_string());
-        let binary_proxies_1: BTreeMap<String, _> = btreemap! {
-            "cargo".to_string() => PathBuf::from("/path/to/").join(installation_id_1.0.clone()).join("bin/cargo"),
-            "rustc".to_string() => PathBuf::from("/path/to/").join(installation_id_1.0.clone()).join("bin/rustc"),
+        let binary_proxies_1: BTreeMap<_, _> = btreemap! {
+            PathBuf::from("cargo") => PathBuf::from("/path/to/").join(installation_id_1.0.clone()).join("bin/cargo"),
+            PathBuf::from("rustc") => PathBuf::from("/path/to/").join(installation_id_1.0.clone()).join("bin/rustc"),
         };
         let verified_package_1 = VerifiedPackage {
             product: "ferrocene".to_string(),
@@ -609,9 +609,9 @@ mod tests {
 
         // Installation 2.
         let installation_id_2 = InstallationId("installation-id-2".to_string());
-        let binary_proxies_2: BTreeMap<String, _> = btreemap! {
-            "amazing".to_string() => PathBuf::from("/path/to/").join(installation_id_2.0.clone()).join("bin/amazing"),
-            "stuff".to_string() => PathBuf::from("/path/to/").join(installation_id_2.0.clone()).join("bin/stuff"),
+        let binary_proxies_2: BTreeMap<_, _> = btreemap! {
+            PathBuf::from("amazing") => PathBuf::from("/path/to/").join(installation_id_2.0.clone()).join("bin/amazing"),
+            PathBuf::from("stuff") => PathBuf::from("/path/to/").join(installation_id_2.0.clone()).join("bin/stuff"),
         };
         let verified_package_2 = VerifiedPackage {
             product: "ferrocene".to_string(),
@@ -857,7 +857,7 @@ mod tests {
         assert_eq!(Some("foo/a".into()), state.resolve_binary_proxy(&id1, "a"));
         assert_eq!(Some("foo/b".into()), state.resolve_binary_proxy(&id1, "b"));
         assert_eq!(
-            vec!["a".to_string(), "b".into()],
+            vec![PathBuf::from("a"), "b".into()],
             state.all_binary_proxy_names()
         );
 
@@ -876,12 +876,12 @@ mod tests {
         assert_eq!(Some("bar/a".into()), state.resolve_binary_proxy(&id2, "a"));
         assert!(state.resolve_binary_proxy(&id2, "b").is_none());
         assert_eq!(
-            vec!["a".to_string(), "b".into()],
+            vec![PathBuf::from("a"), "b".into()],
             state.all_binary_proxy_names()
         );
 
         state.remove_installation(&id1);
-        assert_eq!(vec!["a".to_string()], state.all_binary_proxy_names());
+        assert_eq!(vec![PathBuf::from("a")], state.all_binary_proxy_names());
         state.remove_installation(&id2);
 
         assert!(state.all_binary_proxy_names().is_empty());
