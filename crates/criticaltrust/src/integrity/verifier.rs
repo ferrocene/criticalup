@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::integrity::detect_manifest::{is_package_manifest, FoundPackageManifest};
 use crate::integrity::IntegrityError;
 use crate::manifests::{PackageFile, PackageManifest};

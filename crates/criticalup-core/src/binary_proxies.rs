@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Binary proxies are binaries named after the tools included in Ferrocene (like rustc, rustdoc,
 //! cargo, etc...), that check which criticalup installation to use before executing the actual
 //! binary inside of the chosen criticalup installation.

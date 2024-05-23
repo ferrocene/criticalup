@@ -1,5 +1,8 @@
 #![allow(clippy::wrong_self_convention)]
 
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 mod auth;
 mod auth_remove;
 mod auth_set;

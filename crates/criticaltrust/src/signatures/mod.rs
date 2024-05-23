@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! High-level abstraction for key management and digital signature verification.
 //!
 //! This module provides [`SignedPayload`], a wrapper around digitally signed payloads that

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Newtypes used by the `keys` module to prevent errors at the type system level.
 //!
 //! APIs in the `keys` module require multiple byte slices as their input, and it would be easy to

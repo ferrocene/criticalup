@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use sha2::{Digest, Sha256};
 
 /// Helper function to hash bytes with SHA256. It's a simple wrapper on top of the sha2 crate,

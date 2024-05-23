@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::assert_output;
 use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path, TestEnvironment};
 use serde_json::json;

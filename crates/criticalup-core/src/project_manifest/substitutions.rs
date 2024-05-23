@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::errors::ProjectManifestLoadingError;
 
 const VARIABLE_START: &str = "${";

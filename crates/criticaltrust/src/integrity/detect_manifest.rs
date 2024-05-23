@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use std::path;
 
 /// Checks whether the provided path is the expected path of a package manifest, and if so returns

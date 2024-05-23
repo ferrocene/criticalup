@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Low-level keys and digital signature management.
 //!
 //! This module provides a safe and secure abstraction over the cryptographic primitives used by

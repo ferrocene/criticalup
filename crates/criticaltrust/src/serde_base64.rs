@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Wrapper functions to encode/decode a string as base64 during serialization and deserialization.
 //! The module is supposed to be used by adding `#[serde(with = "crate::serde_base64")]` to each
 //! field you want to encode/decode as base64.

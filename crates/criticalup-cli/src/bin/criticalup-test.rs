@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! Variant of the criticalup binary with mocking support, used by the criticalup test suite to
 //! perform tests without connecting to the production download servers.
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use std::cell::{Ref, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
