@@ -3,7 +3,9 @@
 
 use crate::Serialize;
 use crate::{AuthenticationToken, Data};
-use criticaltrust::manifests::ManifestVersion;
+use criticaltrust::manifests::{ManifestVersion, RevocationInfo};
+use criticaltrust::signatures::SignedPayload;
+use time::{Duration, OffsetDateTime};
 use tiny_http::{Header, Method, Request, Response, ResponseBox, StatusCode};
 
 pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
@@ -39,6 +41,11 @@ fn handle_v1_keys(data: &Data) -> Result<Resp, Resp> {
     Ok(Resp::json(&criticaltrust::manifests::KeysManifest {
         version: ManifestVersion,
         keys: data.keys.clone(),
+        revoked_signatures: SignedPayload::new(&RevocationInfo {
+            revoked_content_sha256: Vec::new(),
+            expires_at: OffsetDateTime::now_utc() + Duration::days(99),
+        })
+        .unwrap(),
     }))
 }
 
