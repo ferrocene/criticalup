@@ -76,7 +76,7 @@ impl<'a> IntegrityVerifier<'a> {
         }
 
         if let Some(found) = is_package_manifest(&path_str) {
-            if let Err(err) = self.add_package_manifest(&path, &found, contents) {
+            if let Err(err) = self.add_package_manifest(path, &found, contents) {
                 self.errors.push(err);
             }
         } else {
@@ -103,9 +103,7 @@ impl<'a> IntegrityVerifier<'a> {
         }
 
         for path in self.referenced_by_manifests_but_missing.into_keys() {
-            self.errors.push(IntegrityError::MissingFile {
-                path: path,
-            });
+            self.errors.push(IntegrityError::MissingFile { path });
         }
 
         for path in self.added_but_not_referenced_by_manifests.into_keys() {
@@ -114,16 +112,14 @@ impl<'a> IntegrityVerifier<'a> {
                     if path.starts_with(prefix) {
                         self.errors
                             .push(IntegrityError::UnexpectedFileInManagedPrefix {
-                                path: path,
+                                path,
                                 prefix: prefix.clone(),
                             });
                         break;
                     }
                 }
             } else {
-                self.errors.push(IntegrityError::UnexpectedFile {
-                    path: path,
-                });
+                self.errors.push(IntegrityError::UnexpectedFile { path });
             }
         }
 
@@ -174,10 +170,10 @@ impl<'a> IntegrityVerifier<'a> {
             if file.needs_proxy {
                 let proxy_name = file_path
                     .file_name()
-                    .map(|v| PathBuf::from(v))
+                    .map(PathBuf::from)
                     .unwrap_or(file_path.clone());
 
-                proxies_paths.insert(proxy_name.into(), file_path.clone());
+                proxies_paths.insert(proxy_name, file_path.clone());
             }
 
             if let Some(found) = self
@@ -251,9 +247,9 @@ mod tests {
     use crate::test_utils::TestEnvironment;
     use crate::Error;
     use itertools::Itertools;
+    use once_cell::sync::Lazy;
     use std::borrow::Cow;
     use std::ffi::OsStr;
-    use once_cell::sync::Lazy;
 
     // Note that the tests verify all possible permutations of input files, ensuring the expected
     // behavior regardless of the order files are provided to the verifier.

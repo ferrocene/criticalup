@@ -31,7 +31,7 @@ pub(crate) fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
         .map(|p| p.installation_id())
         .filter_map(|id| {
             state
-                .resolve_binary_proxy(&id, &PathBuf::from(&binary_name))
+                .resolve_binary_proxy(&id, PathBuf::from(&binary_name))
                 .map(|p| (id, p))
         })
         .next()
