@@ -25,7 +25,7 @@ pub(crate) fn run(
     if let Some(binary_command) = command.first() {
 
         let mut binary_executable = PathBuf::new();
-        binary_executable.set_file_name(&binary_command);
+        binary_executable.set_file_name(binary_command);
         // On Windows, the user can pass (for example) `cargo` or `cargo.exe`
         #[cfg(windows)]
         binary_executable.set_extension("exe");
