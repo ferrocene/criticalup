@@ -18,13 +18,13 @@ Installation instructions for CriticalUp are included in [each release](https://
 
 CriticalUp only requires a working Rust and C toolchain to build. [Installation instructions][rust-install] for Rust typically include installing a C toolchain as well.
 
-To build a debug version of the development-targetting CriticalUp:
+To build a debug version of the development-targeting CriticalUp:
 
 ```bash
 cargo build -p criticalup-dev
 ```
 
-To build a debug version of the production-targetting CriticalUp:
+To build a debug version of the production-targeting CriticalUp:
 
 ```bash
 cargo build -p criticalup
