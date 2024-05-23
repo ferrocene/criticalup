@@ -125,7 +125,6 @@ jobs:
 
   deploy-docs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    needs: docs
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write      # to deploy to Pages
