@@ -62,7 +62,8 @@ pub fn update(
     }
 
     for proxy in expected_proxies {
-        ensure_link(proxy_binary, &config.paths.proxies_dir.join(&proxy))?;
+        let target = &config.paths.proxies_dir.join(&proxy);
+        ensure_link(proxy_binary, target)?;
     }
 
     Ok(())
