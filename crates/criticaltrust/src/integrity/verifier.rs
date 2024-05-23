@@ -401,8 +401,8 @@ mod tests {
                     .file(&BIN_B)
                     .file(&SHARE_A),
             )
-            .file(&BIN_A.mode(0o644))
-            .file(&BIN_B.mode(0o644))
+            .file(&BIN_A.clone().mode(0o644))
+            .file(&BIN_B.clone().mode(0o644))
             .file(&SHARE_A)
             .assert_errors(errors![
                 IntegrityError::WrongPosixPermissions {
@@ -423,14 +423,14 @@ mod tests {
     fn test_files_with_both_wrong_mode_and_wrong_checksum() {
         IntegrityTest::new()
             .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&BIN_B))
-            .file(&BIN_A.add_content(b"!").mode(0o644))
+            .file(&BIN_A.clone().add_content(b"!").mode(0o644))
             .file(&BIN_B)
             .assert_errors(errors![
                 IntegrityError::WrongPosixPermissions {
                     path,
                     expected: 0o755,
                     found: 0o644,
-                } if path == "bin/a",
+                } if path == Path::new("bin/a"),
                 IntegrityError::WrongChecksum { path } if path == Path::new("bin/a"),
             ]);
     }
