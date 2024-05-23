@@ -32,8 +32,11 @@ pub(crate) fn run(ctx: &Context, tool: String, project: Option<PathBuf>) -> Resu
                 tools_bin_path_with_exe.set_extension("exe");
                 if tools_bin_path_with_exe.exists() {
                     println!("{}\n", tools_bin_path_with_exe.display());
+                } else {
+                    return Err(BinaryNotInstalled(tool));
                 }
             }
+            #[cfg(not(windows))]
             return Err(BinaryNotInstalled(tool));
         }
     }
