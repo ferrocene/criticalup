@@ -94,7 +94,7 @@ A set of package names as listed in the release page, for example the `beta-stab
 <https://releases.ferrocene.dev/ferrocene/files/stable-24.05.0/index.html>`_
 release.
 
-Each supported Ferrocene target lists required packages in the on it's page
+Each supported Ferrocene target lists required packages in the on its page
 under "Compilation Targets" in the Ferrocene User Manual of the release. For
 example, the `X86-64 Linux (glibc) target of the rolling release
 <https://docs.ferrocene.dev/rolling/user-manual/targets/x86_64-unknown-linux-gnu.html#archives-to-install>`_.
