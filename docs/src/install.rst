@@ -27,9 +27,10 @@ From a terminal run:
 
 This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
 
-CriticalUp will install toolchains into ``$XDG_DATA_HOME/criticalup``, or if that
+CriticalUp will create a state directory where it installs toolchains in ``$XDG_DATA_HOME/criticalup``, or if that
 environment variable is not set, ``$HOME/.local/share/criticalup``.
 
+To uninstall, remove ``$HOME/.cargo/bin/criticalup`` then delete the state directory.
 
 MacOS
 -----
@@ -42,20 +43,26 @@ From a terminal run:
 
 This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
 
-CriticalUp will install toolchains into ``$HOME/Library/Application Support/criticalup``.
+CriticalUp will create a state directory where it installs toolchains in ``$HOME/Library/Application Support/criticalup``.
 
+To uninstall, remove ``$HOME/.cargo/bin/criticalup`` then delete the state directory.
 
 Windows
 -------
 
+We recommend using the MSI installation method. If you'd prefer not to use the MSI, a powershell based install is available.
+
 MSI based
 ^^^^^^^^^
 
-We recommend `downloading and installing the MSI <https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-x86_64-pc-windows-msvc.msi>`_.
+The recommended method of installation is to `download and run the MSI <https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-x86_64-pc-windows-msvc.msi>`_.
 
 This will install CriticalUp into ``C:\Program Files\criticalup`` by default, but the location is configurable in the installer interface.
 
-If you'd prefer not to use the MSI, a powershell based install is available.
+CriticalUp will create a state directory where it installs toolchains in
+``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
+
+To uninstall, use the Windows Add/Remove programs interface or run ``winget remove criticalup``, then delete the state directory.
 
 Powershell based
 ^^^^^^^^^^^^^^^^
@@ -68,4 +75,7 @@ From a terminal run:
 
 This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
 
-CriticalUp will install toolchains into ``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
+CriticalUp will create a state directory where it installs toolchains in
+``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
+
+To uninstall, remove ``$HOME/.cargo/bin/criticalup`` then delete the state directory.
