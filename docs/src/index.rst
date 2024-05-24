@@ -1,8 +1,8 @@
 .. SPDX-FileCopyrightText: The Ferrocene Developers
 .. SPDX-License-Identifier: MIT OR Apache-2.0
 
-Ferrocene User Manual
-=====================
+CriticalUp User Documentation
+=============================
 
 .. toctree::
    :numbered:
@@ -34,7 +34,6 @@ Ferrocene User Manual
    :maxdepth: 2
    :caption: Reference:
 
-   cli
    criticalup_toml
 
 Indices and tables

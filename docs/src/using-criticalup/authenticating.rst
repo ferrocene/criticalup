@@ -15,7 +15,7 @@ presumes no existing directory structure.
 .. _Ferrocene Customers Portal: https://customers.ferrocene.dev/
 
 After :ref:`installing CriticalUp <install>` it's possible to authenticate
-CriticalUp via the ``criticalup auth set`` subcommand.
+CriticalUp via the ``auth set`` subcommand.
 
 
 .. code-block::
