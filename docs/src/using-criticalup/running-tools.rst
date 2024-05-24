@@ -18,7 +18,7 @@ The examples in this chapter assume the following directory structure:
 
 **Prerequisites**
 
-* :ref:`Installation - CriticalUp <install>`
+* :ref:`Installing CriticalUp <install>`
 * :ref:`Authentication <authenticate>`
 * :ref:`Installation - Toolchain <install_toolchain>`
 
