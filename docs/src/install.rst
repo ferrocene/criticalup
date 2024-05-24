@@ -25,9 +25,12 @@ From a terminal run:
 
    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.sh | sh
 
-CriticalUp will install toolchains into ``$XDG_DATA_HOME/criticalup``, or if that
+This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
+
+CriticalUp will create a state directory where it installs toolchains in ``$XDG_DATA_HOME/criticalup``, or if that
 environment variable is not set, ``$HOME/.local/share/criticalup``.
 
+To uninstall, remove ``$HOME/.cargo/bin/criticalup`` then delete the state directory.
 
 MacOS
 -----
@@ -38,11 +41,31 @@ From a terminal run:
 
    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.sh | sh
 
-CriticalUp will install toolchains into ``$HOME/Library/Application Support/criticalup``.
+This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
 
+CriticalUp will create a state directory where it installs toolchains in ``$HOME/Library/Application Support/criticalup``.
+
+To uninstall, remove ``$HOME/.cargo/bin/criticalup`` then delete the state directory.
 
 Windows
 -------
+
+We recommend using the MSI installation method. If you'd prefer not to use the MSI, a powershell based install is available.
+
+MSI based
+^^^^^^^^^
+
+The recommended method of installation is to `download and run the MSI <https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-x86_64-pc-windows-msvc.msi>`_.
+
+This will install CriticalUp into ``C:\Program Files\criticalup`` by default, but the location is configurable in the installer interface.
+
+CriticalUp will create a state directory where it installs toolchains in
+``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
+
+To uninstall, use the Windows Add/Remove programs interface or run ``winget remove criticalup``, then delete the state directory.
+
+Powershell based
+^^^^^^^^^^^^^^^^
 
 From a terminal run:
 
@@ -50,4 +73,9 @@ From a terminal run:
 
    powershell -c "irm https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.ps1 | iex"
 
-CriticalUp will install toolchains into ``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
+This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
+
+CriticalUp will create a state directory where it installs toolchains in
+``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
+
+To uninstall, remove ``$HOME/.cargo/bin/criticalup`` then delete the state directory.
