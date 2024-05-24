@@ -20,7 +20,7 @@ The examples in this chapter assume the following directory structure:
 
 * :ref:`Installing CriticalUp <install>`
 * :ref:`Authentication <authenticate>`
-* :ref:`Installation - Toolchain <install_toolchain>`
+* :ref:`Installing Toolchains <install_toolchain>`
 
 After installing CriticalUp, authenticating, and installing a toolchain,
 CriticalUp can be used to run the specified tools from the installed toolchain.
