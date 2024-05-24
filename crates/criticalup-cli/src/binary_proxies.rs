@@ -12,6 +12,13 @@ use std::process::{Command, Stdio};
 
 pub(crate) fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let binary_name = arg0(&whitelabel)?;
+    let mut binary_path = PathBuf::from(&binary_name);
+    // On Windows, we assume executables will *always* have `.exe`
+    // `cargo.exe` does not invoke `rustc.exe` though, it invokes
+    // `rustc`
+    #[cfg(windows)]
+    binary_path.set_extension("exe");
+
     let args: Vec<_> = std::env::args_os().skip(1).collect();
 
     let config = Config::detect(whitelabel)?;
@@ -31,7 +38,7 @@ pub(crate) fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
         .map(|p| p.installation_id())
         .filter_map(|id| {
             state
-                .resolve_binary_proxy(&id, PathBuf::from(&binary_name))
+                .resolve_binary_proxy(&id, &binary_path)
                 .map(|p| (id, p))
         })
         .next()
