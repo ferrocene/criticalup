@@ -41,7 +41,7 @@ Installing Toolchains
 
 **Prerequisites**
 
-* :ref:`Installation <install>`
+* :ref:`Installing CriticalUp <install>`
 * :ref:`Authenticating <authenticate>`
 
 After installing CriticalUp and authenticating, CriticalUp is ready to manage toolchains.
