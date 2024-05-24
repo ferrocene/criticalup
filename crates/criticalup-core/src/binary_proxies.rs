@@ -129,12 +129,10 @@ fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpda
     //
     // On Windows 10, symlinks can be done by priviledged users, or users with "Developer Mode"
     // enabled, but not all of our users have that.
-    std::fs::copy(proxy_binary, target).map_err(|e| {
-        BinaryProxyUpdateError::SymlinkFailed {
-            source: proxy_binary.into(),
-            dest: target.into(),
-            inner: e,
-        }
+    std::fs::copy(proxy_binary, target).map_err(|e| BinaryProxyUpdateError::SymlinkFailed {
+        source: proxy_binary.into(),
+        dest: target.into(),
+        inner: e,
     })?;
 
     Ok(())
