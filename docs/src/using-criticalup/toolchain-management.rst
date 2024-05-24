@@ -26,9 +26,12 @@ Where the ``criticalup.toml`` contains the following content:
    [products.ferrocene]
    release = "nightly-2024-04-03"
    packages = [
-      "rustc-x86_64-unknown-linux-gnu",
-      "cargo-x86_64-unknown-linux-gnu",
+      "rustc-${rustc-host}",
+      "cargo-${rustc-host}",
+      "rust-std-${rustc-host}"
    ]
+
+CriticalUp understands ``${rustc-host}`` to mean the target triple of the host operating system. These triple values are listed in :ref:`Platforms <platforms>`.
 
 .. note::
 
@@ -60,8 +63,9 @@ To change the installed products, edit the ``criticalup.toml`` as desired. For e
    [products.ferrocene]
    release = "nightly-2024-04-03"
    packages = [
-      "rustc-x86_64-unknown-linux-gnu",
-      "cargo-x86_64-unknown-linux-gnu",
+      "rustc-${rustc-host}",
+      "cargo-${rustc-host}",
+      "rust-std-${rustc-host}",
       "rust-std-aarch64-unknown-none", # Line added
    ]
 

@@ -26,7 +26,7 @@ A typical ``criticalup.toml`` manifest looks like this:
         "rust-src"
     ]
 
-This manifest will install what the average developer needs for a Ferrocene
+This manifest will install everything the average developer might want for a Ferrocene
 based project.
 
 
