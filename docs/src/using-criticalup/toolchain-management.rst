@@ -31,7 +31,7 @@ Where the ``criticalup.toml`` contains the following content:
       "rust-std-${rustc-host}"
    ]
 
-CriticalUp understands ``${rustc-host}`` to mean the target triple of the host operating system.
+CriticalUp understands ``${rustc-host}`` to mean the target triple of the host operating system. These triple values are listed in :ref:`Platforms <platforms>`.
 
 .. note::
 
