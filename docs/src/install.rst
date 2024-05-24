@@ -23,7 +23,7 @@ From a terminal run:
 
 .. code-block::
 
-   curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/download/criticalup-cli-v1.0.0/criticalup-cli-installer.sh | sh
+   curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/download/latest/criticalup-installer.sh | sh
 
 CriticalUp will install toolchains into ``$XDG_DATA_HOME/criticalup``, or if that
 environment variable is not set, ``$HOME/.local/share/criticalup``.
@@ -36,7 +36,7 @@ From a terminal run:
 
 .. code-block::
 
-   curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/download/criticalup-cli-v1.0.0/criticalup-cli-installer.sh | sh
+   curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/download/latest/criticalup-installer.sh | sh
 
 CriticalUp will install toolchains into ``$HOME/Library/Application Support/criticalup``.
 
@@ -48,6 +48,6 @@ From a terminal run:
 
 .. code-block::
 
-   powershell -c "irm https://github.com/ferrocene/criticalup/releases/download/criticalup-cli-v1.0.0/criticalup-cli-installer.ps1 | iex"
+   powershell -c "irm https://github.com/ferrocene/criticalup/releases/download/latest/criticalup-installer.ps1 | iex"
 
 CriticalUp will install toolchains into ``{FOLDERID_RoamingAppData}``, usually ``%appdata%\\criticalup``.
