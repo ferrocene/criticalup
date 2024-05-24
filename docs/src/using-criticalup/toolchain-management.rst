@@ -34,15 +34,16 @@ Where the ``criticalup.toml`` contains the following content:
 
    Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
 
+Prerequisites
+^^^^^^^^^^^^^
+
+* :ref:`Installing CriticalUp <install>`
+* :ref:`Authenticating <authenticate>`
+
 .. _install_toolchain:
 
 Installing Toolchains
 ^^^^^^^^^^^^^^^^^^^^^
-
-**Prerequisites**
-
-* :ref:`Installing CriticalUp <install>`
-* :ref:`Authenticating <authenticate>`
 
 After installing CriticalUp and authenticating, CriticalUp is ready to manage toolchains.
 

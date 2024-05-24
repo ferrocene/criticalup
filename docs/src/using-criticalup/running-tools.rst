@@ -16,7 +16,8 @@ The examples in this chapter assume the following directory structure:
    └── project
       └── criticalup.toml
 
-**Prerequisites**
+Prerequisites
+^^^^^^^^^^^^^
 
 * :ref:`Installing CriticalUp <install>`
 * :ref:`Authentication <authenticate>`
