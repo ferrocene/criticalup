@@ -25,6 +25,8 @@ From a terminal run:
 
    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.sh | sh
 
+This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
+
 CriticalUp will install toolchains into ``$XDG_DATA_HOME/criticalup``, or if that
 environment variable is not set, ``$HOME/.local/share/criticalup``.
 
@@ -38,16 +40,32 @@ From a terminal run:
 
    curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.sh | sh
 
+This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
+
 CriticalUp will install toolchains into ``$HOME/Library/Application Support/criticalup``.
 
 
 Windows
 -------
 
+MSI based
+^^^^^^^^^
+
+We recommend `downloading and installing the MSI <https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-x86_64-pc-windows-msvc.msi>`_.
+
+This will install CriticalUp into ``C:\Program Files\criticalup`` by default, but the location is configurable in the installer interface.
+
+If you'd prefer not to use the MSI, a powershell based install is available.
+
+Powershell based
+^^^^^^^^^^^^^^^^
+
 From a terminal run:
 
 .. code-block::
 
    powershell -c "irm https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.ps1 | iex"
+
+This will install CriticalUp into ``$HOME/.cargo/bin/criticalup``.
 
 CriticalUp will install toolchains into ``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
