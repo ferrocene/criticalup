@@ -39,9 +39,12 @@ Where the ``criticalup.toml`` contains the following content:
 Installing Toolchains
 ^^^^^^^^^^^^^^^^^^^^^
 
-After :ref:`installing CriticalUp <install>` and
-:ref:`authenticating <authenticate>` CriticalUp is ready to manage
-toolchains.
+**Prerequisites**
+
+* :ref:`Installation <install>`
+* :ref:`Authentication <authenticate>`
+
+After installing CriticalUp and authenticating, CriticalUp is ready to manage toolchains.
 
 You can can change directory into the project and install the required
 toolchain.
