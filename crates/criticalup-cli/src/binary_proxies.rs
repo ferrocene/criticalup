@@ -12,7 +12,7 @@ use std::process::{Command, Stdio};
 
 pub(crate) fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let binary_name = arg0(&whitelabel)?;
-    
+
     #[cfg(not(windows))]
     let binary_path = PathBuf::from(&binary_name);
     #[cfg(windows)]
