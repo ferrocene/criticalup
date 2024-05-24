@@ -16,10 +16,14 @@ The examples in this chapter assume the following directory structure:
    └── project
       └── criticalup.toml
 
-After :ref:`installing CriticalUp <install>`,
-:ref:`authenticating <authenticate>`, and :ref:`installing a toolchain
-<install_toolchain>`, CriticalUp can be used to run the specified tools
-from the installed toolchain.
+**Prerequisites**
+
+* :ref:`Installation - CriticalUp <install>`
+* :ref:`Authentication <authenticate>`
+* :ref:`Installation - Toolchain <install_toolchain>`
+
+After installing CriticalUp, authenticating, and installing a toolchain,
+CriticalUp can be used to run the specified tools from the installed toolchain.
 
 CriticalUp creates a set of *binary proxies* for tools which it has installed.
 Which discover the relevant ``criticalup.toml`` and executes the correct
