@@ -4,7 +4,7 @@
 use crate::assert_output;
 use crate::utils::TestEnvironment;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
@@ -51,6 +51,11 @@ fn invoking_inside_of_installed_project() {
     )
     .unwrap();
 
+    #[cfg(not(windows))]
+    let executable_name = "sample";
+    #[cfg(windows)]
+    let executable_name = "sample.exe";
+
     // Create a sample state file referencing the binary proxy.
     std::fs::write(
         test_env.root().join("state.json"),
@@ -60,7 +65,7 @@ fn invoking_inside_of_installed_project() {
                 INSTALLATION_ID: {
                     "manifests": ["/path/to/manifest/a", "/path/to/manifest/b"],
                     "binary_proxies": {
-                        "sample": "bin/sample",
+                        executable_name: PathBuf::from("bin").join(executable_name),
                     },
                 },
             },
@@ -77,7 +82,7 @@ fn invoking_inside_of_installed_project() {
             .join("toolchains")
             .join(INSTALLATION_ID)
             .join("bin")
-            .join("sample"),
+            .join(executable_name),
         r#"fn main() { println!("proxies work!"); }"#,
     );
 
