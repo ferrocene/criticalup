@@ -14,7 +14,7 @@ install CriticalUp on.
 
 Based on the platform you chose, you must follow the directions for the
 relevant operating system. Installation and usage does not differ between
-architectures unless otherwise noted.
+processor architectures unless otherwise noted.
 
 Linux
 -----
