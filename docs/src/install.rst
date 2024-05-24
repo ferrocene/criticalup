@@ -50,4 +50,4 @@ From a terminal run:
 
    powershell -c "irm https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.ps1 | iex"
 
-CriticalUp will install toolchains into ``{FOLDERID_RoamingAppData}``, usually ``%appdata%\\criticalup``.
+CriticalUp will install toolchains into ``{FOLDERID_RoamingAppData}``, usually ``%appdata%\criticalup``.
