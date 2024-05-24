@@ -637,6 +637,7 @@ dependencies = [
  "base64",
  "elliptic-curve",
  "itertools",
+ "once_cell",
  "p256",
  "rand_core",
  "serde",

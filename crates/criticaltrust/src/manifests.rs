@@ -3,6 +3,8 @@
 
 //! Serializable and deserializable representation of criticaltrust manifests.
 
+use std::path::PathBuf;
+
 use crate::keys::{KeyRole, PublicKey};
 use crate::signatures::{Signable, SignedPayload};
 use serde::de::Error as _;
@@ -148,7 +150,7 @@ impl Signable for Package {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct PackageFile {
-    pub path: String,
+    pub path: PathBuf,
     pub posix_mode: u32,
     #[serde(with = "crate::serde_base64")]
     pub sha256: Vec<u8>,
