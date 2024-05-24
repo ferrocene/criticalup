@@ -90,7 +90,7 @@ channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
 ``packages``
 ^^^^^^^^^^^^
 
-A set of package names as listed in the release page, for example the `beta-stable-24.05.0
+A set of package names as listed in the release page, for example the `stable-24.05.0
 <https://releases.ferrocene.dev/ferrocene/files/stable-24.05.0/index.html>`_
 release.
 
