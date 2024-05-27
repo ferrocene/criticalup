@@ -9,7 +9,7 @@ fn main() {
         name: "criticalup",
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION")),
         download_server_url: "https://criticalup-downloads.ferrocene.dev".into(),
-        customer_portal_url: "https://customers.ferrocene.dev/".into(),
+        customer_portal_url: "https://customers.ferrocene.dev".into(),
         // TODO: this key is not permanent, and must be changed before criticalup is released. The
         // key was ephemeral when it was generated, and is not persisted anywhere. If we keep it
         // as-is in the binaries we release, we won't be able to change the signing keys.
