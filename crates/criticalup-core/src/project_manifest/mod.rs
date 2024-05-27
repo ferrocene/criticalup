@@ -105,7 +105,7 @@ impl ProjectManifest {
     pub fn create_products_dirs(&self, installation_dir: &Path) -> std::io::Result<()> {
         let products = self.products();
         for product in products {
-            std::fs::create_dir_all(installation_dir.join(&product.installation_id()))?;
+            std::fs::create_dir_all(installation_dir.join(product.installation_id()))?;
         }
 
         Ok(())
