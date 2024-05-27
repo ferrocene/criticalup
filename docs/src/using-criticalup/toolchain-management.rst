@@ -24,7 +24,7 @@ Where the ``criticalup.toml`` contains the following content:
    manifest-version = 1
 
    [products.ferrocene]
-   release = "nightly-2024-04-03"
+   release = "stable-24.05.0"
    packages = [
       "rustc-${rustc-host}",
       "cargo-${rustc-host}",
@@ -36,6 +36,13 @@ CriticalUp understands ``${rustc-host}`` to mean the target triple of the host o
 .. note::
 
    Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
+
+.. caution::
+
+   The ``stable-24.05.0`` release only supports Linux. If you are using Windows or an
+   Apple Silicon macOS device, pick the latest version in the nightly channel
+   displayed in `releases.ferrocene.dev
+   <https://releases.ferrocene.dev/ferrocene/index.html>`_.
 
 .. _install_toolchain:
 
@@ -61,7 +68,7 @@ To change the installed products, edit the ``criticalup.toml`` as desired. For e
    manifest-version = 1
 
    [products.ferrocene]
-   release = "nightly-2024-04-03"
+   release = "stable-24.05.0"
    packages = [
       "rustc-${rustc-host}",
       "cargo-${rustc-host}",

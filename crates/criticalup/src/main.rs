@@ -9,20 +9,17 @@ fn main() {
         name: "criticalup",
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION")),
         download_server_url: "https://criticalup-downloads.ferrocene.dev".into(),
-        customer_portal_url: "https://customers.ferrocene.dev/".into(),
-        // TODO: this key is not permanent, and must be changed before criticalup is released. The
-        // key was ephemeral when it was generated, and is not persisted anywhere. If we keep it
-        // as-is in the binaries we release, we won't be able to change the signing keys.
+        customer_portal_url: "https://customers.ferrocene.dev".into(),
         trust_root: PublicKey {
             role: KeyRole::Root,
             algorithm: KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
             expiry: None,
             public: PublicKeyBytes::borrowed(&[
                 48, 89, 48, 19, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 8, 42, 134, 72, 206, 61, 3, 1,
-                7, 3, 66, 0, 4, 145, 91, 152, 186, 48, 109, 66, 242, 84, 12, 150, 220, 124, 142,
-                196, 172, 189, 48, 90, 217, 123, 214, 67, 0, 139, 219, 17, 77, 185, 56, 152, 199,
-                5, 110, 157, 121, 0, 229, 172, 39, 92, 217, 125, 234, 61, 139, 231, 170, 22, 176,
-                174, 126, 100, 167, 20, 202, 250, 184, 237, 39, 79, 233, 75, 136,
+                7, 3, 66, 0, 4, 68, 168, 159, 251, 220, 122, 178, 116, 99, 232, 131, 60, 141, 227,
+                61, 4, 83, 99, 18, 5, 142, 157, 245, 214, 142, 145, 36, 8, 168, 234, 188, 23, 236,
+                178, 151, 94, 119, 120, 150, 188, 22, 232, 0, 94, 59, 232, 134, 165, 12, 158, 7,
+                112, 156, 114, 150, 137, 52, 193, 254, 180, 81, 68, 158, 255,
             ]),
         },
         test_mode: false,
