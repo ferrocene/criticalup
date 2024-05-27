@@ -37,6 +37,13 @@ CriticalUp understands ``${rustc-host}`` to mean the target triple of the host o
 
    Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
 
+.. caution::
+
+   The ``stable-24.05.0`` release only supports Linux. If you are using Windows or an
+   Apple Silicon macOS device, pick the latest version in the nightly channel
+   displayed in `releases.ferrocene.dev
+   <https://releases.ferrocene.dev/ferrocene/index.html>`_.
+
 .. _install_toolchain:
 
 Installing Toolchains
