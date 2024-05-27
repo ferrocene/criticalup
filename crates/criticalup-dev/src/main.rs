@@ -10,9 +10,6 @@ fn main() {
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION"), " (dev)"),
         download_server_url: "https://criticalup-downloads-dev.ferrocene.dev".into(),
         customer_portal_url: "https://customers-dev.ferrocene.dev".into(),
-        // TODO: this key is not permanent, and must be changed before criticalup is released. The
-        // key was ephemeral when it was generated, and is not persisted anywhere. If we keep it
-        // as-is in the binaries we release, we won't be able to change the signing keys.
         trust_root: PublicKey {
             role: KeyRole::Root,
             algorithm: KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
