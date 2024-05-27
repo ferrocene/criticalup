@@ -31,7 +31,7 @@ xz2 = "0.1.7"
 [dev-dependencies]
 insta = { version = "1.39.0", features = ["filters"] }
 mock-download-server = { path = "../mock-download-server" }
-serde = { version = "1.0.202", features = ["derive"] }
+serde = { version = "1.0.203", features = ["derive"] }
 tempfile = "3.10.1"
 regex = "1.10.4"
 
