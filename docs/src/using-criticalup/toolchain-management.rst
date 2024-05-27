@@ -24,7 +24,7 @@ Where the ``criticalup.toml`` contains the following content:
    manifest-version = 1
 
    [products.ferrocene]
-   release = "nightly-2024-04-03"
+   release = "stable-24.05.0"
    packages = [
       "rustc-${rustc-host}",
       "cargo-${rustc-host}",
@@ -61,7 +61,7 @@ To change the installed products, edit the ``criticalup.toml`` as desired. For e
    manifest-version = 1
 
    [products.ferrocene]
-   release = "nightly-2024-04-03"
+   release = "stable-24.05.0"
    packages = [
       "rustc-${rustc-host}",
       "cargo-${rustc-host}",
