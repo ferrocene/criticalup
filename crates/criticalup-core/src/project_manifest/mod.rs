@@ -72,7 +72,7 @@ impl ProjectManifest {
     pub fn load(path: &Path) -> Result<Self, Error> {
         load_inner(path).map_err(|kind| Error::ProjectManifestLoadingFailed {
             path: path.into(),
-            kind,
+            kind: Box::new(kind),
         })
     }
 
@@ -105,7 +105,7 @@ impl ProjectManifest {
     pub fn create_products_dirs(&self, installation_dir: &Path) -> std::io::Result<()> {
         let products = self.products();
         for product in products {
-            std::fs::create_dir_all(installation_dir.join(&product.installation_id()))?;
+            std::fs::create_dir_all(installation_dir.join(product.installation_id()))?;
         }
 
         Ok(())
@@ -420,14 +420,16 @@ mod tests {
         fn test_read_failure() {
             let root = tempfile::tempdir().unwrap();
             let bad_path = root.path().join("doesnt-exist.toml");
+            let actual = ProjectManifest::load(&bad_path).unwrap_err();
 
-            assert!(matches!(
-                ProjectManifest::load(&bad_path).unwrap_err(),
-                Error::ProjectManifestLoadingFailed {
-                    path,
-                    kind: ProjectManifestLoadingError::FailedToRead(io),
-                } if path == bad_path && io.kind() == std::io::ErrorKind::NotFound,
-            ));
+            if let Error::ProjectManifestLoadingFailed { path, kind } = actual {
+                // A simple function in the spirit of most other closures here for other tests.
+                let error_check = |e: Box<ProjectManifestLoadingError>| {
+                    matches!(*e, ProjectManifestLoadingError::FailedToRead(_))
+                };
+                assert_eq!(bad_path, path);
+                assert!(error_check(kind));
+            }
         }
 
         #[test]

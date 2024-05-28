@@ -37,7 +37,9 @@ pub enum Error {
     ProjectManifestLoadingFailed {
         path: PathBuf,
         #[source]
-        kind: ProjectManifestLoadingError,
+        // `Box`ing here is needed because of maintaining the size of errors.
+        // Otherwise Clippy will tell you to try reducing the size of `errors::Error`.
+        kind: Box<ProjectManifestLoadingError>,
     },
     #[error("failed to create product directory for product {} at {}", .product, .path.display())]
     ProjectManifestProductDirCreationFailed {
