@@ -9,18 +9,17 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Versioning issue where `--version` was still showing `0.0.0`.
+- Versioning issue where `--version` was still showing `0.0.0` (#24).
 
 ### Changed
 
-- Update version to `1.0.1`.
-- Update dependencies for all crates in the project workspace.
+- Update dependencies for all crates in the project workspace (#10).
 
 ## [1.0.0] - 2024-05-27
 
 ### Added
 
-- Initial public release.
+- Initial public release (#22).
 
 ## References
 
