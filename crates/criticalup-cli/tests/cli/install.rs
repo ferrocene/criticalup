@@ -13,6 +13,16 @@ fn help_message() {
 }
 
 #[test]
+fn empty_packages_list() {
+    let test_env = TestEnvironment::prepare();
+    let mut current_dir = std::env::current_dir().unwrap();
+    current_dir.push("tests/resources/criticalup-empty-packages.toml");
+    let manifest_path = current_dir.to_str().unwrap();
+
+    assert_output!(test_env.cmd().args(["install", "--project", manifest_path]));
+}
+
+#[test]
 fn already_installed_toolchain_should_not_throw_error() {
     let test_env = TestEnvironment::prepare();
 

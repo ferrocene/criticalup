@@ -195,6 +195,11 @@ macro_rules! assert_output {
             "caused by: No such file or directory (os error 2)",
         );
 
+        settings.add_filter(
+            r"error: failed to load the project manifest at.*criticalup-empty-packages.toml",
+            "error: failed to load the project manifest at /path/to/manifest/criticalup-empty-packages.toml",
+        );
+
         #[cfg(windows)]
         settings.add_filter("exit code: ", "exit status: ");
         #[cfg(windows)]

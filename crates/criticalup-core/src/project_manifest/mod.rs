@@ -264,10 +264,23 @@ fn load_inner(path: &Path) -> Result<ProjectManifest, ProjectManifestLoadingErro
 
     products.sort_by(|a, b| a.name.cmp(&b.name));
 
+    // We do not support more than one product at this time. This check has to be removed
+    // when we start supporting multiple products.
     if products.len() > 1 {
         return Err(MultipleProductsNotSupportedInProjectManifest(
             products.len(),
         ));
+    }
+
+    // We must fail if the project manifest contains empty packages list for any product.
+    for product in &products {
+        if product.packages.len() == 0 {
+            return Err(
+                ProjectManifestLoadingError::MissingPackagesInManifestProduct {
+                    product_name: product.name.to_string(),
+                },
+            );
+        }
     }
 
     Ok(ProjectManifest { products })
