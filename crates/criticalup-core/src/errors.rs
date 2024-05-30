@@ -133,6 +133,10 @@ pub enum ProjectManifestLoadingError {
     )]
     ManifestVersionTooBig { user_version: u32 },
 
+    #[error("the 'packages' list for product '{}' in your project manifest is empty. \
+    please provide at least one package in the 'packages' list.", .product_name)]
+    MissingPackagesInManifestProduct { product_name: String },
+
     #[error("unknown substitution variable: ${{{0}}}")]
     UnknownVariableInSubstitution(String),
     #[error("unterminated substitution")]
