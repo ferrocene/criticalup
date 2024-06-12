@@ -4,11 +4,15 @@
 use super::newtypes::SignatureBytes;
 use crate::keys::newtypes::{PayloadBytes, PublicKeyBytes};
 use crate::keys::KeyAlgorithm;
+use crate::manifests::RevocationInfo;
 use crate::sha256::hash_sha256;
-use crate::signatures::{PublicKeysRepository, Signable};
-use crate::Error;
+use crate::signatures::{PublicKeysRepository, Signable, SignedPayload};
+use crate::{Error, NoRevocationCheck};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+
+/// Expiration of `RevocationInfo` should be at least this many number of days out from now.
+const MAX_REVOCATION_INFO_EXPIRATION_DURATION: i64 = 90;
 
 /// Public key used for verification of signed payloads.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
@@ -21,7 +25,54 @@ pub struct PublicKey {
     pub public: PublicKeyBytes<'static>,
 }
 
+/// Make sure verification of `PublicKey` type does no checks for revocations.
+///
+/// This is done because when decoding the public keys, we haven't yet decoded the revocation key.
+impl NoRevocationCheck for SignedPayload<PublicKey> {}
+
 impl PublicKey {
+    /// Verify whether the provided payload matches the provided signature and check if the
+    /// revoked content does not match the payload.
+    ///
+    /// Signature verification could fail if:
+    /// * The signature is present in the `RevocationInfo`.
+    /// * The `RevocationInfo` cannot be verified.
+    /// * [`verify_payload`](PublicKey::verify_without_checking_revocations) fails.
+    pub fn verify(
+        &self,
+        role: KeyRole,
+        payload: &PayloadBytes<'_>,
+        signature: &SignatureBytes<'_>,
+        signed_revocation_info: SignedPayload<RevocationInfo>,
+    ) -> Result<(), Error> {
+        // We need to check if there is revoked content. If the following checks pass, then bail out
+        // early with an error.
+        //  1. Check if the expiration date has passed.
+        //  2. Check whether the `signature` is inside the vector
+        //     `RevocationInfo.revoked_content_sha256`.
+        let verified_revoked_content = signed_revocation_info.get_verified(self)?;
+        let expiration_in_days =
+            (verified_revoked_content.expires_at - OffsetDateTime::now_utc()).whole_days();
+        if expiration_in_days < MAX_REVOCATION_INFO_EXPIRATION_DURATION {
+            return Err(Error::VerificationFailed);
+        }
+
+        let sha256_payload = match String::from_utf8(hash_sha256(payload.as_bytes())) {
+            Ok(sha) => sha,
+            Err(err) => return Err(Error::PayloadSha256CalcFailed(err)),
+        };
+        if verified_revoked_content
+            .revoked_content_sha256
+            .contains(&sha256_payload)
+        {
+            return Err(Error::VerificationFailed);
+        }
+
+        self.verify_without_checking_revocations(role, payload, signature)?;
+
+        Ok(())
+    }
+
     /// Verify whether the provided payload matches the provided signature. Signature verification
     /// could fail if:
     ///
@@ -29,7 +80,10 @@ impl PublicKey {
     /// * The current key expired.
     /// * The signature doesn't match the payload.
     /// * The signature wasn't performed by the current key.
-    pub fn verify(
+    ///
+    /// This method is local to this crate only to makes sure external API users do not use this
+    /// directly.
+    pub(crate) fn verify_without_checking_revocations(
         &self,
         role: KeyRole,
         payload: &PayloadBytes<'_>,
@@ -110,6 +164,8 @@ mod tests {
     use time::Duration;
 
     const SAMPLE_PAYLOAD: PayloadBytes<'static> = PayloadBytes::borrowed(b"Hello world");
+    const SAMPLE_REVOKED_PAYLOAD: PayloadBytes<'static> =
+        PayloadBytes::borrowed(b"Yes, I am a revoked payload, you cruel world! :(");
     const SAMPLE_KEY_ID: &str = "nvb7o7wel0FvL/hZ/P4yI3JJRfYYjTXZPpdV+xNQqTA=";
     const SAMPLE_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAGDPB8wZg17bAny3c0jPNg8wmnylcKtCLuPnX3GfwEQDf6ydkD1qnOPtMCZBh0P521Q5evvQ1e/rHsjrbBVPMQ==";
     const SAMPLE_SIGNATURE: &str = "MEYCIQC8MN8dk0jkZo1GIY8EZSaLpnDPUqR29E9eerKPjRyeJwIhAOd21m1VqpldE4kagUVZOUL0Pb/EZTQ0ry8ltbC446sh";
@@ -121,7 +177,7 @@ mod tests {
 
         assert!(key
             .public()
-            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
+            .verify_without_checking_revocations(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
             .is_ok())
     }
 
@@ -132,7 +188,7 @@ mod tests {
 
         assert!(key
             .public()
-            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
+            .verify_without_checking_revocations(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
             .is_ok());
     }
 
@@ -142,8 +198,11 @@ mod tests {
         let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key.public()
-                .verify(KeyRole::Packages, &SAMPLE_PAYLOAD, &signature),
+            key.public().verify_without_checking_revocations(
+                KeyRole::Packages,
+                &SAMPLE_PAYLOAD,
+                &signature
+            ),
             Err(Error::VerificationFailed)
         ));
     }
@@ -154,8 +213,11 @@ mod tests {
         let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key.public()
-                .verify(KeyRole::Unknown, &SAMPLE_PAYLOAD, &signature),
+            key.public().verify_without_checking_revocations(
+                KeyRole::Unknown,
+                &SAMPLE_PAYLOAD,
+                &signature
+            ),
             Err(Error::VerificationFailed)
         ));
     }
@@ -166,8 +228,11 @@ mod tests {
         let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key.public()
-                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+            key.public().verify_without_checking_revocations(
+                KeyRole::Root,
+                &SAMPLE_PAYLOAD,
+                &signature
+            ),
             Err(Error::VerificationFailed)
         ));
     }
@@ -181,10 +246,10 @@ mod tests {
         *bad_signature.last_mut().unwrap() = bad_signature.last().unwrap().wrapping_add(1);
 
         assert!(matches!(
-            key.public().verify(
+            key.public().verify_without_checking_revocations(
                 KeyRole::Root,
                 &SAMPLE_PAYLOAD,
-                &SignatureBytes::owned(bad_signature)
+                &SignatureBytes::owned(bad_signature),
             ),
             Err(Error::VerificationFailed)
         ));
@@ -196,10 +261,10 @@ mod tests {
         let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key.public().verify(
+            key.public().verify_without_checking_revocations(
                 KeyRole::Root,
                 &PayloadBytes::borrowed("Hello world!".as_bytes()),
-                &signature
+                &signature,
             ),
             Err(Error::VerificationFailed)
         ));
@@ -210,10 +275,10 @@ mod tests {
         let key = generate(KeyRole::Root, None);
 
         assert!(matches!(
-            key.public().verify(
+            key.public().verify_without_checking_revocations(
                 KeyRole::Root,
                 &SAMPLE_PAYLOAD,
-                &SignatureBytes::borrowed(&[])
+                &SignatureBytes::borrowed(&[]),
             ),
             Err(Error::VerificationFailed)
         ));
@@ -227,8 +292,11 @@ mod tests {
         let signature = key1.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key2.public()
-                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+            key2.public().verify_without_checking_revocations(
+                KeyRole::Root,
+                &SAMPLE_PAYLOAD,
+                &signature
+            ),
             Err(Error::VerificationFailed)
         ));
     }
@@ -242,7 +310,7 @@ mod tests {
         public.algorithm = KeyAlgorithm::Unknown;
 
         assert!(matches!(
-            public.verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+            public.verify_without_checking_revocations(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
             Err(Error::UnsupportedKey)
         ));
     }
@@ -294,7 +362,7 @@ mod tests {
         .unwrap();
 
         // Ensure the key can verify messages signed with the corresponding private key.
-        key.verify(
+        key.verify_without_checking_revocations(
             KeyRole::Root,
             &SAMPLE_PAYLOAD,
             &SignatureBytes::owned(base64_decode(SAMPLE_SIGNATURE).unwrap()),
@@ -401,12 +469,79 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_simple_revocation_key_valid_revoked_content_in_payload() {
+        let key = generate(KeyRole::Root, None);
+        let signature = key.sign(&SAMPLE_REVOKED_PAYLOAD).unwrap();
+
+        let payload_sha256 = String::from_utf8(SAMPLE_REVOKED_PAYLOAD.as_bytes().to_vec()).unwrap();
+        let signed_revocation_info = SignedPayload::new(&RevocationInfo {
+            revoked_content_sha256: vec![payload_sha256],
+            expires_at: days_diff(10000).unwrap(),
+        })
+        .unwrap();
+        assert!(matches!(
+            key.public().verify(
+                KeyRole::Root,
+                &SAMPLE_REVOKED_PAYLOAD,
+                &signature,
+                signed_revocation_info
+            ),
+            Err(Error::VerificationFailed)
+        ));
+    }
+
+    /// MAX_REVOCATION_INFO_EXPIRATION_DURATION is set in public.rs. This test makes sure that
+    /// that is honored.
+    #[test]
+    fn test_simple_revocation_key_invalid_duration_less_than_max() {
+        let days: i64 = 10;
+        assert!(MAX_REVOCATION_INFO_EXPIRATION_DURATION > days);
+
+        let key = generate(KeyRole::Root, None);
+        let signature = key.sign(&SAMPLE_REVOKED_PAYLOAD).unwrap();
+        let rev_key = generate(KeyRole::Revocation, Some(days_diff(200).unwrap()));
+
+        let mut signed_revocation_info = SignedPayload::new(&RevocationInfo {
+            revoked_content_sha256: Vec::new(),
+            expires_at: days_diff(days).unwrap(),
+        })
+        .unwrap();
+        signed_revocation_info.add_signature(&key).unwrap();
+        signed_revocation_info.add_signature(&rev_key).unwrap();
+
+        // Check both keys, Root and Revocation.
+        assert!(matches!(
+            key.public().verify(
+                KeyRole::Root,
+                &SAMPLE_REVOKED_PAYLOAD,
+                &signature,
+                signed_revocation_info.clone()
+            ),
+            Err(Error::VerificationFailed)
+        ));
+
+        assert!(matches!(
+            rev_key.public().verify(
+                KeyRole::Revocation,
+                &SAMPLE_PAYLOAD,
+                &signature,
+                signed_revocation_info
+            ),
+            Err(Error::VerificationFailed)
+        ));
+    }
+
     fn date(rfc3339: &str) -> OffsetDateTime {
         OffsetDateTime::parse(rfc3339, &time::format_description::well_known::Rfc3339).unwrap()
     }
 
     fn hours_diff(diff: i64) -> Option<OffsetDateTime> {
         Some(OffsetDateTime::now_utc() + Duration::hours(diff))
+    }
+
+    fn days_diff(diff: i64) -> Option<OffsetDateTime> {
+        Some(OffsetDateTime::now_utc() + Duration::days(diff))
     }
 
     fn generate(role: KeyRole, expiry: Option<OffsetDateTime>) -> EphemeralKeyPair {
