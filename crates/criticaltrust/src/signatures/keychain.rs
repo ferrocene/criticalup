@@ -5,6 +5,7 @@ use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
+use crate::manifests::{KeysManifest, RevocationInfo};
 
 /// Collection of all trusted public keys.
 pub struct Keychain {
@@ -38,6 +39,14 @@ impl Keychain {
         let key = key.get_verified(self)?;
         self.load_inner(&key)
     }
+
+    // TODO change the name here from `lock_and_load` to something else.
+    pub fn load_with_revocation_check(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
+        let _ =
+
+        Ok(())
+    }
+
 
     fn load_inner(&mut self, key: &PublicKey) -> Result<KeyId, Error> {
         if !key.is_supported() {

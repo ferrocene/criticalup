@@ -7,6 +7,7 @@ use std::path::PathBuf;
 
 use crate::keys::{KeyRole, PublicKey};
 use crate::signatures::{Signable, SignedPayload};
+use crate::NoRevocationCheck;
 use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -159,6 +160,7 @@ pub struct PackageFile {
 
 // Revocations
 
+/// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct RevocationInfo {
@@ -169,6 +171,11 @@ pub struct RevocationInfo {
 impl Signable for RevocationInfo {
     const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
 }
+
+/// Make sure verification of `RevocationInfo` type does no checks for revocations.
+///
+/// If we did, then this would be a circular logic and we say No! to such logic.
+impl NoRevocationCheck for RevocationInfo {}
 
 // Keys
 

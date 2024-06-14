@@ -6,6 +6,7 @@ use crate::keys::{KeyId, KeyPair, KeyRole, PublicKey};
 use crate::Error;
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell};
+use crate::manifests::RevocationInfo;
 
 /// Piece of data with signatures attached to it.
 ///
@@ -57,6 +58,28 @@ impl<T: Signable> SignedPayload<T> {
     /// As signature verification and deserialization is expensive, it is only performed the first
     /// time the method is called. The cached results from the initial call will be returned in the
     /// rest of the cases.
+    // pub fn get_verified(&self, keys: &dyn PublicKeysRepository) -> Result<Ref<'_, T>, Error> {
+    //     let borrow = self.verified_deserialized.borrow();
+    //
+    //     if borrow.is_none() {
+    //         let value = verify_signature(
+    //             keys,
+    //             &self.signatures,
+    //             PayloadBytes::borrowed(self.signed.as_bytes()),
+    //         )?;
+    //
+    //         // In theory, `borrow_mut()` could panic if an immutable borrow was alive at the same
+    //         // time. In practice that won't happen, as we only populate the cache before returning
+    //         // any reference to the cached data.
+    //         drop(borrow);
+    //         *self.verified_deserialized.borrow_mut() = Some(value);
+    //     }
+    //
+    //     Ok(Ref::map(self.verified_deserialized.borrow(), |b| {
+    //         b.as_ref().unwrap()
+    //     }))
+    // }
+
     pub fn get_verified(&self, keys: &dyn PublicKeysRepository) -> Result<Ref<'_, T>, Error> {
         let borrow = self.verified_deserialized.borrow();
 
