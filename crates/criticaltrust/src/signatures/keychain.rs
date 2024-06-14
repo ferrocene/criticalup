@@ -5,6 +5,7 @@ use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
+use crate::manifests::{KeysManifest, RevocationInfo};
 
 /// Collection of all trusted public keys.
 pub struct Keychain {
@@ -34,7 +35,7 @@ impl Keychain {
     ///
     /// The key has to be signed by either the root of trust or another key with the root role
     /// already part of the keychain.
-    pub fn load(&mut self, key: &SignedPayload<PublicKey>) -> Result<KeyId, Error> {
+    pub fn load(&mut self, key: &SignedPayload<PublicKey>, revoked_signatures: &SignedPayload<RevocationInfo>) -> Result<KeyId, Error> {
         let key = key.get_verified(self)?;
         self.load_inner(&key)
     }
@@ -87,7 +88,7 @@ mod tests {
         let mut keychain = Keychain::new(root.public()).unwrap();
 
         let (key, public) = generate_trusted_key(KeyRole::Packages, &root);
-        keychain.load(&public).unwrap();
+        keychain.load(&public, ).unwrap();
 
         assert_eq!(
             Some(key.public()),
@@ -101,10 +102,10 @@ mod tests {
         let mut keychain = Keychain::new(root.public()).unwrap();
 
         let (key1, public1) = generate_trusted_key(KeyRole::Root, &root);
-        keychain.load(&public1).unwrap();
+        keychain.load(&public1, ).unwrap();
 
         let (key2, public2) = generate_trusted_key(KeyRole::Packages, &key1);
-        keychain.load(&public2).unwrap();
+        keychain.load(&public2, ).unwrap();
 
         assert_eq!(
             Some(key2.public()),
@@ -118,7 +119,7 @@ mod tests {
         let mut keychain = Keychain::new(root.public()).unwrap();
 
         let (key1, public1) = generate_trusted_key(KeyRole::Packages, &root);
-        keychain.load(&public1).unwrap();
+        keychain.load(&public1, ).unwrap();
 
         let (_, public2) = generate_trusted_key(KeyRole::Packages, &key1);
         assert!(matches!(

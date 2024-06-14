@@ -50,7 +50,7 @@ impl TestEnvironment {
         let mut payload = SignedPayload::new(key).unwrap();
         payload.add_signature(&self.root).unwrap();
 
-        self.keychain.load(&payload).unwrap();
+        self.keychain.load(&payload, ).unwrap();
     }
 }
 

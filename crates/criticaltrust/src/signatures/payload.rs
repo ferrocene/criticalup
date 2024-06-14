@@ -6,6 +6,7 @@ use crate::keys::{KeyId, KeyPair, KeyRole, PublicKey};
 use crate::Error;
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell};
+use crate::manifests::RevocationInfo;
 
 /// Piece of data with signatures attached to it.
 ///
@@ -57,7 +58,7 @@ impl<T: Signable> SignedPayload<T> {
     /// As signature verification and deserialization is expensive, it is only performed the first
     /// time the method is called. The cached results from the initial call will be returned in the
     /// rest of the cases.
-    pub fn get_verified(&self, keys: &dyn PublicKeysRepository) -> Result<Ref<'_, T>, Error> {
+    pub fn get_verified(&self, keys: &dyn PublicKeysRepository, revoked_signatures: &SignedPayload<RevocationInfo>) -> Result<Ref<'_, T>, Error> {
         let borrow = self.verified_deserialized.borrow();
 
         if borrow.is_none() {
@@ -148,8 +149,10 @@ pub trait PublicKeysRepository {
 
 #[cfg(test)]
 mod tests {
+    use time::OffsetDateTime;
     use super::*;
     use crate::keys::{EphemeralKeyPair, PublicKey};
+    use crate::manifests::{KeysManifest, RevocationInfo};
     use crate::signatures::Keychain;
     use crate::test_utils::{base64_encode, TestEnvironment};
 
@@ -352,6 +355,7 @@ mod tests {
                 }"#,
             )
             .unwrap(),
+            &SignedPayload::new(&RevocationInfo { revoked_content_sha256: vec!["aaaa".to_string(), "sssss".to_string()], expires_at: OffsetDateTime::new_utc()}).unwrap(),
         ).unwrap();
 
         let payload: SignedPayload<TestData> = serde_json::from_str(

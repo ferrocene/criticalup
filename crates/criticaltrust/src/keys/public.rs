@@ -5,10 +5,14 @@ use super::newtypes::SignatureBytes;
 use crate::keys::newtypes::{PayloadBytes, PublicKeyBytes};
 use crate::keys::KeyAlgorithm;
 use crate::sha256::hash_sha256;
-use crate::signatures::{PublicKeysRepository, Signable};
+use crate::signatures::{PublicKeysRepository, Signable, SignedPayload};
 use crate::Error;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+use crate::manifests::RevocationInfo;
+
+/// Expiration of `RevocationInfo` should be at least this many number of days out from now.
+const MAX_REVOCATION_INFO_EXPIRATION_DURATION: i64 = 90;
 
 /// Public key used for verification of signed payloads.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
@@ -22,6 +26,33 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
+    /// Verify whether the provided payload matches the provided signature and check if the
+    /// revoked content does not match the payload.
+    ///
+    /// Signature verification could fail if:
+    /// * The signature is present in the `RevocationInfo`.
+    /// * The `RevocationInfo` cannot be verified.
+    /// * [`verify_payload`](PublicKey::verify_without_checking_revocations) fails.
+    pub fn verify(
+        &self,
+        role: KeyRole,
+        payload: &PayloadBytes<'_>,
+        signature: &SignatureBytes<'_>,
+        signed_revocation_info: SignedPayload<RevocationInfo>,
+    ) -> Result<(), Error> {
+        // We need to check if there is revoked content. If the following checks pass, then bail out
+        // early with an error.
+        //  1. Check if the expiration date has passed.
+        //  2. Check whether the `signature` is inside the vector
+        //     `RevocationInfo.revoked_content_sha256`.
+
+        // TODO: add logic to check revoked content.
+
+        self.verify_without_checking_revocations(role, payload, signature)?;
+
+        Ok(())
+    }
+
     /// Verify whether the provided payload matches the provided signature. Signature verification
     /// could fail if:
     ///
@@ -29,7 +60,10 @@ impl PublicKey {
     /// * The current key expired.
     /// * The signature doesn't match the payload.
     /// * The signature wasn't performed by the current key.
-    pub fn verify(
+    ///
+    /// This method is local to this crate only to makes sure external API users do not use this
+    /// directly.
+    pub(crate) fn verify_without_checking_revocations(
         &self,
         role: KeyRole,
         payload: &PayloadBytes<'_>,
