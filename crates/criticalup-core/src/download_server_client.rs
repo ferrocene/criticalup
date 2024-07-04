@@ -131,7 +131,6 @@ impl DownloadServerClient {
         let mut response_result = self.client.execute(req_outer);
 
         while current_retries < CLIENT_MAX_RETRIES && response_result.is_err() {
-            // This try_clone()` will be `None` if request body is a stream.
             let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
 
             response_result = self.client.execute(req);
