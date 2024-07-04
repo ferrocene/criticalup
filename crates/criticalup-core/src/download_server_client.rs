@@ -12,6 +12,12 @@ use reqwest::blocking::{Client, RequestBuilder, Response};
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
 use serde::Deserialize;
+use std::thread;
+use std::time::Duration;
+
+const CLIENT_TIMEOUT_DEFAULT: u64 = 5;
+const CLIENT_MAX_RETRIES: u8 = 5;
+const CLIENT_RETRY_BACKOFF: u64 = 100;
 
 pub struct DownloadServerClient {
     base_url: String,
@@ -24,6 +30,7 @@ impl DownloadServerClient {
     pub fn new(config: &Config, state: &State) -> Self {
         let client = Client::builder()
             .user_agent(config.whitelabel.http_user_agent)
+            .timeout(Duration::from_secs(CLIENT_TIMEOUT_DEFAULT))
             .build()
             .expect("failed to configure http client");
 
@@ -113,13 +120,36 @@ impl DownloadServerClient {
     fn send(&self, builder: RequestBuilder) -> Result<Response, Error> {
         let req = builder.build().expect("failed to prepare the http request");
         let url = req.url().to_string();
-        let response = self
-            .client
-            .execute(req)
-            .map_err(|e| Error::DownloadServerError {
-                kind: DownloadServerError::Network(e),
-                url,
-            })?;
+
+        // Retry logic implemented here.
+        // This section implements a quick and dirty version of a retry a failed request for
+        // the max limit of `CLIENT_MAX_RETRIES` times with doubling the backoff each time
+        // starting with `CLIENT_RETRY_BACKOFF`.
+        //
+        // This logic will be superseded by changes to this code base when we move this to async.
+        let mut current_retries: u8 = 0;
+        let mut current_retry_backoff = CLIENT_RETRY_BACKOFF;
+
+        // This `try_clone()` will be `None` if request body is a stream.
+        let req_outer = req.try_clone().ok_or(Error::RequestCloningFailed)?;
+        let mut response_result = self.client.execute(req_outer);
+
+        while current_retries < CLIENT_MAX_RETRIES && response_result.is_err() {
+            // This try_clone()` will be `None` if request body is a stream.
+            let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
+
+            response_result = self.client.execute(req);
+
+            current_retries += 1;
+            current_retry_backoff *= 3;
+            thread::sleep(Duration::from_millis(current_retry_backoff));
+        }
+
+        let response = response_result.map_err(|e| Error::DownloadServerError {
+            kind: DownloadServerError::Network(e),
+            url,
+        })?;
+        // End Retry logic.
 
         Err(self.err_from_response(
             &response,
