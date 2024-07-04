@@ -121,11 +121,7 @@ impl DownloadServerClient {
         let req = builder.build().expect("failed to prepare the http request");
         let url = req.url().to_string();
 
-        // Retry logic implemented here.
-        // This section implements a quick and dirty version of a retry a failed request for
-        // the max limit of `CLIENT_MAX_RETRIES` times with doubling the backoff each time
-        // starting with `CLIENT_RETRY_BACKOFF`.
-        //
+        // This section implements the logic for retrying a failed request.
         // This logic will be superseded by changes to this code base when we move this to async.
         let mut current_retries: u8 = 0;
         let mut current_retry_backoff = CLIENT_RETRY_BACKOFF;
@@ -149,7 +145,6 @@ impl DownloadServerClient {
             kind: DownloadServerError::Network(e),
             url,
         })?;
-        // End Retry logic.
 
         Err(self.err_from_response(
             &response,
