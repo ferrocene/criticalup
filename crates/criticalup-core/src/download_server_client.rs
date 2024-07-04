@@ -137,7 +137,7 @@ impl DownloadServerClient {
             response_result = self.client.execute(req);
 
             current_retries += 1;
-            current_retry_backoff *= 3;
+            current_retry_backoff *= 2;
             thread::sleep(Duration::from_millis(current_retry_backoff));
         }
 
