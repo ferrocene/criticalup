@@ -65,6 +65,9 @@ pub enum Error {
     #[error(transparent)]
     Reqwest(#[from] ReqError),
 
+    #[error("failed to create request to the download server")]
+    RequestCloningFailed,
+
     #[error("failed to find canonical path for {}", path.display())]
     FailedToFindCanonicalPath {
         path: PathBuf,
