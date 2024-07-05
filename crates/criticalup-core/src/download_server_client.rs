@@ -134,6 +134,9 @@ impl DownloadServerClient {
             let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
 
             response_result = self.client.execute(req);
+            if response_result.is_ok() {
+                break;
+            }
 
             current_retries += 1;
             current_retry_backoff *= 2;
