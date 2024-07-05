@@ -7,6 +7,7 @@ version = "1.0.1"
 edition = "2021"
 authors = ["The CriticalUp Developers"]
 description = "Ferrocene toolchain manager"
+repository = "https://github.com/ferrocene/criticalup"
 
 [package.metadata.wix]
 upgrade-guid = "CB83A96F-1F5B-4C75-A077-876EB03EEA67"
