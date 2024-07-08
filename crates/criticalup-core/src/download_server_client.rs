@@ -126,42 +126,41 @@ impl DownloadServerClient {
         let mut current_retries: u8 = 0;
         let mut current_retry_backoff = CLIENT_RETRY_BACKOFF;
 
-        // This `try_clone()` will be `None` if request body is a stream.
-        let req_outer = req.try_clone().ok_or(Error::RequestCloningFailed)?;
-        let mut response_result = self.client.execute(req_outer);
+        while current_retries < CLIENT_MAX_RETRIES {
+            // This `try_clone()` will be `None` if request body is a stream.
+            let response_result = self
+                .client
+                .execute(req.try_clone().ok_or(Error::RequestCloningFailed)?);
 
-        while current_retries < CLIENT_MAX_RETRIES && response_result.is_err() {
-            let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
-
-            response_result = self.client.execute(req);
             if response_result.is_ok() {
-                break;
-            }
+                let response = response_result?;
 
+                return Err(self.err_from_response(
+                    &response,
+                    match response.status() {
+                        StatusCode::OK => return Ok(response),
+
+                        StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
+                        StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
+                        StatusCode::NOT_FOUND => DownloadServerError::NotFound,
+                        StatusCode::TOO_MANY_REQUESTS => DownloadServerError::RateLimited,
+
+                        s if s.is_server_error() => DownloadServerError::InternalServerError(s),
+                        s => DownloadServerError::UnexpectedResponseStatus(s),
+                    },
+                ));
+            }
             current_retries += 1;
             current_retry_backoff *= 2;
             thread::sleep(Duration::from_millis(current_retry_backoff));
         }
 
-        let response = response_result.map_err(|e| Error::DownloadServerError {
-            kind: DownloadServerError::Network(e),
-            url,
-        })?;
-
-        Err(self.err_from_response(
-            &response,
-            match response.status() {
-                StatusCode::OK => return Ok(response),
-
-                StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
-                StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
-                StatusCode::NOT_FOUND => DownloadServerError::NotFound,
-                StatusCode::TOO_MANY_REQUESTS => DownloadServerError::RateLimited,
-
-                s if s.is_server_error() => DownloadServerError::InternalServerError(s),
-                s => DownloadServerError::UnexpectedResponseStatus(s),
-            },
-        ))
+        self.client
+            .execute(req.try_clone().ok_or(Error::RequestCloningFailed)?)
+            .map_err(|e| Error::DownloadServerError {
+                kind: DownloadServerError::Network(e),
+                url,
+            })
     }
 
     fn json<T: for<'de> Deserialize<'de>>(&self, mut response: Response) -> Result<T, Error> {
