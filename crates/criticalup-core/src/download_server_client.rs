@@ -135,20 +135,11 @@ impl DownloadServerClient {
             if response_result.is_ok() {
                 let response = response_result?;
 
-                return Err(self.err_from_response(
-                    &response,
-                    match response.status() {
-                        StatusCode::OK => return Ok(response),
-
-                        StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
-                        StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
-                        StatusCode::NOT_FOUND => DownloadServerError::NotFound,
-                        StatusCode::TOO_MANY_REQUESTS => DownloadServerError::RateLimited,
-
-                        s if s.is_server_error() => DownloadServerError::InternalServerError(s),
-                        s => DownloadServerError::UnexpectedResponseStatus(s),
-                    },
-                ));
+                if response.status() == StatusCode::OK {
+                    return Ok(response);
+                } else {
+                    return Err(self.err_from_response_with_error_code(&response));
+                }
             }
             current_retries += 1;
             current_retry_backoff *= 2;
@@ -156,11 +147,27 @@ impl DownloadServerClient {
         }
 
         self.client
-            .execute(req.try_clone().ok_or(Error::RequestCloningFailed)?)
+            .execute(req)
             .map_err(|e| Error::DownloadServerError {
                 kind: DownloadServerError::Network(e),
                 url,
             })
+    }
+
+    /// Wrapper to calculate the conversion of [`reqwest::StatusCode`] to
+    /// [`crate::DownloadServerError`] and generating [`crate::DownloadServerError`].
+    fn err_from_response_with_error_code(&self, response: &Response) -> Error {
+        let e = match response.status() {
+            StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
+            StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
+            StatusCode::NOT_FOUND => DownloadServerError::NotFound,
+            StatusCode::TOO_MANY_REQUESTS => DownloadServerError::RateLimited,
+
+            s if s.is_server_error() => DownloadServerError::InternalServerError(s),
+            s => DownloadServerError::UnexpectedResponseStatus(s),
+        };
+
+        self.err_from_response(response, e)
     }
 
     fn json<T: for<'de> Deserialize<'de>>(&self, mut response: Response) -> Result<T, Error> {
@@ -185,6 +192,8 @@ impl DownloadServerClient {
         }
     }
 
+    /// Generates [`crate::Error`] from a [`reqwest::Response`] and `kind` of the
+    /// [`crate::DownloadServerError`].
     fn err_from_response(&self, response: &Response, kind: DownloadServerError) -> Error {
         Error::DownloadServerError {
             kind,
