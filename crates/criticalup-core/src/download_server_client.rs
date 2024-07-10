@@ -131,6 +131,8 @@ impl DownloadServerClient {
         let mut response_result = self.client.execute(req_outer);
 
         while current_retries < CLIENT_MAX_RETRIES && response_result.is_err() {
+            thread::sleep(Duration::from_millis(current_retry_backoff));
+
             let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
 
             response_result = self.client.execute(req);
@@ -140,7 +142,6 @@ impl DownloadServerClient {
 
             current_retries += 1;
             current_retry_backoff *= 2;
-            thread::sleep(Duration::from_millis(current_retry_backoff));
         }
 
         let response = response_result.map_err(|e| Error::DownloadServerError {
