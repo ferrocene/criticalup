@@ -176,13 +176,13 @@ impl ProjectManifestProduct {
 
     /// Generates a directory for the product under the specified `root`. If the directory already
     /// exists, then just skips the creation.
-    pub fn create_product_dir(&self, installation_dir: &Path) -> Result<(), Error> {
+    pub async fn create_product_dir(&self, installation_dir: &Path) -> Result<(), Error> {
         let product_dir_name = self.installation_id();
         let abs_installation_dir_path: PathBuf = [installation_dir, product_dir_name.as_ref()]
             .iter()
             .collect();
         let _res: Result<(), std::io::Error> =
-            match std::fs::create_dir_all(abs_installation_dir_path.clone()) {
+            match tokio::fs::create_dir_all(abs_installation_dir_path.clone()).await {
                 Ok(_) => Ok(()),
                 Err(err) => {
                     return Err(Error::ProjectManifestProductDirCreationFailed {
@@ -368,7 +368,9 @@ mod tests {
                 .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
-                std::fs::canonicalize(expected_project_path.join("criticalup.toml")).unwrap();
+                tokio::fs::canonicalize(expected_project_path.join("criticalup.toml"))
+                    .await
+                    .unwrap();
 
             #[cfg(target_os = "macos")]
             let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
@@ -393,7 +395,9 @@ mod tests {
             // https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths
             #[cfg(target_os = "windows")]
             let expected_project_path =
-                std::fs::canonicalize(expected_project_path.join("criticalup.toml")).unwrap();
+                tokio::fs::canonicalize(expected_project_path.join("criticalup.toml"))
+                    .await
+                    .unwrap();
 
             assert_eq!(discovered_abs_path, expected_project_path);
         }

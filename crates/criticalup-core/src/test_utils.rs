@@ -35,8 +35,8 @@ impl TestEnvironment {
         }
     }
 
-    pub(crate) fn prepare() -> Self {
-        Self::with().prepare()
+    pub(crate) async fn prepare() -> Self {
+        Self::with().prepare().await
     }
 
     pub(crate) fn root(&self) -> &Path {
@@ -97,7 +97,7 @@ impl TestEnvironmentBuilder {
         self
     }
 
-    pub(crate) fn prepare(self) -> TestEnvironment {
+    pub(crate) async fn prepare(self) -> TestEnvironment {
         #[cfg(not(target_os = "windows"))]
         let root = TempDir::new().expect("failed to create temp dir");
 
@@ -110,7 +110,7 @@ impl TestEnvironmentBuilder {
             // A subdir creation is a requirement because root cannot be changed to anything
             // that does not exist.
             #[cfg(target_os = "windows")]
-            std::fs::create_dir_all(&subdir).unwrap();
+            tokio::fs::create_dir_all(&subdir).await.unwrap();
 
             root_path = root_path.join(subdir);
         }
@@ -134,7 +134,7 @@ impl TestEnvironmentBuilder {
         };
 
         let state = if self.state {
-            let state = State::load(&config).expect("failed to load state");
+            let state = State::load(&config).await.expect("failed to load state");
             state.set_authentication_token(Some(AuthenticationToken::seal(SAMPLE_AUTH_TOKEN)));
             Some(state)
         } else {

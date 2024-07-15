@@ -29,7 +29,7 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
 
     let config = Config::detect(whitelabel)?;
-    let state = State::load(&config)?;
+    let state = State::load(&config).await?;
 
     let manifest_path = ProjectManifest::discover_canonical_path(
         std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")

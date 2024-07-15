@@ -42,7 +42,7 @@ pub async fn update(
                 if expected_proxies.remove(&*entry_name) {
                     ensure_link(proxy_binary, &entry.path()).await?;
                 } else {
-                    remove_unexpected(&entry.path())?;
+                    remove_unexpected(&entry.path()).await?;
                 }
             }
         }
@@ -87,9 +87,11 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
 
     if should_create {
         if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| {
-                BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e)
-            })?;
+            tokio::fs::create_dir_all(parent)
+                .map_err(|e| {
+                    BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e)
+                })
+                .await?;
         }
         std::os::unix::fs::symlink(proxy_binary, target).map_err(|e| {
             BinaryProxyUpdateError::SymlinkFailed {
@@ -115,7 +117,7 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     //
     // So, instead of checking to see if the link exists and is correct, we just blindly rewrite it.
     if target.exists() {
-        remove_unexpected(target)?;
+        remove_unexpected(target).await?;
     };
 
     if let Some(parent) = target.parent() {
@@ -140,11 +142,11 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     Ok(())
 }
 
-fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
+async fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
     let result = if path.is_dir() {
-        std::fs::remove_dir_all(path)
+        tokio::fs::remove_dir_all(path).await
     } else {
-        std::fs::remove_file(path)
+        tokio::fs::remove_file(path).await
     };
     match result {
         Ok(()) => Ok(()),
@@ -161,7 +163,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
 
-    use tempfile::{tempdir, NamedTempFile};
+    use tempfile::{tempdir, NamedTempFile, TempDir};
 
     use criticaltrust::integrity::VerifiedPackage;
 
@@ -172,25 +174,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_update() {
-        let test_env = TestEnvironment::with().state().prepare();
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let installation_dir = &test_env.config().paths.installation_dir;
         let state = test_env.state();
 
         // Installation 1, with only one project manifest.
         let inst1 = InstallationId("1".into());
-        std::fs::create_dir_all(installation_dir.clone().join("1")).unwrap();
+        tokio::fs::create_dir_all(installation_dir.clone().join("1"))
+            .await
+            .unwrap();
         let inst1_first_manifest_path = root.join("proj/1/manifest");
-        std::fs::create_dir_all(&inst1_first_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst1_first_manifest_path)
+            .await
+            .unwrap();
 
         // Installation 2, with two project manifests in different locations.
         let inst2 = InstallationId("2".into());
-        std::fs::create_dir_all(installation_dir.clone().join("2")).unwrap();
+        tokio::fs::create_dir_all(installation_dir.clone().join("2"))
+            .await
+            .unwrap();
         let inst2_first_manifest_path = root.join("proj/2/manifest-1");
-        std::fs::create_dir_all(&inst2_first_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst2_first_manifest_path)
+            .await
+            .unwrap();
         // Another manifest for the same project.
         let inst2_second_manifest_path = root.join("project/2/manifest-2");
-        std::fs::create_dir_all(&inst2_second_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst2_second_manifest_path)
+            .await
+            .unwrap();
 
         let mut proxy1 = NamedTempFile::new_in(test_env.root()).unwrap();
         proxy1.write_all(b"proxied binary 1").unwrap();
@@ -295,14 +307,14 @@ mod tests {
         let dir = tempdir().unwrap();
         assert!(dir.path().is_absolute());
 
-        let create_file = |name: &str| {
+        async fn create_file(dir: &TempDir, name: &str) -> PathBuf {
             let path = dir.path().join(name);
-            std::fs::write(&path, name.as_bytes()).unwrap();
+            tokio::fs::write(&path, name.as_bytes()).await.unwrap();
             path
-        };
+        }
 
-        let source1 = create_file("source1");
-        let source2 = create_file("source2");
+        let source1 = create_file(&dir, "source1").await;
+        let source2 = create_file(&dir, "source2").await;
 
         // Test creating the link when no existing link was present.
         let link1 = dir.path().join("link1");
@@ -318,14 +330,14 @@ mod tests {
         assert_link(&source2, &link1);
 
         // Test creating a link when a non-link file exists in its place.
-        let link2 = create_file("link2");
+        let link2 = create_file(&dir, "link2").await;
         ensure_link(&source1, &link2).await.unwrap();
         assert_link(&source1, &link2);
 
         // Test creating a link when a directory with contents exists in its place.
         let link3 = dir.path().join("link3");
-        std::fs::create_dir(&link3).unwrap();
-        std::fs::write(link3.join("file"), b"").unwrap();
+        tokio::fs::create_dir(&link3).await.unwrap();
+        tokio::fs::write(link3.join("file"), b"").await.unwrap();
         ensure_link(&source1, &link3).await.unwrap();
         assert_link(&source1, &link3);
 

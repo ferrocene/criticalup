@@ -10,7 +10,7 @@ use criticalup_core::state::{AuthenticationToken, State};
 use std::io::Write;
 
 pub(crate) async fn run(ctx: &Context, token: Option<String>) -> Result<(), Error> {
-    let state = State::load(&ctx.config)?;
+    let state = State::load(&ctx.config).await?;
     let download_server = DownloadServerClient::new(&ctx.config, &state);
 
     let token = if let Some(token) = token {

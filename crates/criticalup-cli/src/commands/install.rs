@@ -21,7 +21,7 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
     // TODO: If `std::io::stdout().is_terminal() == true``, provide a nice, fancy progress bar using indicatif.
     //       Retain existing behavior to support non-TTY usage.
 
-    let state = State::load(&ctx.config)?;
+    let state = State::load(&ctx.config).await?;
 
     // Get manifest location if arg `project` is None
     let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
@@ -99,7 +99,9 @@ async fn install_product_afresh(
 
     let release_name = verified_release_manifest.release.as_str();
 
-    product.create_product_dir(&ctx.config.paths.installation_dir)?;
+    product
+        .create_product_dir(&ctx.config.paths.installation_dir)
+        .await?;
 
     for package in product.packages() {
         println!(
@@ -123,7 +125,7 @@ async fn install_product_afresh(
             abs_installation_dir_path.join(&package_name_with_extension);
 
         // Save the downloaded package archive on disk.
-        std::fs::write(&abs_artifact_compressed_file_path, response_file.clone())?;
+        tokio::fs::write(&abs_artifact_compressed_file_path, response_file.clone()).await?;
 
         println!(
             "{} installing component '{package}' for '{product_name}' ({release})",
@@ -148,12 +150,12 @@ async fn install_product_afresh(
                 integrity_verifier.add(
                     &entry_path_on_disk,
                     entry.header().mode()?,
-                    &std::fs::read(&entry_path_on_disk)?,
+                    &tokio::fs::read(&entry_path_on_disk).await?,
                 );
             }
         }
 
-        clean_archive_download(&abs_artifact_compressed_file_path)?;
+        clean_archive_download(&abs_artifact_compressed_file_path).await?;
     }
 
     let verified_packages = integrity_verifier
@@ -178,8 +180,8 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
     Ok(())
 }
 
-fn clean_archive_download(abs_artifact_compressed_file_path: &PathBuf) -> Result<(), Error> {
-    std::fs::remove_file(abs_artifact_compressed_file_path)?;
+async fn clean_archive_download(abs_artifact_compressed_file_path: &PathBuf) -> Result<(), Error> {
+    tokio::fs::remove_file(abs_artifact_compressed_file_path).await?;
     Ok(())
 }
 

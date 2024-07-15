@@ -122,6 +122,7 @@ impl DownloadServerClient {
         let header = self
             .state
             .authentication_token(path_to_token_file)
+            .await
             .as_ref()
             .and_then(|token| HeaderValue::from_str(&format!("Bearer {}", token.unseal())).ok());
 
@@ -228,7 +229,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
-        let test_env = TestEnvironment::with().download_server().prepare();
+        let test_env = TestEnvironment::with().download_server().prepare().await;
 
         assert_eq!(
             CurrentTokenData {
@@ -247,7 +248,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_current_token_with_unrepresentable_token() {
-        let test_env = TestEnvironment::with().download_server().prepare();
+        let test_env = TestEnvironment::with().download_server().prepare().await;
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken::seal("wrong\0")));
@@ -260,7 +261,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_current_token_with_wrong_token() {
-        let test_env = TestEnvironment::with().download_server().prepare();
+        let test_env = TestEnvironment::with().download_server().prepare().await;
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken::seal("wrong")));
@@ -271,7 +272,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_current_token_with_no_token() {
-        let test_env = TestEnvironment::with().download_server().prepare();
+        let test_env = TestEnvironment::with().download_server().prepare().await;
         test_env.state().set_authentication_token(None);
         assert_auth_failed(&test_env).await;
 
@@ -281,7 +282,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_keys() {
-        let test_env = TestEnvironment::with().download_server().prepare();
+        let test_env = TestEnvironment::with().download_server().prepare().await;
         test_env.state().set_authentication_token(None); // The endpoint requires no authentication.
 
         let keys = test_env.keys();

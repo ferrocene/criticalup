@@ -8,7 +8,7 @@ use criticalup_core::errors::DownloadServerError;
 use criticalup_core::state::State;
 
 pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
-    let state = State::load(&ctx.config)?;
+    let state = State::load(&ctx.config).await?;
     let download_server = DownloadServerClient::new(&ctx.config, &state);
 
     match download_server.get_current_token_data().await {
