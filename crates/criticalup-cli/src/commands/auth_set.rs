@@ -9,7 +9,7 @@ use criticalup_core::errors::DownloadServerError;
 use criticalup_core::state::{AuthenticationToken, State};
 use std::io::Write;
 
-pub(crate) fn run(ctx: &Context, token: Option<String>) -> Result<(), Error> {
+pub(crate) async fn run(ctx: &Context, token: Option<String>) -> Result<(), Error> {
     let state = State::load(&ctx.config)?;
     let download_server = DownloadServerClient::new(&ctx.config, &state);
 
@@ -23,7 +23,7 @@ pub(crate) fn run(ctx: &Context, token: Option<String>) -> Result<(), Error> {
 
     state.set_authentication_token(Some(AuthenticationToken::seal(&token)));
 
-    match download_server.get_current_token_data() {
+    match download_server.get_current_token_data().await {
         Ok(_) => Ok(state.persist()?),
 
         Err(LibError::DownloadServerError {

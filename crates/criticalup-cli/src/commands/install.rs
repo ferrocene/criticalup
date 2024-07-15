@@ -17,7 +17,7 @@ use crate::Context;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
-pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
+pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
     // TODO: If `std::io::stdout().is_terminal() == true``, provide a nice, fancy progress bar using indicatif.
     //       Retain existing behavior to support non-TTY usage.
 
@@ -35,7 +35,7 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
         let abs_installation_dir_path = installation_dir.join(product.installation_id());
 
         if !abs_installation_dir_path.exists() {
-            install_product_afresh(ctx, &state, &manifest_path, product)?;
+            install_product_afresh(ctx, &state, &manifest_path, product).await?;
         } else {
             // Check if the state file has no mention of this installation.
             let does_this_installation_exist_in_state = state
@@ -44,7 +44,7 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
             if !does_this_installation_exist_in_state {
                 // If the installation directory exists, but the State has no installation of that
                 // InstallationId, then re-run the install command and go through installation.
-                install_product_afresh(ctx, &state, &manifest_path, product)?;
+                install_product_afresh(ctx, &state, &manifest_path, product).await?;
             } else {
                 // If the installation directory exists AND there is an existing installation with
                 // that InstallationId, then merely update the installation in the State file to
@@ -65,7 +65,7 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
     Ok(())
 }
 
-fn install_product_afresh(
+async fn install_product_afresh(
     ctx: &Context,
     state: &State,
     manifest_path: &Path,
@@ -76,7 +76,7 @@ fn install_product_afresh(
     let installation_dir = &ctx.config.paths.installation_dir;
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let client = DownloadServerClient::new(&ctx.config, state);
-    let keys = client.get_keys()?;
+    let keys = client.get_keys().await?;
 
     // TODO: Add tracing to support log levels, structured logging.
     println!(
@@ -88,7 +88,7 @@ fn install_product_afresh(
 
     // Get the release manifest for the product from the server and verify it.
     let release_manifest_from_server =
-        client.get_product_release_manifest(product_name, product.release())?;
+        client.get_product_release_manifest(product_name, product.release()).await?;
     let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
@@ -111,7 +111,7 @@ fn install_product_afresh(
             release_name,
             package,
             DEFAULT_RELEASE_ARTIFACT_FORMAT,
-        )?;
+        ).await?;
 
         // Archive file path, path with the archive extension.
         let package_name_with_extension =

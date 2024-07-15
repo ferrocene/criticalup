@@ -20,3 +20,4 @@ eula = false
 [dependencies]
 criticaltrust = { path = "../criticaltrust" }
 criticalup-cli = { path = "../criticalup-cli" }
+tokio.workspace = true

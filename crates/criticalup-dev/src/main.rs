@@ -4,7 +4,8 @@
 use criticaltrust::keys::newtypes::PublicKeyBytes;
 use criticaltrust::keys::{KeyAlgorithm, KeyRole, PublicKey};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let whitelabel = criticalup_cli::WhitelabelConfig {
         name: "criticalup-dev",
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION"), " (dev)"),

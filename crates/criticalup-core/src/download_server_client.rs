@@ -8,7 +8,7 @@ use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
 use criticaltrust::signatures::Keychain;
-use reqwest::blocking::{Client, RequestBuilder, Response};
+use reqwest::{Client, RequestBuilder, Response, Url};
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
 use serde::Deserialize;
@@ -30,9 +30,9 @@ impl DownloadServerClient {
     pub fn new(config: &Config, state: &State) -> Self {
         let client = Client::builder()
             .user_agent(config.whitelabel.http_user_agent)
-            .connect_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
             // Do not call `.timeout(Some(short_number))` as some slow connections may take awhile to download the full request body.
-            .timeout(None)
+            .connect_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
+            .read_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
             .build()
             .expect("failed to configure http client");
 
@@ -44,14 +44,14 @@ impl DownloadServerClient {
         }
     }
 
-    pub fn get_current_token_data(&self) -> Result<CurrentTokenData, Error> {
-        self.json(self.send_with_auth(self.client.get(self.url("/v1/tokens/current")))?)
+    pub async fn get_current_token_data(&self) -> Result<CurrentTokenData, Error> {
+        self.json(self.send_with_auth(self.client.get(self.url("/v1/tokens/current"))).await?).await
     }
 
-    pub fn get_keys(&self) -> Result<Keychain, Error> {
+    pub async fn get_keys(&self) -> Result<Keychain, Error> {
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
 
-        let resp: KeysManifest = self.json(self.send(self.client.get(self.url("/v1/keys")))?)?;
+        let resp: KeysManifest = self.json(self.send(self.client.get(self.url("/v1/keys"))).await?).await?;
         for key in &resp.keys {
             // Invalid keys are silently ignored, as they might be signed by a different root key
             // used by a different release of criticalup, or they might be using an algorithm not
@@ -62,16 +62,16 @@ impl DownloadServerClient {
         Ok(keychain)
     }
 
-    pub fn get_product_release_manifest(
+    pub async fn get_product_release_manifest(
         &self,
         product: &str,
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
         let p = format!("/v1/releases/{product}/{release}");
-        self.json(self.send_with_auth(self.client.get(self.url(p.as_str())))?)
+        self.json(self.send_with_auth(self.client.get(self.url(p.as_str()))).await?).await
     }
 
-    pub fn download_package(
+    pub async fn download_package(
         &self,
         product: &str,
         release: &str,
@@ -83,8 +83,8 @@ impl DownloadServerClient {
         let download_url =
             format!("/v1/releases/{product}/{release}/download/{package}/{artifact_format}");
 
-        let response = self.send_with_auth(self.client.get(self.url(download_url.as_str())))?;
-        let resp_body = response.bytes()?.to_vec();
+        let response = self.send_with_auth(self.client.get(self.url(download_url.as_str()))).await?;
+        let resp_body = response.bytes().await?.to_vec();
         Ok(resp_body)
     }
 
@@ -92,7 +92,7 @@ impl DownloadServerClient {
         format!("{}{path}", self.base_url)
     }
 
-    fn send_with_auth(&self, builder: RequestBuilder) -> Result<Response, Error> {
+    async fn send_with_auth(&self, builder: RequestBuilder) -> Result<Response, Error> {
         // We're constructing the `HeaderValue` manually instead of using the `bearer_token` method
         // of `RequestBuilder` as the latter panics when it receives a token not representable
         // inside HTTP headers (for example containing the `\r` byte).
@@ -114,12 +114,12 @@ impl DownloadServerClient {
             .and_then(|token| HeaderValue::from_str(&format!("Bearer {}", token.unseal())).ok());
 
         match header {
-            Some(header) => self.send(builder.header(AUTHORIZATION, header)),
+            Some(header) => self.send(builder.header(AUTHORIZATION, header)).await,
             None => Err(self.err_from_request(builder, DownloadServerError::AuthenticationFailed)),
         }
     }
 
-    fn send(&self, builder: RequestBuilder) -> Result<Response, Error> {
+    async fn send(&self, builder: RequestBuilder) -> Result<Response, Error> {
         let req = builder.build().expect("failed to prepare the http request");
         let url = req.url().to_string();
 
@@ -130,14 +130,14 @@ impl DownloadServerClient {
 
         // This `try_clone()` will be `None` if request body is a stream.
         let req_outer = req.try_clone().ok_or(Error::RequestCloningFailed)?;
-        let mut response_result = self.client.execute(req_outer);
+        let mut response_result = self.client.execute(req_outer).await;
 
         while current_retries < CLIENT_MAX_RETRIES && response_result.is_err() {
             thread::sleep(Duration::from_millis(current_retry_backoff));
 
             let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
 
-            response_result = self.client.execute(req);
+            response_result = self.client.execute(req).await;
             if response_result.is_ok() {
                 break;
             }
@@ -152,7 +152,7 @@ impl DownloadServerClient {
         })?;
 
         Err(self.err_from_response(
-            &response,
+            response.url(),
             match response.status() {
                 StatusCode::OK => return Ok(response),
 
@@ -167,15 +167,10 @@ impl DownloadServerClient {
         ))
     }
 
-    fn json<T: for<'de> Deserialize<'de>>(&self, mut response: Response) -> Result<T, Error> {
-        let mut body = Vec::new();
-        response
-            .copy_to(&mut body)
-            .map_err(|e| self.err_from_response(&response, DownloadServerError::Network(e)))?;
-
-        serde_json::from_slice(&body).map_err(|e| {
-            self.err_from_response(&response, DownloadServerError::UnexpectedResponseData(e))
-        })
+    async fn json<T: for<'de> Deserialize<'de>>(&self, response: Response) -> Result<T, Error> {
+        let url = response.url().clone();
+        response.json().await
+            .map_err(|e| self.err_from_response(&url, DownloadServerError::Network(e)))
     }
 
     fn err_from_request(&self, builder: RequestBuilder, kind: DownloadServerError) -> Error {
@@ -189,10 +184,10 @@ impl DownloadServerClient {
         }
     }
 
-    fn err_from_response(&self, response: &Response, kind: DownloadServerError) -> Error {
+    fn err_from_response(&self, url: &Url, kind: DownloadServerError) -> Error {
         Error::DownloadServerError {
             kind,
-            url: response.url().to_string(),
+            url: url.to_string(),
         }
     }
 }
@@ -217,8 +212,8 @@ mod tests {
     use criticaltrust::keys::KeyPair;
     use criticaltrust::signatures::PublicKeysRepository;
 
-    #[test]
-    fn test_get_current_token_while_authenticated() {
+    #[tokio::test]
+    async fn test_get_current_token_while_authenticated() {
         let test_env = TestEnvironment::with().download_server().prepare();
 
         assert_eq!(
@@ -227,52 +222,53 @@ mod tests {
                 organization_name: SAMPLE_AUTH_TOKEN_CUSTOMER.into(),
                 expires_at: Some(SAMPLE_AUTH_TOKEN_EXPIRY.into()),
             },
-            test_env.download_server().get_current_token_data().unwrap(),
+            test_env.download_server().get_current_token_data().await.unwrap(),
         );
         assert_eq!(1, test_env.requests_served_by_mock_download_server());
     }
 
-    #[test]
-    fn test_get_current_token_with_unrepresentable_token() {
+    #[tokio::test]
+    async fn test_get_current_token_with_unrepresentable_token() {
         let test_env = TestEnvironment::with().download_server().prepare();
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken::seal("wrong\0")));
-        assert_auth_failed(&test_env);
+        assert_auth_failed(&test_env).await;
 
         // No request was actually made since the authentication token can't be represented in
         // HTTP headers.
         assert_eq!(0, test_env.requests_served_by_mock_download_server());
     }
 
-    #[test]
-    fn test_get_current_token_with_wrong_token() {
+    #[tokio::test]
+    async fn test_get_current_token_with_wrong_token() {
         let test_env = TestEnvironment::with().download_server().prepare();
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken::seal("wrong")));
-        assert_auth_failed(&test_env);
+        assert_auth_failed(&test_env).await;
 
         assert_eq!(1, test_env.requests_served_by_mock_download_server());
     }
 
-    #[test]
-    fn test_get_current_token_with_no_token() {
+    #[tokio::test]
+    async fn test_get_current_token_with_no_token() {
         let test_env = TestEnvironment::with().download_server().prepare();
         test_env.state().set_authentication_token(None);
-        assert_auth_failed(&test_env);
+        assert_auth_failed(&test_env).await;
 
         // No token was configured, so no request could've been made.
         assert_eq!(0, test_env.requests_served_by_mock_download_server());
     }
 
-    #[test]
-    fn test_get_keys() {
+
+    #[tokio::test]
+    async fn test_get_keys() {
         let test_env = TestEnvironment::with().download_server().prepare();
         test_env.state().set_authentication_token(None); // The endpoint requires no authentication.
 
         let keys = test_env.keys();
-        let keychain = test_env.download_server().get_keys().unwrap();
+        let keychain = test_env.download_server().get_keys().await.unwrap();
 
         for expected_present in &[
             // Trust root included from the whitelabel config
@@ -301,11 +297,12 @@ mod tests {
         }
     }
 
-    fn assert_auth_failed(test_env: &TestEnvironment) {
+    async fn assert_auth_failed(test_env: &TestEnvironment) {
         assert!(matches!(
             test_env
                 .download_server()
                 .get_current_token_data()
+                .await
                 .unwrap_err(),
             Error::DownloadServerError {
                 kind: DownloadServerError::AuthenticationFailed,
