@@ -37,8 +37,6 @@ pub async fn update(
     match tokio::fs::read_dir(dir).await {
         Ok(mut iter) => {
             while let Some(entry) = iter.next_entry().await.map_err(list_dir_error)? {
-                let entry = entry;
-
                 let entry_name = PathBuf::from(entry.file_name());
 
                 if expected_proxies.remove(&*entry_name) {
@@ -131,14 +129,13 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     //
     // On Windows 10, symlinks can be done by priviledged users, or users with "Developer Mode"
     // enabled, but not all of our users have that.
-    tokio::fs::copy(proxy_binary, target)
-        .await
-        .map_err(|e| BinaryProxyUpdateError::SymlinkFailed {
+    tokio::fs::copy(proxy_binary, target).await.map_err(|e| {
+        BinaryProxyUpdateError::SymlinkFailed {
             source: proxy_binary.into(),
             dest: target.into(),
             inner: e,
-        })
-        .await?;
+        }
+    })?;
 
     Ok(())
 }

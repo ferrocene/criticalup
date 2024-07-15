@@ -385,7 +385,9 @@ mod tests {
                 .to_path_buf();
 
             #[cfg(target_os = "windows")]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None).unwrap();
+            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
+                .await
+                .unwrap();
             // We need to canonicalize this side as well because Windows canonical paths
             // add an extra oomph as prefix \\?\.
             // https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths
