@@ -131,7 +131,8 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     //
     // On Windows 10, symlinks can be done by priviledged users, or users with "Developer Mode"
     // enabled, but not all of our users have that.
-    tokio::fs::copy(proxy_binary, target).await
+    tokio::fs::copy(proxy_binary, target)
+        .await
         .map_err(|e| BinaryProxyUpdateError::SymlinkFailed {
             source: proxy_binary.into(),
             dest: target.into(),
