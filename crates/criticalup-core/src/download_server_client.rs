@@ -10,31 +10,31 @@ use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
 use criticaltrust::signatures::Keychain;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
-use reqwest::{Client, RequestBuilder, Response, Url};
+use reqwest::{Response, Url};
+use reqwest_middleware::{ClientBuilder, RequestBuilder, ClientWithMiddleware};
+use reqwest_retry::policies::ExponentialBackoff;
+use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
-use std::thread;
-use std::time::Duration;
 
-const CLIENT_TIMEOUT_SECONDS: u64 = 30;
-const CLIENT_MAX_RETRIES: u8 = 5;
-const CLIENT_RETRY_BACKOFF: u64 = 100;
+const CLIENT_MAX_RETRIES: u32 = 5;
 
 pub struct DownloadServerClient {
     base_url: String,
-    client: Client,
+    client: ClientWithMiddleware,
     state: State,
     trust_root: PublicKey,
 }
 
 impl DownloadServerClient {
     pub fn new(config: &Config, state: &State) -> Self {
-        let client = Client::builder()
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(CLIENT_MAX_RETRIES);
+        let client = reqwest::ClientBuilder::new()
             .user_agent(config.whitelabel.http_user_agent)
-            // Do not call `.timeout(Some(short_number))` as some slow connections may take awhile to download the full request body.
-            .connect_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
-            .read_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
             .build()
             .expect("failed to configure http client");
+        let client = ClientBuilder::new(client)
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .build();
 
         DownloadServerClient {
             base_url: config.whitelabel.download_server_url.clone(),
@@ -136,31 +136,10 @@ impl DownloadServerClient {
         let req = builder.build().expect("failed to prepare the http request");
         let url = req.url().to_string();
 
-        // This section implements the logic for retrying a failed request.
-        // This logic will be superseded by changes to this code base when we move this to async.
-        let mut current_retries: u8 = 0;
-        let mut current_retry_backoff = CLIENT_RETRY_BACKOFF;
-
-        // This `try_clone()` will be `None` if request body is a stream.
-        let req_outer = req.try_clone().ok_or(Error::RequestCloningFailed)?;
-        let mut response_result = self.client.execute(req_outer).await;
-
-        while current_retries < CLIENT_MAX_RETRIES && response_result.is_err() {
-            thread::sleep(Duration::from_millis(current_retry_backoff));
-
-            let req = req.try_clone().ok_or(Error::RequestCloningFailed)?;
-
-            response_result = self.client.execute(req).await;
-            if response_result.is_ok() {
-                break;
-            }
-
-            current_retries += 1;
-            current_retry_backoff *= 2;
-        }
+        let response_result = self.client.execute(req).await;
 
         let response = response_result.map_err(|e| Error::DownloadServerError {
-            kind: DownloadServerError::Network(e),
+            kind: DownloadServerError::NetworkWithMiddleware(e),
             url,
         })?;
 

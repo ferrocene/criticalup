@@ -102,6 +102,8 @@ pub enum DownloadServerError {
     UnexpectedResponseData(#[source] serde_json::Error),
     #[error("failed to send the network request")]
     Network(#[source] reqwest::Error),
+    #[error("failed to send the network request")]
+    NetworkWithMiddleware(#[source] reqwest_middleware::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
