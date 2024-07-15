@@ -73,12 +73,12 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
             if canonicalize(proxy_binary).await? == canonicalize(&target_dest).await? {
                 false
             } else {
-                remove_unexpected(target)?;
+                remove_unexpected(target).await?;
                 true
             }
         }
         Err(err) if err.kind() == std::io::ErrorKind::InvalidInput => {
-            remove_unexpected(target)?;
+            remove_unexpected(target).await?;
             true
         }
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => true,
@@ -87,11 +87,9 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
 
     if should_create {
         if let Some(parent) = target.parent() {
-            tokio::fs::create_dir_all(parent)
-                .map_err(|e| {
-                    BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e)
-                })
-                .await?;
+            tokio::fs::create_dir_all(parent).await.map_err(|e| {
+                BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e)
+            })?;
         }
         std::os::unix::fs::symlink(proxy_binary, target).map_err(|e| {
             BinaryProxyUpdateError::SymlinkFailed {

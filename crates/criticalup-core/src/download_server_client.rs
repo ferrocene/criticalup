@@ -11,7 +11,7 @@ use criticaltrust::signatures::Keychain;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
 use reqwest::{Response, Url};
-use reqwest_middleware::{ClientBuilder, RequestBuilder, ClientWithMiddleware};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
