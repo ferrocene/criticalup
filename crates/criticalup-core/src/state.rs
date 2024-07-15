@@ -12,9 +12,9 @@ use criticaltrust::integrity::VerifiedPackage;
 use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
-use crate::errors::{self, Error};
 use crate::errors::Error::InstallationDoesNotExist;
 use crate::errors::WriteFileError;
+use crate::errors::{self, Error};
 use crate::project_manifest::InstallationId;
 use crate::utils::open_file_for_write;
 
@@ -242,21 +242,31 @@ impl State {
     }
 
     pub async fn persist(&self) -> Result<(), Error> {
-        let inner = self.inner.borrow();
+        let (path, serialized) = {
+            // Do not hold RefCells over await points, drop at end of scope.
+            let inner = self.inner.borrow();
 
-        // According to the serde_json documentation, the only two reasons this could fail is if
-        // either the serialize implementation returns an error, or a map has non-string keys. With
-        // our schema neither of these are supposed to happen, so if we fail serialization it's a
-        // criticalup bug and we shoiuld abort.
-        let mut serialized = serde_json::to_vec_pretty(&inner.repr)
-            .expect("state file serialization unexpectedly failed");
-        serialized.push(b'\n');
+            // According to the serde_json documentation, the only two reasons this could fail is if
+            // either the serialize implementation returns an error, or a map has non-string keys. With
+            // our schema neither of these are supposed to happen, so if we fail serialization it's a
+            // criticalup bug and we shoiuld abort.
+            let mut serialized = serde_json::to_vec_pretty(&inner.repr)
+                .expect("state file serialization unexpectedly failed");
+            serialized.push(b'\n');
 
-        let mut f = open_file_for_write(&inner.path).await
-            .map_err(|e| Error::CantWriteStateFile(inner.path.clone(), e))?;
-        f.write_all(&serialized).await
-            .map_err(|e| Error::CantWriteStateFile(inner.path.clone(), WriteFileError::Io(e)))?;
-        f.flush().await.map_err(|e| Error::CantWriteStateFile(inner.path.clone(), errors::WriteFileError::Io(e)))?;
+            let path = inner.path.clone();
+            (path, serialized)
+        };
+
+        let mut f = open_file_for_write(&path)
+            .await
+            .map_err(|e| Error::CantWriteStateFile(path.clone(), e))?;
+        f.write_all(&serialized)
+            .await
+            .map_err(|e| Error::CantWriteStateFile(path.clone(), WriteFileError::Io(e)))?;
+        f.flush()
+            .await
+            .map_err(|e| Error::CantWriteStateFile(path.clone(), errors::WriteFileError::Io(e)))?;
         Ok(())
     }
 }

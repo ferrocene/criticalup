@@ -87,8 +87,9 @@ async fn install_product_afresh(
     let mut integrity_verifier = IntegrityVerifier::new(&keys);
 
     // Get the release manifest for the product from the server and verify it.
-    let release_manifest_from_server =
-        client.get_product_release_manifest(product_name, product.release()).await?;
+    let release_manifest_from_server = client
+        .get_product_release_manifest(product_name, product.release())
+        .await?;
     let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
@@ -106,12 +107,14 @@ async fn install_product_afresh(
             "info:".bold()
         );
 
-        let response_file = client.download_package(
-            product_name,
-            release_name,
-            package,
-            DEFAULT_RELEASE_ARTIFACT_FORMAT,
-        ).await?;
+        let response_file = client
+            .download_package(
+                product_name,
+                release_name,
+                package,
+                DEFAULT_RELEASE_ARTIFACT_FORMAT,
+            )
+            .await?;
 
         // Archive file path, path with the archive extension.
         let package_name_with_extension =

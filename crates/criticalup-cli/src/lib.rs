@@ -28,7 +28,8 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
         .unwrap_or(arg0);
 
     if arg0 != whitelabel.name {
-        return binary_proxies::proxy(whitelabel).await
+        return binary_proxies::proxy(whitelabel)
+            .await
             .map_err(|e| Error::BinaryProxyInvocationFailed(Box::new(e)));
     }
 

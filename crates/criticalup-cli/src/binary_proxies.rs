@@ -35,7 +35,8 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
         std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
             .map(std::path::PathBuf::from)
             .as_deref(),
-    ).await?;
+    )
+    .await?;
 
     let project_manifest = ProjectManifest::load(manifest_path.as_path())?;
 

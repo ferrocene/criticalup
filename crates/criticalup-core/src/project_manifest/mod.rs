@@ -53,17 +53,18 @@ impl ProjectManifest {
     pub async fn discover_canonical_path(project_path: Option<&Path>) -> Result<PathBuf, Error> {
         match project_path {
             Some(path) => {
-                Ok(
-                    canonicalize(path).await.map_err(|err| FailedToFindCanonicalPath {
+                Ok(canonicalize(path)
+                    .await
+                    .map_err(|err| FailedToFindCanonicalPath {
                         path: path.to_path_buf(),
                         kind: err,
-                    })?,
-                )
+                    })?)
             }
             None => {
                 let curr_directory = env::current_dir().map_err(Error::FailedToReadDirectory)?;
                 let path = ProjectManifest::discover(&curr_directory)?;
-                Ok(canonicalize(&path).await
+                Ok(canonicalize(&path)
+                    .await
                     .map_err(|err| FailedToFindCanonicalPath { path, kind: err })?)
             }
         }
@@ -362,13 +363,16 @@ mod tests {
             set_current_dir(&expected_project_path).unwrap();
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None).await.unwrap();
+            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
+                .await
+                .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
                 std::fs::canonicalize(expected_project_path.join("criticalup.toml")).unwrap();
 
             #[cfg(target_os = "macos")]
             let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
+                .await
                 .unwrap()
                 .strip_prefix("/private")
                 .unwrap()
@@ -718,8 +722,8 @@ mod tests {
             );
         }
 
-        #[test]
-        fn test_create_success() {
+        #[tokio::test]
+        async fn test_create_success() {
             let root = tempfile::tempdir().unwrap();
             let installation_dir = root.path().join("toolchains");
             let product1 = ProjectManifestProduct {
@@ -743,7 +747,7 @@ mod tests {
             };
 
             // Main project dir is created along with product dirs.
-            let _ = test_manifest.create_products_dirs(&installation_dir);
+            let _ = test_manifest.create_products_dirs(&installation_dir).await;
             assert!(installation_dir.exists());
 
             // A dir per product within the project dir.

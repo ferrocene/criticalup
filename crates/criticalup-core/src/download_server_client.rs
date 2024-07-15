@@ -8,9 +8,9 @@ use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
 use criticaltrust::signatures::Keychain;
-use reqwest::{Client, RequestBuilder, Response, Url};
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
+use reqwest::{Client, RequestBuilder, Response, Url};
 use serde::Deserialize;
 use std::thread;
 use std::time::Duration;
@@ -45,13 +45,19 @@ impl DownloadServerClient {
     }
 
     pub async fn get_current_token_data(&self) -> Result<CurrentTokenData, Error> {
-        self.json(self.send_with_auth(self.client.get(self.url("/v1/tokens/current"))).await?).await
+        self.json(
+            self.send_with_auth(self.client.get(self.url("/v1/tokens/current")))
+                .await?,
+        )
+        .await
     }
 
     pub async fn get_keys(&self) -> Result<Keychain, Error> {
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
 
-        let resp: KeysManifest = self.json(self.send(self.client.get(self.url("/v1/keys"))).await?).await?;
+        let resp: KeysManifest = self
+            .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
+            .await?;
         for key in &resp.keys {
             // Invalid keys are silently ignored, as they might be signed by a different root key
             // used by a different release of criticalup, or they might be using an algorithm not
@@ -68,7 +74,11 @@ impl DownloadServerClient {
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
         let p = format!("/v1/releases/{product}/{release}");
-        self.json(self.send_with_auth(self.client.get(self.url(p.as_str()))).await?).await
+        self.json(
+            self.send_with_auth(self.client.get(self.url(p.as_str())))
+                .await?,
+        )
+        .await
     }
 
     pub async fn download_package(
@@ -83,7 +93,9 @@ impl DownloadServerClient {
         let download_url =
             format!("/v1/releases/{product}/{release}/download/{package}/{artifact_format}");
 
-        let response = self.send_with_auth(self.client.get(self.url(download_url.as_str()))).await?;
+        let response = self
+            .send_with_auth(self.client.get(self.url(download_url.as_str())))
+            .await?;
         let resp_body = response.bytes().await?.to_vec();
         Ok(resp_body)
     }
@@ -169,7 +181,9 @@ impl DownloadServerClient {
 
     async fn json<T: for<'de> Deserialize<'de>>(&self, response: Response) -> Result<T, Error> {
         let url = response.url().clone();
-        response.json().await
+        response
+            .json()
+            .await
             .map_err(|e| self.err_from_response(&url, DownloadServerError::Network(e)))
     }
 
@@ -222,7 +236,11 @@ mod tests {
                 organization_name: SAMPLE_AUTH_TOKEN_CUSTOMER.into(),
                 expires_at: Some(SAMPLE_AUTH_TOKEN_EXPIRY.into()),
             },
-            test_env.download_server().get_current_token_data().await.unwrap(),
+            test_env
+                .download_server()
+                .get_current_token_data()
+                .await
+                .unwrap(),
         );
         assert_eq!(1, test_env.requests_served_by_mock_download_server());
     }
@@ -260,7 +278,6 @@ mod tests {
         // No token was configured, so no request could've been made.
         assert_eq!(0, test_env.requests_served_by_mock_download_server());
     }
-
 
     #[tokio::test]
     async fn test_get_keys() {

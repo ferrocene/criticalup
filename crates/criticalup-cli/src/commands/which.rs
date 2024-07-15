@@ -7,7 +7,11 @@ use crate::Context;
 use criticalup_core::project_manifest::ProjectManifest;
 use std::path::PathBuf;
 
-pub(crate) async fn run(ctx: &Context, tool: String, project: Option<PathBuf>) -> Result<(), Error> {
+pub(crate) async fn run(
+    ctx: &Context,
+    tool: String,
+    project: Option<PathBuf>,
+) -> Result<(), Error> {
     let manifest = ProjectManifest::get(project).await?;
 
     let installation_dir = &ctx.config.paths.installation_dir;

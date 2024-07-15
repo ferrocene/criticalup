@@ -65,7 +65,8 @@ pub async fn update(
 #[cfg(unix)]
 async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpdateError> {
     async fn canonicalize(path: &Path) -> Result<PathBuf, BinaryProxyUpdateError> {
-        tokio::fs::canonicalize(path).await
+        tokio::fs::canonicalize(path)
+            .await
             .map_err(|e| BinaryProxyUpdateError::InspectFailed(path.into(), e))
     }
 
@@ -120,7 +121,8 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     };
 
     if let Some(parent) = target.parent() {
-        tokio::fs::create_dir_all(parent).await
+        tokio::fs::create_dir_all(parent)
+            .await
             .map_err(|e| BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e))?;
     }
 
@@ -129,11 +131,13 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     //
     // On Windows 10, symlinks can be done by priviledged users, or users with "Developer Mode"
     // enabled, but not all of our users have that.
-    tokio::fs::copy(proxy_binary, target).map_err(|e| BinaryProxyUpdateError::SymlinkFailed {
-        source: proxy_binary.into(),
-        dest: target.into(),
-        inner: e,
-    }).await?;
+    tokio::fs::copy(proxy_binary, target)
+        .map_err(|e| BinaryProxyUpdateError::SymlinkFailed {
+            source: proxy_binary.into(),
+            dest: target.into(),
+            inner: e,
+        })
+        .await?;
 
     Ok(())
 }
