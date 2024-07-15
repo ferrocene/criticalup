@@ -15,7 +15,7 @@ use serde::Deserialize;
 use std::thread;
 use std::time::Duration;
 
-const CLIENT_TIMEOUT_SECONDS: u64 = 5;
+const CLIENT_TIMEOUT_SECONDS: u64 = 30;
 const CLIENT_MAX_RETRIES: u8 = 5;
 const CLIENT_RETRY_BACKOFF: u64 = 100;
 
@@ -30,7 +30,8 @@ impl DownloadServerClient {
     pub fn new(config: &Config, state: &State) -> Self {
         let client = Client::builder()
             .user_agent(config.whitelabel.http_user_agent)
-            .timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
+            // Do not call `.timeout(...)` as some slow connections may take awhile to download the full request body.
+            .connect_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
             .build()
             .expect("failed to configure http client");
 
