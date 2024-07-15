@@ -30,8 +30,9 @@ impl DownloadServerClient {
     pub fn new(config: &Config, state: &State) -> Self {
         let client = Client::builder()
             .user_agent(config.whitelabel.http_user_agent)
-            // Do not call `.timeout(...)` as some slow connections may take awhile to download the full request body.
             .connect_timeout(Duration::from_secs(CLIENT_TIMEOUT_SECONDS))
+            // Do not call `.timeout(Some(short_number))` as some slow connections may take awhile to download the full request body.
+            .timeout(None)
             .build()
             .expect("failed to configure http client");
 
