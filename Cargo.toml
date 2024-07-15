@@ -14,7 +14,7 @@ resolver = "2"
 exclude = ["docs/.linkchecker/src/tools/linkchecker"]
 
 [workspace.dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process"] }
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]

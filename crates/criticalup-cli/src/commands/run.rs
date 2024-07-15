@@ -7,9 +7,10 @@ use crate::spawn::spawn_command;
 use crate::Context;
 use criticalup_core::project_manifest::ProjectManifest;
 use std::path::PathBuf;
+// We *deliberately* use a sync Command here, since we are spawning a process to replace the current one.
 use std::process::{Command, Stdio};
 
-pub(crate) fn run(
+pub(crate) async fn run(
     ctx: &Context,
     command: Vec<String>,
     project: Option<PathBuf>,
@@ -17,7 +18,7 @@ pub(crate) fn run(
     // We try to fetch the manifest early on because it makes failing fast easy. Given that we need
     // this variable to set the env var later for child process, it is important to try to get the
     // canonical path first.
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref())?;
+    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
 
     // This dir has all the binaries that are proxied.
     let proxies_dir = &ctx.config.paths.proxies_dir;

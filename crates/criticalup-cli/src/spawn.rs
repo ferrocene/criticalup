@@ -7,6 +7,7 @@ use std::process::Command;
 /// Utility function to spawn a process and have it replace the current one.
 ///
 /// This is for Unix based systems. For Windows based systems, please see the function below.
+// This is not async, do not try to make it so! Replacing the current process with a new one is decidedly not async!
 #[cfg(unix)]
 pub(crate) fn spawn_command(mut command: Command) -> Result<(), Error> {
     use std::os::unix::process::CommandExt;
@@ -28,6 +29,7 @@ pub(crate) fn spawn_command(mut command: Command) -> Result<(), Error> {
 /// Instead, we use the strategy `cargo` and `rustup` use:
 /// https://github.com/rust-lang/cargo/blob/403fbe2b490d6cbb715ed768462bb7f977a6d514/crates/cargo-util/src/process_builder.rs#L609-L626
 /// https://github.com/rust-lang/rustup/blob/a7c0c45b2daaa149ac9a8e14a7270c855cd2b334/src/command.rs#L37-L56
+// This is not async, do not try to make it so! Replacing the current process with a new one is decidedly not async!
 #[cfg(windows)]
 pub(crate) fn spawn_command(mut command: Command) -> Result<(), Error> {
     use std::path::PathBuf;

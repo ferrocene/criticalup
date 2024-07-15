@@ -14,6 +14,7 @@ use std::env;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use tokio::fs::canonicalize;
 
 const DEFAULT_PROJECT_MANIFEST_NAME: &str = "criticalup.toml";
 const DEFAULT_PROJECT_MANIFEST_VERSION: u32 = 1;
@@ -49,11 +50,11 @@ impl ProjectManifest {
     ///
     /// If the path is not provided then tries to find the manifest iterating over parent
     /// directories looking for one, and stopping at the closest parent directory with the file.
-    pub fn discover_canonical_path(project_path: Option<&Path>) -> Result<PathBuf, Error> {
+    pub async fn discover_canonical_path(project_path: Option<&Path>) -> Result<PathBuf, Error> {
         match project_path {
             Some(path) => {
                 Ok(
-                    std::fs::canonicalize(path).map_err(|err| FailedToFindCanonicalPath {
+                    canonicalize(path).await.map_err(|err| FailedToFindCanonicalPath {
                         path: path.to_path_buf(),
                         kind: err,
                     })?,
@@ -62,7 +63,7 @@ impl ProjectManifest {
             None => {
                 let curr_directory = env::current_dir().map_err(Error::FailedToReadDirectory)?;
                 let path = ProjectManifest::discover(&curr_directory)?;
-                Ok(std::fs::canonicalize(&path)
+                Ok(canonicalize(&path).await
                     .map_err(|err| FailedToFindCanonicalPath { path, kind: err })?)
             }
         }
@@ -84,11 +85,11 @@ impl ProjectManifest {
     ///
     /// This is a combination of existing functions `Self::load()` and `Self::discover()` for ease
     /// of use.
-    pub fn get(project_path: Option<PathBuf>) -> Result<Self, Error> {
+    pub async fn get(project_path: Option<PathBuf>) -> Result<Self, Error> {
         let manifest = match project_path {
             Some(manifest_path) => ProjectManifest::load(&manifest_path)?,
             None => {
-                let discovered_manifest = Self::discover_canonical_path(None)?;
+                let discovered_manifest = Self::discover_canonical_path(None).await?;
                 Self::load(discovered_manifest.as_path())?
             }
         };
@@ -102,10 +103,10 @@ impl ProjectManifest {
     /// Generates a directory for each product under the specified `root`.
     ///
     /// If the directory already exists, then just skips the creation.
-    pub fn create_products_dirs(&self, installation_dir: &Path) -> std::io::Result<()> {
+    pub async fn create_products_dirs(&self, installation_dir: &Path) -> std::io::Result<()> {
         let products = self.products();
         for product in products {
-            std::fs::create_dir_all(installation_dir.join(product.installation_id()))?;
+            tokio::fs::create_dir_all(installation_dir.join(product.installation_id())).await?;
         }
 
         Ok(())
@@ -350,9 +351,9 @@ mod tests {
             ));
         }
 
-        #[test]
+        #[tokio::test]
         #[ignore = "Testing manifest discovery while setting current directory will be enabled at a later date."]
-        fn discover_canonical_path_matches_current_manifest_canonical_path() {
+        async fn discover_canonical_path_matches_current_manifest_canonical_path() {
             let root = tempfile::tempdir().unwrap();
             let expected_project_path = root.path().join("project").join("awesome");
             write_sample_manifest(&expected_project_path);
@@ -361,7 +362,7 @@ mod tests {
             set_current_dir(&expected_project_path).unwrap();
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None).unwrap();
+            let discovered_abs_path = ProjectManifest::discover_canonical_path(None).await.unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
                 std::fs::canonicalize(expected_project_path.join("criticalup.toml")).unwrap();
@@ -671,15 +672,15 @@ mod tests {
             }
         }
 
-        #[test]
+        #[tokio::test]
         #[ignore = "Testing manifest discovery while setting current directory will be enabled at a later date."]
-        fn get_loaded_manifest_by_discovering() {
+        async fn get_loaded_manifest_by_discovering() {
             let root = tempfile::tempdir().unwrap();
             let awesome_project_path = root.path().join("project").join("awesome");
             write_sample_manifest(&awesome_project_path);
 
             set_current_dir(&awesome_project_path).unwrap();
-            let discovered_manifest = ProjectManifest::get(None).unwrap();
+            let discovered_manifest = ProjectManifest::get(None).await.unwrap();
             let direct_loaded_manifest =
                 ProjectManifest::load(awesome_project_path.join("criticalup.toml").as_path())
                     .unwrap();

@@ -27,5 +27,5 @@ async fn main() {
     };
 
     let args = std::env::args_os().collect::<Vec<_>>();
-    std::process::exit(criticalup_cli::main(whitelabel, &args));
+    std::process::exit(criticalup_cli::main(whitelabel, &args).await);
 }

@@ -28,7 +28,7 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
         .unwrap_or(arg0);
 
     if arg0 != whitelabel.name {
-        return binary_proxies::proxy(whitelabel)
+        return binary_proxies::proxy(whitelabel).await
             .map_err(|e| Error::BinaryProxyInvocationFailed(Box::new(e)));
     }
 
@@ -46,17 +46,17 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
     match cli.commands {
         Commands::Auth { commands } => match commands {
             Some(AuthCommands::Set { token }) => commands::auth_set::run(&ctx, token).await?,
-            Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx)?,
+            Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx).await?,
             None => commands::auth::run(&ctx).await?,
         },
         Commands::Install { project } => commands::install::run(&ctx, project).await?,
-        Commands::Clean => commands::clean::run(&ctx)?,
-        Commands::Remove { project } => commands::remove::run(&ctx, project)?,
-        Commands::Run { command, project } => commands::run::run(&ctx, command, project)?,
+        Commands::Clean => commands::clean::run(&ctx).await?,
+        Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
+        Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
         Commands::Which {
             binary: tool,
             project,
-        } => commands::which::run(&ctx, tool, project)?,
+        } => commands::which::run(&ctx, tool, project).await?,
     }
 
     Ok(())

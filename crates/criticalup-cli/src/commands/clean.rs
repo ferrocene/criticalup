@@ -12,11 +12,11 @@ use criticalup_core::state::State;
 use crate::errors::Error;
 use crate::Context;
 
-pub(crate) fn run(ctx: &Context) -> Result<(), Error> {
+pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
     let installations_dir = &ctx.config.paths.installation_dir;
     let state = State::load(&ctx.config)?;
 
-    delete_unused_installations(installations_dir, &state)?;
+    delete_unused_installations(installations_dir, &state).await?;
     delete_untracked_installation_dirs(installations_dir, state)?;
 
     Ok(())
@@ -24,7 +24,7 @@ pub(crate) fn run(ctx: &Context) -> Result<(), Error> {
 
 /// Deletes installation from `State` wl; ith `InstallationId`s that have empty manifest section, and
 /// deletes the installation directory from the disk if present.
-fn delete_unused_installations(installations_dir: &Path, state: &State) -> Result<(), Error> {
+async fn delete_unused_installations(installations_dir: &Path, state: &State) -> Result<(), Error> {
     let unused_installations: Vec<InstallationId> = state
         .installations()
         .iter()
@@ -48,7 +48,7 @@ fn delete_unused_installations(installations_dir: &Path, state: &State) -> Resul
         state.remove_installation(&installation);
         // The state will be saved onto the disk but the removal of the installation directory
         // will be done after this which may not exist.
-        state.persist()?;
+        state.persist().await?;
 
         // Remove installation directory from physical location.
         let installation_dir_to_delete = installations_dir.join(&installation.0);

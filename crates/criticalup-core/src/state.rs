@@ -3,16 +3,16 @@
 
 use std::cell::{Ref, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 
 use criticaltrust::integrity::VerifiedPackage;
+use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
-use crate::errors::Error;
+use crate::errors::{self, Error};
 use crate::errors::Error::InstallationDoesNotExist;
 use crate::errors::WriteFileError;
 use crate::project_manifest::InstallationId;
@@ -241,7 +241,7 @@ impl State {
         result
     }
 
-    pub fn persist(&self) -> Result<(), Error> {
+    pub async fn persist(&self) -> Result<(), Error> {
         let inner = self.inner.borrow();
 
         // According to the serde_json documentation, the only two reasons this could fail is if
@@ -252,11 +252,11 @@ impl State {
             .expect("state file serialization unexpectedly failed");
         serialized.push(b'\n');
 
-        let mut f = open_file_for_write(&inner.path)
+        let mut f = open_file_for_write(&inner.path).await
             .map_err(|e| Error::CantWriteStateFile(inner.path.clone(), e))?;
-        f.write_all(&serialized)
+        f.write_all(&serialized).await
             .map_err(|e| Error::CantWriteStateFile(inner.path.clone(), WriteFileError::Io(e)))?;
-
+        f.flush().await.map_err(|e| Error::CantWriteStateFile(inner.path.clone(), errors::WriteFileError::Io(e)))?;
         Ok(())
     }
 }
@@ -450,8 +450,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn save_same_manifest_content_new_proj_if_existing_installation() {
+    #[tokio::test]
+    async fn save_same_manifest_content_new_proj_if_existing_installation() {
         let test_env = TestEnvironment::with().state().prepare();
         let root = test_env.root();
         let state = test_env.state();
@@ -479,13 +479,13 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Add a second project manifest for the same installation and write the state file.
         let proj2 = root.join("path/to/proj/2");
         std::fs::create_dir_all(&proj2).unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Check that both unique manifests are present in the installation.
         let new_state = State::load(test_env.config()).unwrap();
@@ -505,8 +505,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn same_manifest_content_new_proj_twice_for_existing_installation_still_unique_manifest_paths_only(
+    #[tokio::test]
+    async fn same_manifest_content_new_proj_twice_for_existing_installation_still_unique_manifest_paths_only(
     ) {
         let test_env = TestEnvironment::with().state().prepare();
         let root = test_env.root();
@@ -534,7 +534,7 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Load the State file and add update installation manifest with another unique path
         // which mimics that for same installation id you can have the new path added
@@ -543,11 +543,11 @@ mod tests {
         std::fs::create_dir_all(&proj2).unwrap();
         let state = State::load(test_env.config()).unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         let new_state = State::load(test_env.config()).unwrap().inner;
         let new_state = &new_state.borrow_mut();
@@ -572,8 +572,8 @@ mod tests {
     ///
     /// Should result in empty manifests section of second installation and two manifests in the
     /// first installation.
-    #[test]
-    fn two_installations_empty_manifests_section_when_moved() {
+    #[tokio::test]
+    async fn two_installations_empty_manifests_section_when_moved() {
         let test_env = TestEnvironment::with().state().prepare();
         let root = test_env.root();
         let state = test_env.state();
@@ -605,7 +605,7 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Installation 2.
         let installation_id_2 = InstallationId("installation-id-2".to_string());
@@ -628,14 +628,14 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Load the State file and add update installation manifest with another unique path
         // which mimics that for same installation id you can have the new path added
         // here we update the same path multiple times.
         let state = State::load(test_env.config()).unwrap();
         let _ = state.update_installation_manifests(&installation_id_1, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Check that the installation 1 has both project manifests and the installation 2 has
         // no project manifests (empty manifests).
@@ -763,22 +763,22 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_persist_state() {
+    #[tokio::test]
+    async fn test_persist_state() {
         let test_env = TestEnvironment::with().state().prepare();
 
         let token = AuthenticationToken("hello world".into());
         test_env
             .state()
             .set_authentication_token(Some(token.clone()));
-        test_env.state().persist().unwrap();
+        test_env.state().persist().await.unwrap();
 
         let new_state = State::load(test_env.config()).unwrap();
         assert_eq!(Some(token), new_state.authentication_token(None));
     }
 
-    #[test]
-    fn test_persist_state_with_fs_io_error() {
+    #[tokio::test]
+    async fn test_persist_state_with_fs_io_error() {
         let test_env = TestEnvironment::with().state().prepare();
         test_env
             .state()
@@ -789,7 +789,7 @@ mod tests {
         // remove the previous contents at that path.
         std::fs::create_dir_all(&test_env.config().paths.state_file).unwrap();
 
-        match test_env.state().persist() {
+        match test_env.state().persist().await {
             Err(Error::CantWriteStateFile(path, WriteFileError::Io(_))) => {
                 assert_eq!(test_env.config().paths.state_file, path);
             }
@@ -798,8 +798,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_persist_state_with_fs_parent_directory_error() {
+    #[tokio::test]
+    async fn test_persist_state_with_fs_parent_directory_error() {
         let test_env = TestEnvironment::with()
             .root_in_subdir("subdir")
             .state()
@@ -813,7 +813,7 @@ mod tests {
         // don't need to remove the previous contents at that path.
         std::fs::write(test_env.root().join("subdir"), b"").unwrap();
 
-        match test_env.state().persist() {
+        match test_env.state().persist().await {
             Err(Error::CantWriteStateFile(path, WriteFileError::CantCreateParentDirectory(_))) => {
                 assert_eq!(test_env.config().paths.state_file, path);
             }
@@ -922,8 +922,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn all_unsed_installations_only() {
+    #[tokio::test]
+    async fn all_unsed_installations_only() {
         let test_env = TestEnvironment::with().state().prepare();
         let root = test_env.root();
         let state = test_env.state();
@@ -947,7 +947,7 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         let proj2 = root.join("path/to/proj/2");
         std::fs::create_dir_all(&proj2).unwrap();
@@ -961,12 +961,12 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Add a second project manifest to the first installation. This will render the second
         // installation with empty manifests section and will be return as "unused".
         let _ = state.update_installation_manifests(&installation_id_1, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         let unused_installations = state
             .installations()

@@ -9,14 +9,14 @@ use owo_colors::OwoColorize;
 use std::fs;
 use std::path::PathBuf;
 
-pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
+pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
     let state = State::load(&ctx.config)?;
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref())?;
+    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
     let installation_dir = &ctx.config.paths.installation_dir;
 
     let installations_from_which_manifest_was_deleted =
         state.remove_manifest_from_all_installations(&manifest_path)?;
-    state.persist()?;
+    state.persist().await?;
 
     for installation_id in &installations_from_which_manifest_was_deleted {
         println!(

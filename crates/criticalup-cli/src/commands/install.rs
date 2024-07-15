@@ -24,10 +24,10 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
     let state = State::load(&ctx.config)?;
 
     // Get manifest location if arg `project` is None
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref())?;
+    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
 
     // Parse and serialize the project manifest.
-    let manifest = ProjectManifest::get(project)?;
+    let manifest = ProjectManifest::get(project).await?;
 
     let installation_dir = &ctx.config.paths.installation_dir;
 
@@ -57,10 +57,10 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
         }
         // Even though we do not install the existing packages again, we still need to add
         // the manifest to the state.json.
-        state.persist()?;
+        state.persist().await?;
     }
 
-    criticalup_core::binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?)?;
+    criticalup_core::binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
 
     Ok(())
 }

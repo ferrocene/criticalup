@@ -24,7 +24,7 @@ pub(crate) async fn run(ctx: &Context, token: Option<String>) -> Result<(), Erro
     state.set_authentication_token(Some(AuthenticationToken::seal(&token)));
 
     match download_server.get_current_token_data().await {
-        Ok(_) => Ok(state.persist()?),
+        Ok(_) => Ok(state.persist().await?),
 
         Err(LibError::DownloadServerError {
             kind: DownloadServerError::AuthenticationFailed,

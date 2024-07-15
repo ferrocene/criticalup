@@ -3,19 +3,19 @@
 
 use crate::errors::WriteFileError;
 use sha2::{Digest, Sha256};
-use std::fs::File;
+use tokio::fs::File;
 use std::hash::Hasher;
-use std::io::BufWriter;
+use tokio::io::BufWriter;
 use std::path::Path;
 
-pub(crate) fn open_file_for_write(path: &Path) -> Result<BufWriter<File>, WriteFileError> {
+pub(crate) async fn open_file_for_write(path: &Path) -> Result<BufWriter<File>, WriteFileError> {
     // Ensure the parent directory is always present
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(WriteFileError::CantCreateParentDirectory)?;
+        tokio::fs::create_dir_all(parent).await.map_err(WriteFileError::CantCreateParentDirectory)?;
     }
 
     Ok(BufWriter::new(
-        File::create(path).map_err(WriteFileError::Io)?,
+        File::create(path).await.map_err(WriteFileError::Io)?,
     ))
 }
 
