@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::KeyRole;
+use std::string::FromUtf8Error;
 use thiserror::Error;
 
 #[non_exhaustive]
@@ -23,6 +24,12 @@ pub enum Error {
     InvalidKey(String),
     #[error("unsupported key")]
     UnsupportedKey,
+    #[error("verification failed because the signatures expired")]
+    SignaturesExpired,
+    #[error("failed to verify signed data because payload is revoked")]
+    ContentRevoked,
+    #[error("failed to calculate SHA256 from payload")]
+    PayloadSha256CalcFailed(#[source] FromUtf8Error),
     #[cfg(feature = "aws-kms")]
     #[error("failed to retrieve the public key from AWS KMS")]
     AwsKmsFailedToGetPublicKey(

@@ -77,6 +77,7 @@ async fn install_product_afresh(
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let client = DownloadServerClient::new(&ctx.config, state);
     let keys = client.get_keys().await?;
+    let revocation_info = keys.revocation_info();
 
     // TODO: Add tracing to support log levels, structured logging.
     println!(
@@ -90,7 +91,9 @@ async fn install_product_afresh(
     let release_manifest_from_server = client
         .get_product_release_manifest(product_name, product.release())
         .await?;
-    let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
+    let verified_release_manifest = release_manifest_from_server
+        .signed
+        .into_verified(&keys, revocation_info)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
     // We have to use manifest's Release because the information about dependencies

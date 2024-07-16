@@ -6,7 +6,8 @@ mod server;
 
 pub use crate::server::MockServer;
 use criticaltrust::keys::PublicKey;
-use criticaltrust::manifests::{ReleaseManifest, RevocationInfo};
+use criticaltrust::manifests::ReleaseManifest;
+use criticaltrust::revocation_info::RevocationInfo;
 use criticaltrust::signatures::SignedPayload;
 use serde::Serialize;
 use std::borrow::Cow;

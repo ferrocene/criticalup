@@ -2,14 +2,16 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::{KeyId, KeyRole, PublicKey};
+use crate::manifests::KeysManifest;
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
-use crate::manifests::{KeysManifest, RevocationInfo};
 
 /// Collection of all trusted public keys.
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
+    revocation_info: RevocationInfo,
 }
 
 impl Keychain {
@@ -21,6 +23,7 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
+            revocation_info: RevocationInfo::default(),
         };
 
         if trust_root.role != KeyRole::Root {
@@ -31,22 +34,36 @@ impl Keychain {
         Ok(keychain)
     }
 
+    pub fn keys(&self) -> &HashMap<KeyId, PublicKey> {
+        &self.keys
+    }
+
+    pub fn revocation_info(&self) -> &RevocationInfo {
+        &self.revocation_info
+    }
+
+    pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
+        // Load all keys from KeysManifest.
+        for key in &keys_manifest.keys {
+            let a = self.load(key)?;
+        }
+
+        // Special case: verify and load only RevocationInfo.
+        let revocation_info = keys_manifest
+            .revoked_signatures
+            .get_verified_no_revocations_check(self)?.clone();
+        self.revocation_info = revocation_info;
+        Ok(())
+    }
+
     /// Add a new signed key to the keychain.
     ///
     /// The key has to be signed by either the root of trust or another key with the root role
     /// already part of the keychain.
     pub fn load(&mut self, key: &SignedPayload<PublicKey>) -> Result<KeyId, Error> {
-        let key = key.get_verified(self)?;
+        let key = key.get_verified_no_revocations_check(self)?;
         self.load_inner(&key)
     }
-
-    // TODO change the name here from `lock_and_load` to something else.
-    pub fn load_with_revocation_check(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
-        let _ =
-
-        Ok(())
-    }
-
 
     fn load_inner(&mut self, key: &PublicKey) -> Result<KeyId, Error> {
         if !key.is_supported() {
@@ -68,6 +85,7 @@ impl PublicKeysRepository for Keychain {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair};
+    use crate::signatures::SignedPayload;
 
     #[test]
     fn test_new_with_root_key_as_trust_root() {

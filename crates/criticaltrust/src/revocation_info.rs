@@ -1,0 +1,31 @@
+use crate::keys::KeyRole;
+use crate::signatures::Signable;
+use crate::NoRevocationsCheck;
+use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
+
+/// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RevocationInfo {
+    pub revoked_content_sha256: Vec<String>,
+    pub expires_at: OffsetDateTime,
+}
+
+impl Default for RevocationInfo {
+    fn default() -> Self {
+        RevocationInfo {
+            revoked_content_sha256: Vec::new(),
+            expires_at: OffsetDateTime::now_utc(),
+        }
+    }
+}
+
+impl Signable for RevocationInfo {
+    const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
+}
+
+/// Make sure verification of `RevocationInfo` type does no checks for revocations.
+///
+/// If we did, then this would be a circular logic and we say No! to such logic.
+impl NoRevocationsCheck for RevocationInfo {}

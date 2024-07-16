@@ -3,7 +3,8 @@
 
 use crate::Serialize;
 use crate::{AuthenticationToken, Data};
-use criticaltrust::manifests::{ManifestVersion, RevocationInfo};
+use criticaltrust::manifests::ManifestVersion;
+use criticaltrust::revocation_info::RevocationInfo;
 use criticaltrust::signatures::SignedPayload;
 use time::{Duration, OffsetDateTime};
 use tiny_http::{Header, Method, Request, Response, ResponseBox, StatusCode};

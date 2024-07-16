@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Keychain, SignedPayload};
 use base64::Engine;
 use time::{Duration, OffsetDateTime};
@@ -17,12 +18,15 @@ impl TestEnvironment {
     pub(crate) fn prepare() -> Self {
         let root = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
         let keychain = Keychain::new(root.public()).unwrap();
-
         Self { root, keychain }
     }
 
     pub(crate) fn keychain(&self) -> &Keychain {
         &self.keychain
+    }
+
+    pub(crate) fn revocation_info(&self) -> &RevocationInfo {
+        self.keychain.revocation_info()
     }
 
     pub(crate) fn create_untrusted_key(&self, role: KeyRole) -> EphemeralKeyPair {

@@ -57,15 +57,7 @@ impl DownloadServerClient {
             .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
             .await?;
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
-        // TODO: actually capture the `KeysManifest::revoked_signatures` from the response.
-        let _ = keychain.load_with_revocation_check(&resp);
-        // for key in &resp.keys {
-        //     // Invalid keys are silently ignored, as they might be signed by a different root key
-        //     // used by a different release of criticalup, or they might be using an algorithm not
-        //     // supported by the current version of criticaltrust.
-        //     let _ = keychain.lock_and_load();
-        // }
-
+        let _ = keychain.load_all(&resp);
         Ok(keychain)
     }
 
