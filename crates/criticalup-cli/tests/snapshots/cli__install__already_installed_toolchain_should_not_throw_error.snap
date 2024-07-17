@@ -7,7 +7,7 @@ exit: exit status: 0
 stdout
 ------
 Skipping installation for product 'ferrocene' because it seems to be already installed.
-If you want to reinstall it, please run 'criticalup remove' followed by 'criticalup install' command.
+If you want to reinstall it, please run 'criticalup install --reinstall'.
 ------
 
 empty stderr
