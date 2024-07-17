@@ -79,6 +79,27 @@ pub(crate) enum Error {
         kind: std::io::Error,
     },
 
+    #[error("Parsing tracing directives")]
+    EnvFilter(
+        #[from]
+        #[source]
+        tracing_subscriber::filter::ParseError,
+    ),
+
+    #[error("Parsing tracing directives from environment")]
+    FromEnv(
+        #[from]
+        #[source]
+        tracing_subscriber::filter::FromEnvError,
+    ),
+
+    #[error("Initializing tracing")]
+    TryInit(
+        #[from]
+        #[source]
+        tracing_subscriber::util::TryInitError,
+    ),
+
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
     CtrlHandler,

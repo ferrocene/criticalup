@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+mod arg;
 mod binary_proxies;
 mod commands;
 mod errors;
@@ -39,11 +40,15 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
     let matches = command
         .try_get_matches_from(args)
         .map_err(Error::CliArgumentParsing)?;
+
     let cli = Cli::from_arg_matches(&matches).map_err(Error::CliArgumentParsing)?;
+
+    cli.instrumentation.setup(whitelabel.name).await?;
 
     let config = Config::detect(whitelabel)?;
     let ctx = Context { config };
 
+    tracing::trace!(command = ?cli.commands, "Got command");
     match cli.commands {
         Commands::Auth { commands } => match commands {
             Some(AuthCommands::Set { token }) => commands::auth_set::run(&ctx, token).await?,
@@ -112,6 +117,8 @@ struct Context {
 struct Cli {
     #[command(subcommand)]
     commands: Commands,
+    #[clap(flatten)]
+    pub(crate) instrumentation: arg::Instrumentation,
 }
 
 #[derive(Debug, Subcommand, Clone)]
