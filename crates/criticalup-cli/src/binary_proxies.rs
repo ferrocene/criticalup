@@ -10,7 +10,7 @@ use std::env::JoinPathsError;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-pub(crate) fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
+pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let binary_name = arg0(&whitelabel)?;
 
     #[cfg(not(windows))]
@@ -29,13 +29,14 @@ pub(crate) fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
 
     let config = Config::detect(whitelabel)?;
-    let state = State::load(&config)?;
+    let state = State::load(&config).await?;
 
     let manifest_path = ProjectManifest::discover_canonical_path(
         std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
             .map(std::path::PathBuf::from)
             .as_deref(),
-    )?;
+    )
+    .await?;
 
     let project_manifest = ProjectManifest::load(manifest_path.as_path())?;
 

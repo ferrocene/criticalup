@@ -64,6 +64,10 @@ jobs:
         shell: bash
         run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
 
+      - name: Build debug builds
+        shell: bash
+        run: cargo build
+
       - name: Upload criticalup debug build
         uses: actions/upload-artifact@v4
         with:

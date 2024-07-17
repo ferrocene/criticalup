@@ -17,17 +17,17 @@ use crate::Context;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
-pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
+pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
     // TODO: If `std::io::stdout().is_terminal() == true``, provide a nice, fancy progress bar using indicatif.
     //       Retain existing behavior to support non-TTY usage.
 
-    let state = State::load(&ctx.config)?;
+    let state = State::load(&ctx.config).await?;
 
     // Get manifest location if arg `project` is None
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref())?;
+    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
 
     // Parse and serialize the project manifest.
-    let manifest = ProjectManifest::get(project)?;
+    let manifest = ProjectManifest::get(project).await?;
 
     let installation_dir = &ctx.config.paths.installation_dir;
 
@@ -35,7 +35,7 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
         let abs_installation_dir_path = installation_dir.join(product.installation_id());
 
         if !abs_installation_dir_path.exists() {
-            install_product_afresh(ctx, &state, &manifest_path, product)?;
+            install_product_afresh(ctx, &state, &manifest_path, product).await?;
         } else {
             // Check if the state file has no mention of this installation.
             let does_this_installation_exist_in_state = state
@@ -44,7 +44,7 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
             if !does_this_installation_exist_in_state {
                 // If the installation directory exists, but the State has no installation of that
                 // InstallationId, then re-run the install command and go through installation.
-                install_product_afresh(ctx, &state, &manifest_path, product)?;
+                install_product_afresh(ctx, &state, &manifest_path, product).await?;
             } else {
                 // If the installation directory exists AND there is an existing installation with
                 // that InstallationId, then merely update the installation in the State file to
@@ -57,15 +57,15 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
         }
         // Even though we do not install the existing packages again, we still need to add
         // the manifest to the state.json.
-        state.persist()?;
+        state.persist().await?;
     }
 
-    criticalup_core::binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?)?;
+    criticalup_core::binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
 
     Ok(())
 }
 
-fn install_product_afresh(
+async fn install_product_afresh(
     ctx: &Context,
     state: &State,
     manifest_path: &Path,
@@ -76,7 +76,7 @@ fn install_product_afresh(
     let installation_dir = &ctx.config.paths.installation_dir;
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let client = DownloadServerClient::new(&ctx.config, state);
-    let keys = client.get_keys()?;
+    let keys = client.get_keys().await?;
 
     // TODO: Add tracing to support log levels, structured logging.
     println!(
@@ -87,8 +87,9 @@ fn install_product_afresh(
     let mut integrity_verifier = IntegrityVerifier::new(&keys);
 
     // Get the release manifest for the product from the server and verify it.
-    let release_manifest_from_server =
-        client.get_product_release_manifest(product_name, product.release())?;
+    let release_manifest_from_server = client
+        .get_product_release_manifest(product_name, product.release())
+        .await?;
     let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
@@ -98,7 +99,9 @@ fn install_product_afresh(
 
     let release_name = verified_release_manifest.release.as_str();
 
-    product.create_product_dir(&ctx.config.paths.installation_dir)?;
+    product
+        .create_product_dir(&ctx.config.paths.installation_dir)
+        .await?;
 
     for package in product.packages() {
         println!(
@@ -106,12 +109,14 @@ fn install_product_afresh(
             "info:".bold()
         );
 
-        let response_file = client.download_package(
-            product_name,
-            release_name,
-            package,
-            DEFAULT_RELEASE_ARTIFACT_FORMAT,
-        )?;
+        let response_file = client
+            .download_package(
+                product_name,
+                release_name,
+                package,
+                DEFAULT_RELEASE_ARTIFACT_FORMAT,
+            )
+            .await?;
 
         // Archive file path, path with the archive extension.
         let package_name_with_extension =
@@ -120,7 +125,7 @@ fn install_product_afresh(
             abs_installation_dir_path.join(&package_name_with_extension);
 
         // Save the downloaded package archive on disk.
-        std::fs::write(&abs_artifact_compressed_file_path, response_file.clone())?;
+        tokio::fs::write(&abs_artifact_compressed_file_path, response_file.clone()).await?;
 
         println!(
             "{} installing component '{package}' for '{product_name}' ({release})",
@@ -145,12 +150,12 @@ fn install_product_afresh(
                 integrity_verifier.add(
                     &entry_path_on_disk,
                     entry.header().mode()?,
-                    &std::fs::read(&entry_path_on_disk)?,
+                    &tokio::fs::read(&entry_path_on_disk).await?,
                 );
             }
         }
 
-        clean_archive_download(&abs_artifact_compressed_file_path)?;
+        clean_archive_download(&abs_artifact_compressed_file_path).await?;
     }
 
     let verified_packages = integrity_verifier
@@ -175,8 +180,8 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
     Ok(())
 }
 
-fn clean_archive_download(abs_artifact_compressed_file_path: &PathBuf) -> Result<(), Error> {
-    std::fs::remove_file(abs_artifact_compressed_file_path)?;
+async fn clean_archive_download(abs_artifact_compressed_file_path: &PathBuf) -> Result<(), Error> {
+    tokio::fs::remove_file(abs_artifact_compressed_file_path).await?;
     Ok(())
 }
 

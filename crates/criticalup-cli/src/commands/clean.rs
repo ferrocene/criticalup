@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use std::fs;
 use std::path::{Path, PathBuf};
+use tokio::fs;
 
 use owo_colors::OwoColorize;
 
@@ -12,19 +12,19 @@ use criticalup_core::state::State;
 use crate::errors::Error;
 use crate::Context;
 
-pub(crate) fn run(ctx: &Context) -> Result<(), Error> {
+pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
     let installations_dir = &ctx.config.paths.installation_dir;
-    let state = State::load(&ctx.config)?;
+    let state = State::load(&ctx.config).await?;
 
-    delete_unused_installations(installations_dir, &state)?;
-    delete_untracked_installation_dirs(installations_dir, state)?;
+    delete_unused_installations(installations_dir, &state).await?;
+    delete_untracked_installation_dirs(installations_dir, state).await?;
 
     Ok(())
 }
 
 /// Deletes installation from `State` wl; ith `InstallationId`s that have empty manifest section, and
 /// deletes the installation directory from the disk if present.
-fn delete_unused_installations(installations_dir: &Path, state: &State) -> Result<(), Error> {
+async fn delete_unused_installations(installations_dir: &Path, state: &State) -> Result<(), Error> {
     let unused_installations: Vec<InstallationId> = state
         .installations()
         .iter()
@@ -48,7 +48,7 @@ fn delete_unused_installations(installations_dir: &Path, state: &State) -> Resul
         state.remove_installation(&installation);
         // The state will be saved onto the disk but the removal of the installation directory
         // will be done after this which may not exist.
-        state.persist()?;
+        state.persist().await?;
 
         // Remove installation directory from physical location.
         let installation_dir_to_delete = installations_dir.join(&installation.0);
@@ -58,28 +58,28 @@ fn delete_unused_installations(installations_dir: &Path, state: &State) -> Resul
                 "info:".bold(),
                 &installation_dir_to_delete.display()
             );
-            fs::remove_dir_all(&installation_dir_to_delete).map_err(|err| {
-                Error::DeletingUnusedInstallationDir {
+            fs::remove_dir_all(&installation_dir_to_delete)
+                .await
+                .map_err(|err| Error::DeletingUnusedInstallationDir {
                     path: installation_dir_to_delete,
                     kind: err,
-                }
-            })?;
+                })?;
         }
     }
     Ok(())
 }
 
 /// Deletes the installation directories from the disk that do not exist in the State.
-fn delete_untracked_installation_dirs(
+async fn delete_untracked_installation_dirs(
     installations_dir: &PathBuf,
     state: State,
 ) -> Result<(), Error> {
-    let installations_in_state = state.installations();
+    let installations_in_state = state.installations().clone();
     let mut are_untracked_installation_dirs_present = false;
 
-    for item_in_installation_dir in fs::read_dir(installations_dir)? {
-        let item = item_in_installation_dir?;
-        if item.file_type()?.is_dir() {
+    let mut entries = fs::read_dir(installations_dir).await?;
+    while let Some(item) = entries.next_entry().await? {
+        if item.file_type().await?.is_dir() {
             let installation_dir_name = item.file_name();
             if let Some(name) = installation_dir_name.to_str() {
                 if !installations_in_state.contains_key(&InstallationId(name.into())) {
@@ -90,7 +90,7 @@ fn delete_untracked_installation_dirs(
                         item.path().to_path_buf().display()
                     );
 
-                    fs::remove_dir_all(item.path()).map_err(|err| {
+                    fs::remove_dir_all(item.path()).await.map_err(|err| {
                         Error::DeletingUntrackedInstallationDir {
                             path: item.path().to_path_buf(),
                             kind: err,

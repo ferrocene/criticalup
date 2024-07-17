@@ -6,17 +6,17 @@ use crate::Context;
 use criticalup_core::project_manifest::ProjectManifest;
 use criticalup_core::state::State;
 use owo_colors::OwoColorize;
-use std::fs;
 use std::path::PathBuf;
+use tokio::fs;
 
-pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
-    let state = State::load(&ctx.config)?;
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref())?;
+pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
+    let state = State::load(&ctx.config).await?;
+    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
     let installation_dir = &ctx.config.paths.installation_dir;
 
     let installations_from_which_manifest_was_deleted =
         state.remove_manifest_from_all_installations(&manifest_path)?;
-    state.persist()?;
+    state.persist().await?;
 
     for installation_id in &installations_from_which_manifest_was_deleted {
         println!(
@@ -26,7 +26,7 @@ pub(crate) fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> 
         );
         let installation_path = installation_dir.join(installation_id.0.as_str());
         if installation_path.exists() {
-            fs::remove_dir_all(&installation_path)?;
+            fs::remove_dir_all(&installation_path).await?;
         }
     }
 

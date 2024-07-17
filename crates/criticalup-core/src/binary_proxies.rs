@@ -22,7 +22,7 @@ use crate::state::State;
 ///   `proxy_binary`, to ensure they all point to the latest available version. This is likely to
 ///   occur after the user updates criticalup.
 ///
-pub fn update(
+pub async fn update(
     config: &Config,
     state: &State,
     proxy_binary: &Path,
@@ -34,17 +34,15 @@ pub fn update(
 
     let dir = &config.paths.proxies_dir;
     let list_dir_error = |e| BinaryProxyUpdateError::ListDirectoryFailed(dir.into(), e);
-    match dir.read_dir() {
-        Ok(iter) => {
-            for entry in iter {
-                let entry = entry.map_err(list_dir_error)?;
-
+    match tokio::fs::read_dir(dir).await {
+        Ok(mut iter) => {
+            while let Some(entry) = iter.next_entry().await.map_err(list_dir_error)? {
                 let entry_name = PathBuf::from(entry.file_name());
 
                 if expected_proxies.remove(&*entry_name) {
-                    ensure_link(proxy_binary, &entry.path())?;
+                    ensure_link(proxy_binary, &entry.path()).await?;
                 } else {
-                    remove_unexpected(&entry.path())?;
+                    remove_unexpected(&entry.path()).await?;
                 }
             }
         }
@@ -56,30 +54,31 @@ pub fn update(
 
     for proxy in expected_proxies {
         let target = &config.paths.proxies_dir.join(&proxy);
-        ensure_link(proxy_binary, target)?;
+        ensure_link(proxy_binary, target).await?;
     }
 
     Ok(())
 }
 
 #[cfg(unix)]
-fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpdateError> {
-    let canonicalize = |path: &Path| {
-        std::fs::canonicalize(path)
+async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpdateError> {
+    async fn canonicalize(path: &Path) -> Result<PathBuf, BinaryProxyUpdateError> {
+        tokio::fs::canonicalize(path)
+            .await
             .map_err(|e| BinaryProxyUpdateError::InspectFailed(path.into(), e))
-    };
+    }
 
     let should_create = match target.read_link() {
         Ok(target_dest) => {
-            if canonicalize(proxy_binary)? == canonicalize(&target_dest)? {
+            if canonicalize(proxy_binary).await? == canonicalize(&target_dest).await? {
                 false
             } else {
-                remove_unexpected(target)?;
+                remove_unexpected(target).await?;
                 true
             }
         }
         Err(err) if err.kind() == std::io::ErrorKind::InvalidInput => {
-            remove_unexpected(target)?;
+            remove_unexpected(target).await?;
             true
         }
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => true,
@@ -88,7 +87,7 @@ fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpda
 
     if should_create {
         if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| {
+            tokio::fs::create_dir_all(parent).await.map_err(|e| {
                 BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e)
             })?;
         }
@@ -105,7 +104,7 @@ fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpda
 }
 
 #[cfg(windows)]
-fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpdateError> {
+async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpdateError> {
     // We cannot use `canonicalize` safely here since it basically doesn't work on Windows.
     // For example, on even a relatively uncomplicated dev machine attempting to canonicalize a link
     // between two files in the same folder on the same disk fails with
@@ -116,11 +115,12 @@ fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpda
     //
     // So, instead of checking to see if the link exists and is correct, we just blindly rewrite it.
     if target.exists() {
-        remove_unexpected(target)?;
+        remove_unexpected(target).await?;
     };
 
     if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent)
+        tokio::fs::create_dir_all(parent)
+            .await
             .map_err(|e| BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e))?;
     }
 
@@ -129,20 +129,22 @@ fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryProxyUpda
     //
     // On Windows 10, symlinks can be done by priviledged users, or users with "Developer Mode"
     // enabled, but not all of our users have that.
-    std::fs::copy(proxy_binary, target).map_err(|e| BinaryProxyUpdateError::SymlinkFailed {
-        source: proxy_binary.into(),
-        dest: target.into(),
-        inner: e,
+    tokio::fs::copy(proxy_binary, target).await.map_err(|e| {
+        BinaryProxyUpdateError::SymlinkFailed {
+            source: proxy_binary.into(),
+            dest: target.into(),
+            inner: e,
+        }
     })?;
 
     Ok(())
 }
 
-fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
+async fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
     let result = if path.is_dir() {
-        std::fs::remove_dir_all(path)
+        tokio::fs::remove_dir_all(path).await
     } else {
-        std::fs::remove_file(path)
+        tokio::fs::remove_file(path).await
     };
     match result {
         Ok(()) => Ok(()),
@@ -159,7 +161,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
 
-    use tempfile::{tempdir, NamedTempFile};
+    use tempfile::{tempdir, NamedTempFile, TempDir};
 
     use criticaltrust::integrity::VerifiedPackage;
 
@@ -168,27 +170,37 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_update() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn test_update() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let installation_dir = &test_env.config().paths.installation_dir;
         let state = test_env.state();
 
         // Installation 1, with only one project manifest.
         let inst1 = InstallationId("1".into());
-        std::fs::create_dir_all(installation_dir.clone().join("1")).unwrap();
+        tokio::fs::create_dir_all(installation_dir.clone().join("1"))
+            .await
+            .unwrap();
         let inst1_first_manifest_path = root.join("proj/1/manifest");
-        std::fs::create_dir_all(&inst1_first_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst1_first_manifest_path)
+            .await
+            .unwrap();
 
         // Installation 2, with two project manifests in different locations.
         let inst2 = InstallationId("2".into());
-        std::fs::create_dir_all(installation_dir.clone().join("2")).unwrap();
+        tokio::fs::create_dir_all(installation_dir.clone().join("2"))
+            .await
+            .unwrap();
         let inst2_first_manifest_path = root.join("proj/2/manifest-1");
-        std::fs::create_dir_all(&inst2_first_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst2_first_manifest_path)
+            .await
+            .unwrap();
         // Another manifest for the same project.
         let inst2_second_manifest_path = root.join("project/2/manifest-2");
-        std::fs::create_dir_all(&inst2_second_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst2_second_manifest_path)
+            .await
+            .unwrap();
 
         let mut proxy1 = NamedTempFile::new_in(test_env.root()).unwrap();
         proxy1.write_all(b"proxied binary 1").unwrap();
@@ -207,7 +219,7 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        update(test_env.config(), state, proxy1).unwrap();
+        update(test_env.config(), state, proxy1).await.unwrap();
         assert_proxies(test_env.config(), proxy1, &["bin1", "bin2"]);
 
         // Add a second installation, ensure the new binary is added.
@@ -219,7 +231,7 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        update(test_env.config(), state, proxy1).unwrap();
+        update(test_env.config(), state, proxy1).await.unwrap();
         assert_proxies(test_env.config(), proxy1, &["bin1", "bin2", "bin3"]);
 
         // Same installation but a different location of a manifest, which means that another
@@ -232,18 +244,18 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        update(test_env.config(), state, proxy1).unwrap();
+        update(test_env.config(), state, proxy1).await.unwrap();
         assert_proxies(test_env.config(), proxy1, &["bin1", "bin2", "bin3"]);
 
         // Remove the first installation *and* change the path of the proxy binary (to simulate a
         // new criticalup binary after an update).
         state.remove_installation(&inst1);
-        update(test_env.config(), state, proxy2).unwrap();
+        update(test_env.config(), state, proxy2).await.unwrap();
         assert_proxies(test_env.config(), proxy2, &["bin3"]);
 
         // Remove the last installation to ensure all proxies are removed.
         state.remove_installation(&inst2);
-        update(test_env.config(), state, proxy2).unwrap();
+        update(test_env.config(), state, proxy2).await.unwrap();
         assert_proxies(test_env.config(), proxy2, &[]);
 
         fn verified_packages(proxies: &[&str]) -> Vec<VerifiedPackage> {
@@ -288,43 +300,43 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_ensure_link() {
+    #[tokio::test]
+    async fn test_ensure_link() {
         let dir = tempdir().unwrap();
         assert!(dir.path().is_absolute());
 
-        let create_file = |name: &str| {
+        async fn create_file(dir: &TempDir, name: &str) -> PathBuf {
             let path = dir.path().join(name);
-            std::fs::write(&path, name.as_bytes()).unwrap();
+            tokio::fs::write(&path, name.as_bytes()).await.unwrap();
             path
-        };
+        }
 
-        let source1 = create_file("source1");
-        let source2 = create_file("source2");
+        let source1 = create_file(&dir, "source1").await;
+        let source2 = create_file(&dir, "source2").await;
 
         // Test creating the link when no existing link was present.
         let link1 = dir.path().join("link1");
-        ensure_link(&source1, &link1).unwrap();
+        ensure_link(&source1, &link1).await.unwrap();
         assert_link(&source1, &link1);
 
         // Test calling the function again with the same inputs.
-        ensure_link(&source1, &link1).unwrap();
+        ensure_link(&source1, &link1).await.unwrap();
         assert_link(&source1, &link1);
 
         // Test replacing the link with a new target.
-        ensure_link(&source2, &link1).unwrap();
+        ensure_link(&source2, &link1).await.unwrap();
         assert_link(&source2, &link1);
 
         // Test creating a link when a non-link file exists in its place.
-        let link2 = create_file("link2");
-        ensure_link(&source1, &link2).unwrap();
+        let link2 = create_file(&dir, "link2").await;
+        ensure_link(&source1, &link2).await.unwrap();
         assert_link(&source1, &link2);
 
         // Test creating a link when a directory with contents exists in its place.
         let link3 = dir.path().join("link3");
-        std::fs::create_dir(&link3).unwrap();
-        std::fs::write(link3.join("file"), b"").unwrap();
-        ensure_link(&source1, &link3).unwrap();
+        tokio::fs::create_dir(&link3).await.unwrap();
+        tokio::fs::write(link3.join("file"), b"").await.unwrap();
+        ensure_link(&source1, &link3).await.unwrap();
         assert_link(&source1, &link3);
 
         #[track_caller]

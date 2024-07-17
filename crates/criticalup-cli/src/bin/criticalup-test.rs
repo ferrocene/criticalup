@@ -4,7 +4,8 @@
 //! Variant of the criticalup binary with mocking support, used by the criticalup test suite to
 //! perform tests without connecting to the production download servers.
 
-fn main() {
+#[tokio::main]
+async fn main() {
     if std::env::var_os("CRITICALUP_TESTING_IN_PROGRESS").is_none() {
         panic!("This is an internal test tool. Do not run manually.");
     }
@@ -25,5 +26,5 @@ fn main() {
     };
 
     let args = std::env::args_os().collect::<Vec<_>>();
-    std::process::exit(criticalup_cli::main(whitelabel, &args));
+    std::process::exit(criticalup_cli::main(whitelabel, &args).await);
 }

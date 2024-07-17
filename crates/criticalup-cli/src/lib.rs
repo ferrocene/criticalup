@@ -19,7 +19,7 @@ use std::path::PathBuf;
 /// The syntax is available in the documentation for [`clap::Command::help_template`].
 const HELP_TEMPLATE: &str = "{about}\n\n{usage-heading}\n{tab}{usage}\n\n{all-args}";
 
-fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(), Error> {
+async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(), Error> {
     let arg0 = binary_proxies::arg0(&whitelabel)?;
     #[cfg(windows)]
     let arg0 = arg0
@@ -29,6 +29,7 @@ fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(), Err
 
     if arg0 != whitelabel.name {
         return binary_proxies::proxy(whitelabel)
+            .await
             .map_err(|e| Error::BinaryProxyInvocationFailed(Box::new(e)));
     }
 
@@ -45,25 +46,25 @@ fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(), Err
 
     match cli.commands {
         Commands::Auth { commands } => match commands {
-            Some(AuthCommands::Set { token }) => commands::auth_set::run(&ctx, token)?,
-            Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx)?,
-            None => commands::auth::run(&ctx)?,
+            Some(AuthCommands::Set { token }) => commands::auth_set::run(&ctx, token).await?,
+            Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx).await?,
+            None => commands::auth::run(&ctx).await?,
         },
-        Commands::Install { project } => commands::install::run(&ctx, project)?,
-        Commands::Clean => commands::clean::run(&ctx)?,
-        Commands::Remove { project } => commands::remove::run(&ctx, project)?,
-        Commands::Run { command, project } => commands::run::run(&ctx, command, project)?,
+        Commands::Install { project } => commands::install::run(&ctx, project).await?,
+        Commands::Clean => commands::clean::run(&ctx).await?,
+        Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
+        Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
         Commands::Which {
             binary: tool,
             project,
-        } => commands::which::run(&ctx, tool, project)?,
+        } => commands::which::run(&ctx, tool, project).await?,
     }
 
     Ok(())
 }
 
-pub fn main(whitelabel: WhitelabelConfig, args: &[OsString]) -> i32 {
-    match main_inner(whitelabel, args) {
+pub async fn main(whitelabel: WhitelabelConfig, args: &[OsString]) -> i32 {
+    match main_inner(whitelabel, args).await {
         Ok(()) => 0,
         Err(Error::Exit(code)) => code,
         Err(Error::CliArgumentParsing(err)) => {

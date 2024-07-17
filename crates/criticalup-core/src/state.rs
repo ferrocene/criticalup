@@ -3,18 +3,18 @@
 
 use std::cell::{Ref, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 
 use criticaltrust::integrity::VerifiedPackage;
+use tokio::io::AsyncWriteExt;
 
 use crate::config::Config;
-use crate::errors::Error;
 use crate::errors::Error::InstallationDoesNotExist;
 use crate::errors::WriteFileError;
+use crate::errors::{self, Error};
 use crate::project_manifest::InstallationId;
 use crate::utils::open_file_for_write;
 
@@ -28,10 +28,10 @@ pub struct State {
 
 impl State {
     /// Construct the `State` object by loading the content from state file from disk.
-    pub fn load(config: &Config) -> Result<Self, Error> {
+    pub async fn load(config: &Config) -> Result<Self, Error> {
         let path = config.paths.state_file.clone();
 
-        let repr = match std::fs::read(&path) {
+        let repr = match tokio::fs::read(&path).await {
             Ok(contents) => serde_json::from_slice(&contents)
                 .map_err(|e| Error::CorruptStateFile(path.clone(), e))?,
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => StateRepr::default(),
@@ -57,12 +57,15 @@ impl State {
     ///     2. if not, then try to see if the env var is set
     ///     3. if that was not set then look at the State
     ///     4. else, None
-    pub fn authentication_token(&self, token_path: Option<&str>) -> Option<AuthenticationToken> {
+    pub async fn authentication_token(
+        &self,
+        token_path: Option<&str>,
+    ) -> Option<AuthenticationToken> {
         match token_path {
             Some(token_path) => {
                 let token_path = std::path::Path::new(token_path);
                 if token_path.exists() {
-                    match std::fs::read_to_string(token_path) {
+                    match tokio::fs::read_to_string(token_path).await {
                         Ok(token) => Some(AuthenticationToken(token.to_string().trim().into())),
                         Err(_) => self.authentication_token_inner(),
                     }
@@ -241,22 +244,32 @@ impl State {
         result
     }
 
-    pub fn persist(&self) -> Result<(), Error> {
-        let inner = self.inner.borrow();
+    pub async fn persist(&self) -> Result<(), Error> {
+        let (path, serialized) = {
+            // Do not hold RefCells over await points, drop at end of scope.
+            let inner = self.inner.borrow();
 
-        // According to the serde_json documentation, the only two reasons this could fail is if
-        // either the serialize implementation returns an error, or a map has non-string keys. With
-        // our schema neither of these are supposed to happen, so if we fail serialization it's a
-        // criticalup bug and we shoiuld abort.
-        let mut serialized = serde_json::to_vec_pretty(&inner.repr)
-            .expect("state file serialization unexpectedly failed");
-        serialized.push(b'\n');
+            // According to the serde_json documentation, the only two reasons this could fail is if
+            // either the serialize implementation returns an error, or a map has non-string keys. With
+            // our schema neither of these are supposed to happen, so if we fail serialization it's a
+            // criticalup bug and we shoiuld abort.
+            let mut serialized = serde_json::to_vec_pretty(&inner.repr)
+                .expect("state file serialization unexpectedly failed");
+            serialized.push(b'\n');
 
-        let mut f = open_file_for_write(&inner.path)
-            .map_err(|e| Error::CantWriteStateFile(inner.path.clone(), e))?;
+            let path = inner.path.clone();
+            (path, serialized)
+        };
+
+        let mut f = open_file_for_write(&path)
+            .await
+            .map_err(|e| Error::CantWriteStateFile(path.clone(), e))?;
         f.write_all(&serialized)
-            .map_err(|e| Error::CantWriteStateFile(inner.path.clone(), WriteFileError::Io(e)))?;
-
+            .await
+            .map_err(|e| Error::CantWriteStateFile(path.clone(), WriteFileError::Io(e)))?;
+        f.flush()
+            .await
+            .map_err(|e| Error::CantWriteStateFile(path.clone(), errors::WriteFileError::Io(e)))?;
         Ok(())
     }
 }
@@ -418,21 +431,21 @@ mod tests {
         }}
     }
 
-    #[test]
-    fn test_load_state_without_existing_file() {
-        let test = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_load_state_without_existing_file() {
+        let test = TestEnvironment::prepare().await;
 
         assert!(!test.config().paths.state_file.exists());
 
-        let state = State::load(test.config()).unwrap();
+        let state = State::load(test.config()).await.unwrap();
         assert_eq!(StateRepr::default(), state.inner.borrow().repr);
     }
 
-    #[test]
-    fn test_load_state_with_existing_file() {
-        let test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_load_state_with_existing_file() {
+        let test_env = TestEnvironment::prepare().await;
 
-        std::fs::write(
+        tokio::fs::write(
             &test_env.config().paths.state_file,
             serde_json::to_vec_pretty(&StateRepr {
                 version: CURRENT_FORMAT_VERSION,
@@ -441,18 +454,19 @@ mod tests {
             })
             .unwrap(),
         )
+        .await
         .unwrap();
 
-        let state = State::load(test_env.config()).unwrap();
+        let state = State::load(test_env.config()).await.unwrap();
         assert_eq!(
             Some(AuthenticationToken("hello".into())),
-            state.authentication_token(None)
+            state.authentication_token(None).await
         );
     }
 
-    #[test]
-    fn save_same_manifest_content_new_proj_if_existing_installation() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn save_same_manifest_content_new_proj_if_existing_installation() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let state = test_env.state();
 
@@ -470,7 +484,7 @@ mod tests {
 
         // Add installation and write the state file.
         let proj1 = root.join("path/to/proj/1");
-        std::fs::create_dir_all(&proj1).unwrap();
+        tokio::fs::create_dir_all(&proj1).await.unwrap();
         state
             .add_installation(
                 &installation_id,
@@ -479,16 +493,16 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Add a second project manifest for the same installation and write the state file.
         let proj2 = root.join("path/to/proj/2");
-        std::fs::create_dir_all(&proj2).unwrap();
+        tokio::fs::create_dir_all(&proj2).await.unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Check that both unique manifests are present in the installation.
-        let new_state = State::load(test_env.config()).unwrap();
+        let new_state = State::load(test_env.config()).await.unwrap();
         let new_state_inner = new_state.inner.borrow();
         let manifests_in_state = &new_state_inner
             .repr
@@ -505,10 +519,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn same_manifest_content_new_proj_twice_for_existing_installation_still_unique_manifest_paths_only(
+    #[tokio::test]
+    async fn same_manifest_content_new_proj_twice_for_existing_installation_still_unique_manifest_paths_only(
     ) {
-        let test_env = TestEnvironment::with().state().prepare();
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let state = test_env.state();
         // Prepare env with one installation that has one manifest file path.
@@ -524,7 +538,7 @@ mod tests {
         };
 
         let proj1 = root.join("path/to/proj/1");
-        std::fs::create_dir_all(&proj1).unwrap();
+        tokio::fs::create_dir_all(&proj1).await.unwrap();
         // Add installation and write the state file.
         state
             .add_installation(
@@ -534,22 +548,22 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Load the State file and add update installation manifest with another unique path
         // which mimics that for same installation id you can have the new path added
         // here we update the same path multiple times.
         let proj2 = root.join("path/to/proj/2");
-        std::fs::create_dir_all(&proj2).unwrap();
-        let state = State::load(test_env.config()).unwrap();
+        tokio::fs::create_dir_all(&proj2).await.unwrap();
+        let state = State::load(test_env.config()).await.unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
         let _ = state.update_installation_manifests(&installation_id, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
-        let new_state = State::load(test_env.config()).unwrap().inner;
+        let new_state = State::load(test_env.config()).await.unwrap().inner;
         let new_state = &new_state.borrow_mut();
         let manifests_in_state = &new_state
             .repr
@@ -572,17 +586,17 @@ mod tests {
     ///
     /// Should result in empty manifests section of second installation and two manifests in the
     /// first installation.
-    #[test]
-    fn two_installations_empty_manifests_section_when_moved() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn two_installations_empty_manifests_section_when_moved() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let state = test_env.state();
 
         // Prepare env with two installations with different manifest paths.
         let proj1 = root.join("path/to/proj/1");
-        std::fs::create_dir_all(&proj1).unwrap();
+        tokio::fs::create_dir_all(&proj1).await.unwrap();
         let proj2 = root.join("path/to/proj/2");
-        std::fs::create_dir_all(&proj2).unwrap();
+        tokio::fs::create_dir_all(&proj2).await.unwrap();
 
         // Installation 1.
         let installation_id_1 = InstallationId("installation-id-1".to_string());
@@ -605,7 +619,7 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Installation 2.
         let installation_id_2 = InstallationId("installation-id-2".to_string());
@@ -628,18 +642,18 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Load the State file and add update installation manifest with another unique path
         // which mimics that for same installation id you can have the new path added
         // here we update the same path multiple times.
-        let state = State::load(test_env.config()).unwrap();
+        let state = State::load(test_env.config()).await.unwrap();
         let _ = state.update_installation_manifests(&installation_id_1, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Check that the installation 1 has both project manifests and the installation 2 has
         // no project manifests (empty manifests).
-        let new_state = State::load(test_env.config()).unwrap().inner;
+        let new_state = State::load(test_env.config()).await.unwrap().inner;
         let new_state = &new_state.borrow_mut();
         let manifests_in_installation_1 = &new_state
             .repr
@@ -665,15 +679,17 @@ mod tests {
         assert_eq!(&BTreeSet::from([]), manifests_in_installation_2);
     }
 
-    #[test]
-    fn test_load_state_with_fs_error() {
-        let test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_load_state_with_fs_error() {
+        let test_env = TestEnvironment::prepare().await;
 
         // Creating a directory instead of a file should result in an IO error when we then try to
         // read the contents of the file.
-        std::fs::create_dir_all(&test_env.config().paths.state_file).unwrap();
+        tokio::fs::create_dir_all(&test_env.config().paths.state_file)
+            .await
+            .unwrap();
 
-        match State::load(test_env.config()) {
+        match State::load(test_env.config()).await {
             Err(Error::CantReadStateFile(path, _)) => {
                 assert_eq!(test_env.config().paths.state_file, path);
             }
@@ -682,9 +698,9 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_load_state_with_unsupported_version() {
-        let test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_load_state_with_unsupported_version() {
+        let test_env = TestEnvironment::prepare().await;
 
         std::fs::write(
             &test_env.config().paths.state_file,
@@ -696,7 +712,7 @@ mod tests {
         )
         .unwrap();
 
-        match State::load(test_env.config()) {
+        match State::load(test_env.config()).await {
             Err(Error::UnsupportedStateFileVersion(path, version)) => {
                 assert_eq!(test_env.config().paths.state_file, path);
                 assert_eq!(CURRENT_FORMAT_VERSION + 1, version);
@@ -706,13 +722,15 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_load_state_with_invalid_contents() {
-        let test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_load_state_with_invalid_contents() {
+        let test_env = TestEnvironment::prepare().await;
 
-        std::fs::write(&test_env.config().paths.state_file, b"Hello world\n").unwrap();
+        tokio::fs::write(&test_env.config().paths.state_file, b"Hello world\n")
+            .await
+            .unwrap();
 
-        match State::load(test_env.config()) {
+        match State::load(test_env.config()).await {
             Err(Error::CorruptStateFile(path, error)) => {
                 assert_eq!(test_env.config().paths.state_file, path);
                 assert!(error.is_syntax());
@@ -722,17 +740,18 @@ mod tests {
         }
     }
 
-    #[test]
-    fn docker_secrets_are_read_from_file() {
+    #[tokio::test]
+    async fn docker_secrets_are_read_from_file() {
         let test_env = TestEnvironment::with()
             .state()
             .root_in_subdir("run/secrets")
-            .prepare();
+            .prepare()
+            .await;
         let state = test_env.state();
         state.set_authentication_token(None);
 
         //  Make sure the state file has authentication token as None.
-        assert_eq!(state.authentication_token(None), None);
+        assert_eq!(state.authentication_token(None).await, None);
 
         let file_token_content = "my-awesome-token-from-file";
         let token_name = "CRITICALUP_TOKEN";
@@ -740,46 +759,47 @@ mod tests {
         // Add a temp secrets dir and create a token file there and make sure
         // that that token is returned if legit file path was given.
         let secrets_dir = test_env.root().join::<PathBuf>("run/secrets".into());
-        std::fs::create_dir_all(&secrets_dir).unwrap();
+        tokio::fs::create_dir_all(&secrets_dir).await.unwrap();
         std::fs::write(secrets_dir.join(token_name), file_token_content).unwrap();
         let token = test_env
             .state()
-            .authentication_token(Some(secrets_dir.join(token_name).to_str().unwrap()));
+            .authentication_token(Some(secrets_dir.join(token_name).to_str().unwrap()))
+            .await;
         assert_eq!(Some(AuthenticationToken(file_token_content.into())), token)
     }
 
-    #[test]
-    fn test_set_authentication_token() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn test_set_authentication_token() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         let state = test_env.state();
 
         state.set_authentication_token(None);
-        assert_eq!(None, state.authentication_token(None));
+        assert_eq!(None, state.authentication_token(None).await);
 
         state.set_authentication_token(Some(AuthenticationToken("hello world".into())));
         assert_eq!(
             Some(AuthenticationToken("hello world".into())),
-            state.authentication_token(None)
+            state.authentication_token(None).await
         );
     }
 
-    #[test]
-    fn test_persist_state() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn test_persist_state() {
+        let test_env = TestEnvironment::with().state().prepare().await;
 
         let token = AuthenticationToken("hello world".into());
         test_env
             .state()
             .set_authentication_token(Some(token.clone()));
-        test_env.state().persist().unwrap();
+        test_env.state().persist().await.unwrap();
 
-        let new_state = State::load(test_env.config()).unwrap();
-        assert_eq!(Some(token), new_state.authentication_token(None));
+        let new_state = State::load(test_env.config()).await.unwrap();
+        assert_eq!(Some(token), new_state.authentication_token(None).await);
     }
 
-    #[test]
-    fn test_persist_state_with_fs_io_error() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn test_persist_state_with_fs_io_error() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken("hello world".into())));
@@ -787,9 +807,11 @@ mod tests {
         // Simulate a file system error by creating a directory in the path the state file is
         // supposed to be written. The current state was generated in memory, so we don't need to
         // remove the previous contents at that path.
-        std::fs::create_dir_all(&test_env.config().paths.state_file).unwrap();
+        tokio::fs::create_dir_all(&test_env.config().paths.state_file)
+            .await
+            .unwrap();
 
-        match test_env.state().persist() {
+        match test_env.state().persist().await {
             Err(Error::CantWriteStateFile(path, WriteFileError::Io(_))) => {
                 assert_eq!(test_env.config().paths.state_file, path);
             }
@@ -798,12 +820,13 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_persist_state_with_fs_parent_directory_error() {
+    #[tokio::test]
+    async fn test_persist_state_with_fs_parent_directory_error() {
         let test_env = TestEnvironment::with()
             .root_in_subdir("subdir")
             .state()
-            .prepare();
+            .prepare()
+            .await;
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken("hello world".into())));
@@ -811,9 +834,11 @@ mod tests {
         // Simulate a file system error by creating a file in the path the parent directory of the
         // state file is supposed to be written. The current state was generated in memory, so we
         // don't need to remove the previous contents at that path.
-        std::fs::write(test_env.root().join("subdir"), b"").unwrap();
+        tokio::fs::write(test_env.root().join("subdir"), b"")
+            .await
+            .unwrap();
 
-        match test_env.state().persist() {
+        match test_env.state().persist().await {
             Err(Error::CantWriteStateFile(path, WriteFileError::CantCreateParentDirectory(_))) => {
                 assert_eq!(test_env.config().paths.state_file, path);
             }
@@ -822,18 +847,22 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_binary_proxies() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn test_binary_proxies() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let state = test_env.state();
 
         let id1 = InstallationId("sample".into());
         let inst1_manifest_path = root.join("proj/1/manifest");
-        std::fs::create_dir_all(&inst1_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst1_manifest_path)
+            .await
+            .unwrap();
         let id2 = InstallationId("id".into());
         let inst2_manifest_path = root.join("proj/2/manifest");
-        std::fs::create_dir_all(&inst2_manifest_path).unwrap();
+        tokio::fs::create_dir_all(&inst2_manifest_path)
+            .await
+            .unwrap();
 
         state
             .add_installation(
@@ -922,9 +951,9 @@ mod tests {
         );
     }
 
-    #[test]
-    fn all_unsed_installations_only() {
-        let test_env = TestEnvironment::with().state().prepare();
+    #[tokio::test]
+    async fn all_unsed_installations_only() {
+        let test_env = TestEnvironment::with().state().prepare().await;
         let root = test_env.root();
         let state = test_env.state();
 
@@ -937,7 +966,7 @@ mod tests {
         };
 
         let proj1 = root.join("path/to/proj/1");
-        std::fs::create_dir_all(&proj1).unwrap();
+        tokio::fs::create_dir_all(&proj1).await.unwrap();
         // Add installation and write the state file.
         state
             .add_installation(
@@ -947,10 +976,10 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         let proj2 = root.join("path/to/proj/2");
-        std::fs::create_dir_all(&proj2).unwrap();
+        tokio::fs::create_dir_all(&proj2).await.unwrap();
         // Prepare env with second installation that has one manifest file path.
         let installation_id_2 = InstallationId("installation-id-2".to_string());
         state
@@ -961,12 +990,12 @@ mod tests {
                 test_env.config(),
             )
             .unwrap();
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         // Add a second project manifest to the first installation. This will render the second
         // installation with empty manifests section and will be return as "unused".
         let _ = state.update_installation_manifests(&installation_id_1, &proj2);
-        state.persist().unwrap();
+        state.persist().await.unwrap();
 
         let unused_installations = state
             .installations()

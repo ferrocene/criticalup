@@ -4,7 +4,8 @@
 use criticaltrust::keys::newtypes::PublicKeyBytes;
 use criticaltrust::keys::{KeyAlgorithm, KeyRole, PublicKey};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let whitelabel = criticalup_cli::WhitelabelConfig {
         name: "criticalup-dev",
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION"), " (dev)"),
@@ -26,5 +27,5 @@ fn main() {
     };
 
     let args = std::env::args_os().collect::<Vec<_>>();
-    std::process::exit(criticalup_cli::main(whitelabel, &args));
+    std::process::exit(criticalup_cli::main(whitelabel, &args).await);
 }

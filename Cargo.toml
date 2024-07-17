@@ -13,6 +13,11 @@ members = [
 resolver = "2"
 exclude = ["docs/.linkchecker/src/tools/linkchecker"]
 
+[workspace.dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process"] }
+reqwest-middleware = "0.3"
+reqwest-retry = "0.6"
+
 # Config for 'cargo dist'
 [workspace.metadata.dist]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
