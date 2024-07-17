@@ -126,7 +126,7 @@ enum Commands {
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
-        /// Force installation of products that have already been installed
+        /// Reinstall products that may have already been installed
         #[arg(long)]
         reinstall: bool,
     },
