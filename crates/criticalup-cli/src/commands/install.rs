@@ -17,7 +17,11 @@ use crate::Context;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
-pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), Error> {
+pub(crate) async fn run(
+    ctx: &Context,
+    reinstall: bool,
+    project: Option<PathBuf>,
+) -> Result<(), Error> {
     // TODO: If `std::io::stdout().is_terminal() == true``, provide a nice, fancy progress bar using indicatif.
     //       Retain existing behavior to support non-TTY usage.
 
@@ -41,7 +45,7 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
             let does_this_installation_exist_in_state = state
                 .installations()
                 .contains_key(&product.installation_id());
-            if !does_this_installation_exist_in_state {
+            if !does_this_installation_exist_in_state || reinstall {
                 // If the installation directory exists, but the State has no installation of that
                 // InstallationId, then re-run the install command and go through installation.
                 install_product_afresh(ctx, &state, &manifest_path, product).await?;
@@ -51,7 +55,7 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
                 // reflect this manifest/project.
                 state.update_installation_manifests(&product.installation_id(), &manifest_path)?;
                 println!("Skipping installation for product '{}' because it seems to be already installed.\n\
-                    If you want to reinstall it, please run 'criticalup remove' followed by 'criticalup install' command.",
+                    If you want to reinstall it, please run 'criticalup install --reinstall'.",
                          product.name());
             }
         }

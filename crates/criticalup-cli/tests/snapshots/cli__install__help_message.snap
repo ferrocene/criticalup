@@ -15,5 +15,6 @@ Usage:
 
 Options:
       --project <PROJECT>  Path to the manifest `criticalup.toml`
+      --reinstall          Force installation of products that have already been installed
   -h, --help               Print help
 ------

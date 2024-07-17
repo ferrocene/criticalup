@@ -50,7 +50,9 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
             Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx).await?,
             None => commands::auth::run(&ctx).await?,
         },
-        Commands::Install { project } => commands::install::run(&ctx, project).await?,
+        Commands::Install { project, reinstall } => {
+            commands::install::run(&ctx, reinstall, project).await?
+        }
         Commands::Clean => commands::clean::run(&ctx).await?,
         Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
         Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
@@ -124,6 +126,9 @@ enum Commands {
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
+        /// Force installation of products that have already been installed
+        #[arg(long)]
+        reinstall: bool,
     },
 
     /// Delete all unused and untracked installations
