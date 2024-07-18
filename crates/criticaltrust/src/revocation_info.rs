@@ -6,7 +6,6 @@ use time::OffsetDateTime;
 
 /// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 pub struct RevocationInfo {
     pub revoked_content_sha256: Vec<String>,
     pub expires_at: OffsetDateTime,
