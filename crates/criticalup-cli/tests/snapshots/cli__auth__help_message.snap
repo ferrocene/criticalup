@@ -11,13 +11,21 @@ stderr
 Show and change authentication with the download server
 
 Usage:
-  criticalup-test auth [COMMAND]
+  criticalup-test auth [OPTIONS] [COMMAND]
 
 Commands:
   remove  Remove the authentication token used to interact with the download server
   set     Set the authentication token used to interact with the download server
 
 Options:
-  -h, --help  Print help
-------
+  -v, --verbose...
+          Enable debug logs, -vv for trace
 
+      --log-level [<LOG_LEVEL>...]
+          Tracing directives
+          
+          See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
+
+  -h, --help
+          Print help (see a summary with '-h')
+------

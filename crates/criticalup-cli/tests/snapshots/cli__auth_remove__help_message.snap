@@ -11,9 +11,17 @@ stderr
 Remove the authentication token used to interact with the download server
 
 Usage:
-  criticalup-test auth remove
+  criticalup-test auth remove [OPTIONS]
 
 Options:
-  -h, --help  Print help
-------
+  -v, --verbose...
+          Enable debug logs, -vv for trace
 
+      --log-level [<LOG_LEVEL>...]
+          Tracing directives
+          
+          See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
+
+  -h, --help
+          Print help (see a summary with '-h')
+------

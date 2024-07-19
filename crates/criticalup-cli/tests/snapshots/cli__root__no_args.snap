@@ -11,7 +11,7 @@ stderr
 CriticalUp is the official tool to download and install Ferrocene
 
 Usage:
-  criticalup-test <COMMAND>
+  criticalup-test [OPTIONS] <COMMAND>
 
 Commands:
   auth     Show and change authentication with the download server
@@ -22,6 +22,8 @@ Commands:
   which    Display which binary will be run for a given command
 
 Options:
-  -h, --help     Print help
-  -V, --version  Print version
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help (see more with '--help')
+  -V, --version                     Print version
 ------
