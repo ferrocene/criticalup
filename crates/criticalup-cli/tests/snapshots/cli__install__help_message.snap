@@ -14,20 +14,9 @@ Usage:
   criticalup-test install [OPTIONS]
 
 Options:
-      --project <PROJECT>
-          Path to the manifest `criticalup.toml`
-
-      --reinstall
-          Reinstall products that may have already been installed
-
-  -v, --verbose...
-          Enable debug logs, -vv for trace
-
-      --log-level [<LOG_LEVEL>...]
-          Tracing directives
-          
-          See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
-
-  -h, --help
-          Print help (see a summary with '-h')
+      --project <PROJECT>           Path to the manifest `criticalup.toml`
+      --reinstall                   Reinstall products that may have already been installed
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help
 ------

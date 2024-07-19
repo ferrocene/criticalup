@@ -14,18 +14,10 @@ Usage:
   criticalup-test auth set [OPTIONS] [TOKEN]
 
 Arguments:
-  [TOKEN]
-          Authentication token to use; if not provided, it will be read from stdin
+  [TOKEN]  Authentication token to use; if not provided, it will be read from stdin
 
 Options:
-  -v, --verbose...
-          Enable debug logs, -vv for trace
-
-      --log-level [<LOG_LEVEL>...]
-          Tracing directives
-          
-          See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
-
-  -h, --help
-          Print help (see a summary with '-h')
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help
 ------

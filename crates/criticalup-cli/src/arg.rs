@@ -20,8 +20,6 @@ pub(crate) struct Instrumentation {
     )]
     pub(crate) verbose: u8,
     /// Tracing directives
-    ///
-    /// See https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
     #[clap(long, global = true, group = "verbosity", value_delimiter = ',', num_args = 0.., conflicts_with = "verbose")]
     pub(crate) log_level: Vec<Directive>,
 }
