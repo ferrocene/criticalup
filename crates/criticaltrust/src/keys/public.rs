@@ -27,6 +27,7 @@ impl PublicKey {
     /// revoked content does not match the payload.
     ///
     /// Signature verification could fail if:
+    /// * The Expiration date has passed.
     /// * The signature is present in the `RevocationInfo`.
     /// * The `RevocationInfo` cannot be verified.
     /// * [`verify_payload`](PublicKey::verify_without_revocations) fails.
@@ -49,12 +50,8 @@ impl PublicKey {
             return Err(Error::SignaturesExpired);
         }
 
-        let sha256_payload = match String::from_utf8(hash_sha256(payload.as_bytes())) {
-            Ok(sha) => sha,
-            Err(err) => return Err(Error::PayloadSha256CalcFailed(err)),
-        };
-
-        if revocation_info.revoked_content_sha256.contains(&sha256_payload) {
+        let s = String::from_utf8_lossy(hash_sha256(payload.as_bytes()).as_slice()).to_string();
+        if revocation_info.revoked_content_sha256.contains(&s) {
             return Err(Error::ContentRevoked);
         }
         self.verify_no_revocations_check(role, payload, signature)?;

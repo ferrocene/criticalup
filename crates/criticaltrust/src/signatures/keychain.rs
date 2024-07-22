@@ -45,14 +45,15 @@ impl Keychain {
     pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
         // Load all keys from KeysManifest.
         for key in &keys_manifest.keys {
-            let a = self.load(key)?;
+            let _ = self.load(key)?;
         }
 
         // Special case: verify and load only RevocationInfo.
         let revocation_info = keys_manifest
             .revoked_signatures
-            .get_verified_no_revocations_check(self)?.clone();
-        self.revocation_info = revocation_info;
+            .get_verified_no_revocations_check(self)?;
+        self.revocation_info = revocation_info.clone();
+
         Ok(())
     }
 
