@@ -4,7 +4,7 @@
 use crate::keys::newtypes::{PayloadBytes, SignatureBytes};
 use crate::keys::{KeyId, KeyPair, KeyRole, PublicKey};
 use crate::revocation_info::RevocationInfo;
-use crate::Error;
+use crate::{Error, NoRevocationsCheck};
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell};
 
@@ -85,6 +85,31 @@ impl<T: Signable> SignedPayload<T> {
         }))
     }
 
+    /// Consumes the signed payload and returns the deserialized payload.
+    ///
+    /// If the signature verification was already performed before (through the
+    /// [`get_verified`](Self::get_verified) method), the cached deserialized payload will be
+    /// returned. Otherwise, signature verification will be performed with the provided keychain
+    /// before deserializing.
+    pub fn into_verified(
+        self,
+        keys: &dyn PublicKeysRepository,
+        revocation_info: &RevocationInfo,
+    ) -> Result<T, Error> {
+        if let Some(deserialized) = self.verified_deserialized.into_inner() {
+            Ok(deserialized)
+        } else {
+            verify_signature(
+                keys,
+                &self.signatures,
+                PayloadBytes::borrowed(self.signed.as_bytes()),
+                revocation_info,
+            )
+        }
+    }
+}
+
+impl<T: Signable + NoRevocationsCheck> SignedPayload<T> {
     /// Use this to verify only signed payloads that inherently do not require revocations checks.
     /// Examples include Keys in the KeysManifest. Rest all should be checked with RevocationInfo
     /// using get_verified.
@@ -111,29 +136,6 @@ impl<T: Signable> SignedPayload<T> {
         Ok(Ref::map(self.verified_deserialized.borrow(), |b| {
             b.as_ref().unwrap()
         }))
-    }
-
-    /// Consumes the signed payload and returns the deserialized payload.
-    ///
-    /// If the signature verification was already performed before (through the
-    /// [`get_verified`](Self::get_verified) method), the cached deserialized payload will be
-    /// returned. Otherwise, signature verification will be performed with the provided keychain
-    /// before deserializing.
-    pub fn into_verified(
-        self,
-        keys: &dyn PublicKeysRepository,
-        revocation_info: &RevocationInfo,
-    ) -> Result<T, Error> {
-        if let Some(deserialized) = self.verified_deserialized.into_inner() {
-            Ok(deserialized)
-        } else {
-            verify_signature(
-                keys,
-                &self.signatures,
-                PayloadBytes::borrowed(self.signed.as_bytes()),
-                revocation_info,
-            )
-        }
     }
 
     /// Use this to verify only signed payloads that inherently do not require revocations checks.

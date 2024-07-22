@@ -7,7 +7,7 @@ use crate::keys::KeyAlgorithm;
 use crate::revocation_info::RevocationInfo;
 use crate::sha256::hash_sha256;
 use crate::signatures::{PublicKeysRepository, Signable};
-use crate::Error;
+use crate::{Error, NoRevocationsCheck};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -99,6 +99,8 @@ impl PublicKey {
         self.role != KeyRole::Unknown && self.algorithm != KeyAlgorithm::Unknown
     }
 }
+
+impl NoRevocationsCheck for PublicKey {}
 
 impl PublicKeysRepository for PublicKey {
     fn get<'a>(&'a self, id: &KeyId) -> Option<&'a PublicKey> {
