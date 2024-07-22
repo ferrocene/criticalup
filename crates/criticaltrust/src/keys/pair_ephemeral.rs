@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::newtypes::{PayloadBytes, PrivateKeyBytes, SignatureBytes};
-use crate::keys::{KeyAlgorithm, KeyPair, KeyRole, PublicKey};
+use crate::keys::{KeyAlgorithm, KeyId, KeyPair, KeyRole, PublicKey};
+use crate::signatures::PublicKeysRepository;
 use crate::Error;
 use time::OffsetDateTime;
 
@@ -14,6 +15,12 @@ use time::OffsetDateTime;
 pub struct EphemeralKeyPair {
     public: PublicKey,
     private: PrivateKeyBytes<'static>,
+}
+
+impl PublicKeysRepository for EphemeralKeyPair {
+    fn get<'a>(&'a self, _id: &KeyId) -> Option<&'a PublicKey> {
+        Some(&self.public)
+    }
 }
 
 impl EphemeralKeyPair {
