@@ -2,6 +2,7 @@ use crate::keys::KeyRole;
 use crate::signatures::Signable;
 use crate::NoRevocationsCheck;
 use serde::{Deserialize, Serialize};
+use time::macros::datetime;
 use time::OffsetDateTime;
 
 /// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
@@ -16,7 +17,7 @@ impl RevocationInfo {
     pub fn new() -> Self {
         RevocationInfo {
             revoked_content_sha256: Vec::new(),
-            expires_at: OffsetDateTime::now_utc(),
+            expires_at: datetime!(2025-01-01 0:00 UTC),
         }
     }
 }
