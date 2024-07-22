@@ -23,7 +23,7 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
-            revocation_info: RevocationInfo::default(),
+            revocation_info: RevocationInfo::new(),
         };
 
         if trust_root.role != KeyRole::Root {

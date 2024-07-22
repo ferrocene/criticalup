@@ -38,20 +38,18 @@ impl PublicKey {
         signature: &SignatureBytes<'_>,
         revocation_info: &RevocationInfo,
     ) -> Result<(), Error> {
-        // We need to check if there is revoked content. If the following checks pass, then bail out
-        // early with an error.
-        //  1. Check if the expiration date has passed.
-        //  2. Check whether the `signature` is inside the vector
-        //     `RevocationInfo.revoked_content_sha256`.
-
         let current_utc = OffsetDateTime::now_utc();
         let expiration_in_days = (revocation_info.expires_at - current_utc).whole_days();
         if expiration_in_days <= 0 {
             return Err(Error::SignaturesExpired);
         }
 
-        let s = String::from_utf8_lossy(hash_sha256(payload.as_bytes()).as_slice()).to_string();
-        if revocation_info.revoked_content_sha256.contains(&s) {
+        let hashed_payload =
+            String::from_utf8_lossy(hash_sha256(payload.as_bytes()).as_slice()).to_string();
+        if revocation_info
+            .revoked_content_sha256
+            .contains(&hashed_payload)
+        {
             return Err(Error::ContentRevoked);
         }
         self.verify_no_revocations_check(role, payload, signature)?;

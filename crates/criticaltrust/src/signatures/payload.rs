@@ -460,7 +460,7 @@ mod tests {
             }"#,
         ).unwrap();
 
-        let revocation_info = RevocationInfo::default();
+        let revocation_info = RevocationInfo::new();
         assert_eq!(
             42,
             payload

@@ -77,7 +77,7 @@ async fn install_product_afresh(
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let client = DownloadServerClient::new(&ctx.config, state);
     let keys = client.get_keys().await?;
-    let revocation_info = keys.revocation_info();
+    let revocation_info = &keys.revocation_info();
 
     // TODO: Add tracing to support log levels, structured logging.
     println!(

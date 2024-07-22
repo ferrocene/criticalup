@@ -8,15 +8,22 @@ use time::OffsetDateTime;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationInfo {
     pub revoked_content_sha256: Vec<String>,
+    #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
 }
 
-impl Default for RevocationInfo {
-    fn default() -> Self {
+impl RevocationInfo {
+    pub fn new() -> Self {
         RevocationInfo {
             revoked_content_sha256: Vec::new(),
             expires_at: OffsetDateTime::now_utc(),
         }
+    }
+}
+
+impl Default for RevocationInfo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
