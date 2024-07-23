@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::config::Config;
-use crate::errors::Error::KeychainLoadingFailed;
 use crate::errors::{DownloadServerError, Error};
 use crate::state::State;
 use criticaltrust::keys::PublicKey;
@@ -54,14 +53,11 @@ impl DownloadServerClient {
     }
 
     pub async fn get_keys(&self) -> Result<Keychain, Error> {
+        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
         let resp: KeysManifest = self
             .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
             .await?;
-        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
-        match keychain.load_all(&resp) {
-            Ok(_) => {}
-            Err(e) => return Err(KeychainLoadingFailed(e)),
-        }
+        let _ = keychain.load_all(&resp);
         Ok(keychain)
     }
 
@@ -272,6 +268,7 @@ mod tests {
             &keys.packages,
             &keys.releases,
             &keys.redirects,
+            &keys.revocation,
         ] {
             assert!(keychain
                 .get(&expected_present.public().calculate_id())

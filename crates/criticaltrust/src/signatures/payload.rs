@@ -188,7 +188,7 @@ fn verify_signature<T: Signable>(
     Err(Error::VerificationFailed)
 }
 
-fn verify_signature_no_revocations_check<T: Signable>(
+fn verify_signature_no_revocations_check<T: Signable + NoRevocationsCheck>(
     keys: &dyn PublicKeysRepository,
     signatures: &[Signature],
     signed: PayloadBytes<'_>,
