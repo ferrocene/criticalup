@@ -8,6 +8,8 @@ use thiserror::Error;
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error(transparent)]
+    FromUtf8(#[from] FromUtf8Error),
     #[error("failed to sign data")]
     SignatureFailed,
     #[error("failed to verify signed data")]

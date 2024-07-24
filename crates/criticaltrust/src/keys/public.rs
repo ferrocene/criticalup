@@ -44,8 +44,14 @@ impl PublicKey {
             return Err(Error::SignaturesExpired);
         }
 
-        let hashed_payload =
-            String::from_utf8_lossy(hash_sha256(payload.as_bytes()).as_slice()).to_string();
+        let hashed_sha = hash_sha256(payload.as_bytes());
+        let mut hashed_payload = String::new();
+        for byte in hashed_sha {
+            // The bytes returned by Sha256 (in hashed_sha) are to be read as hex and are not to be
+            // confused with UTF-8 strings.
+            hashed_payload.push_str(&format!("{byte:X}"));
+        }
+
         if revocation_info
             .revoked_content_sha256
             .contains(&hashed_payload)

@@ -462,11 +462,11 @@ mod tests {
             }"#,
         ).unwrap();
 
-        let revocation_info = RevocationInfo::new();
+        let revocation_info = keychain.revocation_info();
         assert_eq!(
             42,
             payload
-                .get_verified(&keychain, &revocation_info)
+                .get_verified(&keychain, revocation_info)
                 .unwrap()
                 .answer
         );
