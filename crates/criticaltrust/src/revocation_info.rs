@@ -38,12 +38,6 @@ impl RevocationInfo {
     }
 }
 
-impl Default for RevocationInfo {
-    fn default() -> Self {
-        Self::new(OffsetDateTime::now_utc())
-    }
-}
-
 impl Signable for RevocationInfo {
     const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
 }
