@@ -11,9 +11,23 @@ use time::OffsetDateTime;
 /// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationInfo {
-    pub revoked_content_sha256: Vec<String>,
+    pub revoked_content_sha256: Vec<RevocationContentSha256>,
     #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
+pub struct RevocationContentSha256 {
+    #[serde(with = "crate::serde_base64")]
+    pub revoked_content_sha256: Vec<u8>,
+}
+
+impl From<Vec<u8>> for RevocationContentSha256 {
+    fn from(revoked_content_sha256: Vec<u8>) -> Self {
+        RevocationContentSha256 {
+            revoked_content_sha256,
+        }
+    }
 }
 
 impl RevocationInfo {
