@@ -16,16 +16,11 @@ pub struct RevocationInfo {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct RevocationContentSha256 {
-    #[serde(with = "crate::serde_base64")]
-    pub revoked_content_sha256: Vec<u8>,
-}
+pub struct RevocationContentSha256(#[serde(with = "crate::serde_base64")] Vec<u8>);
 
 impl From<Vec<u8>> for RevocationContentSha256 {
     fn from(revoked_content_sha256: Vec<u8>) -> Self {
-        RevocationContentSha256 {
-            revoked_content_sha256,
-        }
+        RevocationContentSha256(revoked_content_sha256)
     }
 }
 
