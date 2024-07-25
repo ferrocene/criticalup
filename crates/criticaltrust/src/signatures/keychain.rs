@@ -3,7 +3,7 @@
 
 use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::manifests::KeysManifest;
-use crate::revocation_info::RevocationInfo;
+use crate::revocation_info::{RevocationContentSha256, RevocationInfo};
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
@@ -24,7 +24,10 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
-            revocation_info: RevocationInfo::new(datetime!(2025-01-01 0:00 UTC)),
+            revocation_info: RevocationInfo::new(
+                Vec::<RevocationContentSha256>::new(),
+                datetime!(2025-01-01 0:00 UTC),
+            ),
         };
 
         if trust_root.role != KeyRole::Root {

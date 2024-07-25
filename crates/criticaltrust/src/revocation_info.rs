@@ -25,10 +25,13 @@ impl From<Vec<u8>> for RevocationContentSha256 {
 }
 
 impl RevocationInfo {
-    pub fn new(datetime: OffsetDateTime) -> Self {
+    pub fn new(
+        revoked_content_sha256: Vec<RevocationContentSha256>,
+        expires_at: OffsetDateTime,
+    ) -> Self {
         RevocationInfo {
-            revoked_content_sha256: Vec::new(),
-            expires_at: datetime,
+            revoked_content_sha256,
+            expires_at,
         }
     }
 }
