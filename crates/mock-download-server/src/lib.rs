@@ -12,6 +12,7 @@ use criticaltrust::signatures::SignedPayload;
 use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use time::macros::datetime;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "kebab-case")]
@@ -33,7 +34,10 @@ pub fn new() -> Builder {
         data: Data {
             tokens: HashMap::new(),
             keys: Vec::new(),
-            revoked_signatures: SignedPayload::new(&RevocationInfo::new()).unwrap(),
+            revoked_signatures: SignedPayload::new(&RevocationInfo::new(
+                datetime!(2025-01-01 0:00 UTC),
+            ))
+            .unwrap(),
             release_manifests: HashMap::new(),
         },
     }

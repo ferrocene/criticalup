@@ -106,6 +106,7 @@ mod tests {
     use rand_core::{OsRng, RngCore};
     use std::process::Command;
     use std::sync::Once;
+    use time::macros::datetime;
     use tokio::runtime::Runtime;
     // We want to have tests for all of criticaltrust, which makes testing the integration with AWS
     // KMS quite tricky. To make it work, the tests for this module spawn a Docker container for
@@ -115,7 +116,7 @@ mod tests {
     fn test_roundtrip() {
         let localstack = Localstack::init();
         let key = localstack.create_key(KeySpec::EccNistP256);
-        let signed_revocation_info = RevocationInfo::new();
+        let signed_revocation_info = RevocationInfo::new(datetime!(2025-01-01 0:00 UTC));
 
         let keypair = AwsKmsKeyPair::new(
             &key,
