@@ -3,9 +3,9 @@
 
 use std::path::{Path, PathBuf};
 
-use criticalup_core::config::Config;
 use criticaltrust::integrity::IntegrityVerifier;
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
+use criticalup_core::config::Config;
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
@@ -115,9 +115,7 @@ async fn install_product_afresh(
             cached_package_path(&ctx.config, product.name(), release, package);
 
         let package_file = if !abs_artifact_compressed_file_path.exists() {
-            tracing::info!(
-                "downloading component '{package}' for '{product_name}' ({release})",
-            );
+            tracing::info!("downloading component '{package}' for '{product_name}' ({release})",);
             let package_file = client
                 .download_package(
                     product_name,
