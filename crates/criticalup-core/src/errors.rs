@@ -15,6 +15,9 @@ pub enum Error {
     #[error("could not detect the criticalup root directory")]
     CouldNotDetectRootDirectory,
 
+    #[error("could not detect the criticalup cache directory")]
+    CouldNotDetectCacheDirectory,
+
     #[error("failed to download {url}")]
     DownloadServerError {
         url: String,

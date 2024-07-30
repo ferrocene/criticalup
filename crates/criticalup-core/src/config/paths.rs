@@ -14,6 +14,7 @@ pub struct Paths {
 
     pub proxies_dir: PathBuf,
     pub installation_dir: PathBuf,
+    pub cache_dir: PathBuf,
 
     #[cfg(test)]
     pub(crate) root: PathBuf,
@@ -23,6 +24,7 @@ impl Paths {
     pub(super) fn detect(
         whitelabel: &WhitelabelConfig,
         root: Option<std::path::PathBuf>,
+        cache_dir: Option<std::path::PathBuf>,
     ) -> Result<Paths, Error> {
         let root = if let Some(root) = root {
             if root != Path::new("") {
@@ -34,10 +36,16 @@ impl Paths {
             find_root(whitelabel).ok_or(Error::CouldNotDetectRootDirectory)?
         };
 
+        let cache_dir = match cache_dir {
+            Some(cache_dir) => cache_dir,
+            None => find_cache_dir(whitelabel).ok_or_else(|| Error::CouldNotDetectCacheDirectory)?,
+        };
+
         Ok(Paths {
             state_file: root.join("state.json"),
             proxies_dir: root.join("bin"),
             installation_dir: root.join(DEFAULT_INSTALLATION_DIR_NAME),
+            cache_dir: cache_dir,
             #[cfg(test)]
             root,
         })
@@ -56,6 +64,18 @@ fn platform_specific_root(whitelabel: &WhitelabelConfig) -> Option<PathBuf> {
     dirs::data_dir().map(|v| v.join(whitelabel.name))
 }
 
+fn find_cache_dir(whitelabel: &WhitelabelConfig) -> Option<PathBuf> {
+    match env::var_os("CRITICALUP_CACHE_DIR") {
+        Some(val) if val.is_empty() => platform_specific_cache_dir(whitelabel),
+        Some(val) => Some(PathBuf::from(val)),
+        None => platform_specific_cache_dir(whitelabel),
+    }
+}
+
+fn platform_specific_cache_dir(whitelabel: &WhitelabelConfig) -> Option<PathBuf> {
+    dirs::cache_dir().map(|v| v.join(whitelabel.name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -72,9 +92,10 @@ mod tests {
                 state_file: "/opt/criticalup/state.json".into(),
                 proxies_dir: "/opt/criticalup/bin".into(),
                 installation_dir: "/opt/criticalup/toolchains".into(),
+                cache_dir: "/cache/criticalup".into(),
                 root: "/opt/criticalup".into()
             },
-            Paths::detect(&WhitelabelConfig::test(), Some("/opt/criticalup".into()),).unwrap()
+            Paths::detect(&WhitelabelConfig::test(), Some("/opt/criticalup".into()), Some("/cache/criticalup".into())).unwrap()
         );
     }
 
@@ -159,7 +180,7 @@ mod tests {
     ) {
         assert_eq!(
             expected.as_ref(),
-            Paths::detect(whitelabel, root).unwrap().root
+            Paths::detect(whitelabel, root, None).unwrap().root
         );
     }
 
@@ -168,7 +189,7 @@ mod tests {
         whitelabel: &WhitelabelConfig,
         root: Option<PathBuf>,
     ) {
-        match Paths::detect(whitelabel, root) {
+        match Paths::detect(whitelabel, root, None) {
             Ok(paths) => assert_ne!(expected.as_ref(), paths.root),
             Err(err) => assert!(matches!(err, Error::CouldNotDetectRootDirectory)),
         }
