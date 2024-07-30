@@ -38,14 +38,16 @@ impl Paths {
 
         let cache_dir = match cache_dir {
             Some(cache_dir) => cache_dir,
-            None => find_cache_dir(whitelabel).ok_or_else(|| Error::CouldNotDetectCacheDirectory)?,
+            None => {
+                find_cache_dir(whitelabel).ok_or_else(|| Error::CouldNotDetectCacheDirectory)?
+            }
         };
 
         Ok(Paths {
             state_file: root.join("state.json"),
             proxies_dir: root.join("bin"),
             installation_dir: root.join(DEFAULT_INSTALLATION_DIR_NAME),
-            cache_dir: cache_dir,
+            cache_dir,
             #[cfg(test)]
             root,
         })
@@ -95,7 +97,12 @@ mod tests {
                 cache_dir: "/cache/criticalup".into(),
                 root: "/opt/criticalup".into()
             },
-            Paths::detect(&WhitelabelConfig::test(), Some("/opt/criticalup".into()), Some("/cache/criticalup".into())).unwrap()
+            Paths::detect(
+                &WhitelabelConfig::test(),
+                Some("/opt/criticalup".into()),
+                Some("/cache/criticalup".into())
+            )
+            .unwrap()
         );
     }
 

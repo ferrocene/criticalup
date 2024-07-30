@@ -34,7 +34,10 @@ impl Config {
     }
 
     #[cfg(test)]
-    pub(crate) fn test(root: std::path::PathBuf, cache_dir: std::path::PathBuf) -> Result<Self, Error> {
+    pub(crate) fn test(
+        root: std::path::PathBuf,
+        cache_dir: std::path::PathBuf,
+    ) -> Result<Self, Error> {
         Self::detect_inner(WhitelabelConfig::test(), Some(root), Some(cache_dir))
     }
 }

@@ -3,11 +3,13 @@
 
 use std::path::{Path, PathBuf};
 
+use criticalup_core::config::Config;
 use criticaltrust::integrity::IntegrityVerifier;
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
+use tokio::fs::read;
 
 use crate::errors::Error;
 use crate::errors::Error::{IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported};
@@ -67,6 +69,12 @@ pub(crate) async fn run(
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip_all, fields(
+    manifest_path = %manifest_path.display(),
+    installation_id = %product.installation_id(),
+    release = %product.release(),
+    product = %product.name(),
+))]
 async fn install_product_afresh(
     ctx: &Context,
     state: &State,
@@ -103,29 +111,40 @@ async fn install_product_afresh(
         .await?;
 
     for package in product.packages() {
-        tracing::info!("Downloading component '{package}' for '{product_name}' ({release})",);
+        let abs_artifact_compressed_file_path =
+            cached_package_path(&ctx.config, product.name(), release, package);
 
-        let response_file = client
-            .download_package(
-                product_name,
-                release_name,
-                package,
-                DEFAULT_RELEASE_ARTIFACT_FORMAT,
-            )
-            .await?;
+        let package_file = if !abs_artifact_compressed_file_path.exists() {
+            tracing::info!(
+                "downloading component '{package}' for '{product_name}' ({release})",
+            );
+            let package_file = client
+                .download_package(
+                    product_name,
+                    release_name,
+                    package,
+                    DEFAULT_RELEASE_ARTIFACT_FORMAT,
+                )
+                .await?;
 
-        // Archive file path, path with the archive extension.
-        let package_name_with_extension =
-            format!("{}.{}", package, DEFAULT_RELEASE_ARTIFACT_FORMAT);
-        let abs_artifact_compressed_file_path: PathBuf =
-            abs_installation_dir_path.join(&package_name_with_extension);
+            // Save the downloaded package archive on disk.
+            tracing::debug!(cached = %abs_artifact_compressed_file_path.display(), "Writing package to cache");
+            let dest_dir = abs_artifact_compressed_file_path
+                .parent()
+                .ok_or_else(|| Error::NoParent(abs_artifact_compressed_file_path.clone()))?;
+            tokio::fs::create_dir_all(dest_dir).await?;
+            tokio::fs::write(&abs_artifact_compressed_file_path, &package_file).await?;
 
-        // Save the downloaded package archive on disk.
-        tokio::fs::write(&abs_artifact_compressed_file_path, response_file.clone()).await?;
+            package_file
+        } else {
+            // Don't output anything normally, the lack of a "downloading" message is sufficient.
+            tracing::debug!(cached = %abs_artifact_compressed_file_path.display(), "Retrieving package from cache");
+            read(abs_artifact_compressed_file_path).await?
+        };
 
         tracing::info!("Installing component '{package}' for '{product_name}' ({release})",);
 
-        let decoder = xz2::read::XzDecoder::new(response_file.as_slice());
+        let decoder = xz2::read::XzDecoder::new(package_file.as_slice());
         let mut archive = tar::Archive::new(decoder);
         archive.set_preserve_permissions(true);
         archive.set_preserve_mtime(true);
@@ -147,8 +166,6 @@ async fn install_product_afresh(
                 );
             }
         }
-
-        clean_archive_download(&abs_artifact_compressed_file_path).await?;
     }
 
     let verified_packages = integrity_verifier
@@ -164,17 +181,24 @@ async fn install_product_afresh(
     Ok(())
 }
 
+pub fn cached_package_path(
+    config: &Config,
+    product: &str,
+    release: &str,
+    package: &str,
+) -> PathBuf {
+    let release_path = PathBuf::from(product).join(release);
+    let package_file = PathBuf::from(format!("{package}.tar.xz"));
+    let cache_key = release_path.join(package_file);
+    config.paths.cache_dir.join(cache_key)
+}
+
 fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result<(), Error> {
     for package in verified_release_manifest.packages.iter() {
         if !package.dependencies.is_empty() {
             return Err(PackageDependenciesNotSupported(package.package.clone()));
         }
     }
-    Ok(())
-}
-
-async fn clean_archive_download(abs_artifact_compressed_file_path: &PathBuf) -> Result<(), Error> {
-    tokio::fs::remove_file(abs_artifact_compressed_file_path).await?;
     Ok(())
 }
 

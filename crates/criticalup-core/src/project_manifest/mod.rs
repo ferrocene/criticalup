@@ -11,6 +11,7 @@ use crate::project_manifest::substitutions::apply_substitutions;
 use crate::utils::Sha256Hasher;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
@@ -211,6 +212,12 @@ impl Deref for InstallationId {
 
     fn deref(&self) -> &Self::Target {
         self.0.as_str()
+    }
+}
+
+impl Display for InstallationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
