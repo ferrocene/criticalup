@@ -3,8 +3,6 @@
 
 use std::path::{Path, PathBuf};
 
-use owo_colors::OwoColorize;
-
 use criticaltrust::integrity::IntegrityVerifier;
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
@@ -54,7 +52,7 @@ pub(crate) async fn run(
                 // that InstallationId, then merely update the installation in the State file to
                 // reflect this manifest/project.
                 state.update_installation_manifests(&product.installation_id(), &manifest_path)?;
-                println!("Skipping installation for product '{}' because it seems to be already installed.\n\
+                tracing::info!("Skipping installation for product '{}' because it seems to be already installed.\n\
                     If you want to reinstall it, please run 'criticalup install --reinstall'.",
                          product.name());
             }
@@ -83,10 +81,7 @@ async fn install_product_afresh(
     let keys = client.get_keys().await?;
 
     // TODO: Add tracing to support log levels, structured logging.
-    println!(
-        "{} installing product '{product_name}' ({release})",
-        "info:".bold()
-    );
+    tracing::info!("Installing product '{product_name}' ({release})",);
 
     let mut integrity_verifier = IntegrityVerifier::new(&keys);
 
@@ -108,10 +103,7 @@ async fn install_product_afresh(
         .await?;
 
     for package in product.packages() {
-        println!(
-            "{} downloading component '{package}' for '{product_name}' ({release})",
-            "info:".bold()
-        );
+        tracing::info!("Downloading component '{package}' for '{product_name}' ({release})",);
 
         let response_file = client
             .download_package(
@@ -131,10 +123,7 @@ async fn install_product_afresh(
         // Save the downloaded package archive on disk.
         tokio::fs::write(&abs_artifact_compressed_file_path, response_file.clone()).await?;
 
-        println!(
-            "{} installing component '{package}' for '{product_name}' ({release})",
-            "info:".bold()
-        );
+        tracing::info!("Installing component '{package}' for '{product_name}' ({release})",);
 
         let decoder = xz2::read::XzDecoder::new(response_file.as_slice());
         let mut archive = tar::Archive::new(decoder);

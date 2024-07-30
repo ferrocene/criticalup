@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 
 ## Added
 
-- Basic `tracing` functionality for debugging and development. `--verbose` and `-v` are now
+- Added `tracing` for structure and multi-level logging. `--verbose` and `-v` are now
   generally accepted and enable debug logging. Passing the flag twice (eg. `-vv`) will enable
   trace logging as well. The `--log-level` argument can accept arbitrary
   [tracing directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives)

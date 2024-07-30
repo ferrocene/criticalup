@@ -4,8 +4,6 @@
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
-use owo_colors::OwoColorize;
-
 use criticalup_core::project_manifest::InstallationId;
 use criticalup_core::state::State;
 
@@ -33,16 +31,12 @@ async fn delete_unused_installations(installations_dir: &Path, state: &State) ->
         .collect();
 
     if unused_installations.is_empty() {
-        println!("{} no unused installations found", "info:".bold());
+        tracing::info!("No unused installations found");
         return Ok(());
     }
 
     for installation in unused_installations {
-        println!(
-            "{} deleting unused installation {}",
-            "info:".bold(),
-            installation.0
-        );
+        tracing::info!("Deleting unused installation {}", installation.0);
 
         // Remove installation from the state.
         state.remove_installation(&installation);
@@ -53,9 +47,8 @@ async fn delete_unused_installations(installations_dir: &Path, state: &State) ->
         // Remove installation directory from physical location.
         let installation_dir_to_delete = installations_dir.join(&installation.0);
         if installation_dir_to_delete.exists() {
-            println!(
-                "{} deleting unused installation directory {}",
-                "info:".bold(),
+            tracing::info!(
+                "deleting unused installation directory {}",
                 &installation_dir_to_delete.display()
             );
             fs::remove_dir_all(&installation_dir_to_delete)
@@ -84,9 +77,8 @@ async fn delete_untracked_installation_dirs(
             if let Some(name) = installation_dir_name.to_str() {
                 if !installations_in_state.contains_key(&InstallationId(name.into())) {
                     are_untracked_installation_dirs_present = true;
-                    println!(
-                        "{} deleting untracked installation directory {}",
-                        "info:".bold(),
+                    tracing::info!(
+                        "deleting untracked installation directory {}",
                         item.path().to_path_buf().display()
                     );
 
@@ -102,10 +94,7 @@ async fn delete_untracked_installation_dirs(
     }
 
     if !are_untracked_installation_dirs_present {
-        println!(
-            "{} no untracked installation directories found",
-            "info:".bold()
-        );
+        tracing::info!("no untracked installation directories found",);
     }
 
     Ok(())
