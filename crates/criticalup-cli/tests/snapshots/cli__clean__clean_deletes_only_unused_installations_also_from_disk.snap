@@ -4,13 +4,13 @@ expression: repr
 ---
 exit: exit status: 0
 
-stdout
-------
-[1minfo:[0m deleting unused installation installation_id_2
-[1minfo:[0m deleting unused installation directory /path/to/toolchain/installation/installation_id_2/
-[1minfo:[0m deleting unused installation installation_id_3
-[1minfo:[0m deleting unused installation directory /path/to/toolchain/installation/installation_id_3/
-[1minfo:[0m no untracked installation directories found
-------
+empty stdout
 
-empty stderr
+stderr
+------
+ INFO Deleting unused installation installation_id_2
+ INFO deleting unused installation directory /path/to/toolchain/installation/installation_id_2/
+ INFO Deleting unused installation installation_id_3
+ INFO deleting unused installation directory /path/to/toolchain/installation/installation_id_3/
+ INFO no untracked installation directories found
+------
