@@ -4,9 +4,9 @@ expression: repr
 ---
 exit: exit status: 0
 
-stdout
-------
-[1minfo:[0m deleting installation 6bb4fe4c8205d18a8eaf0b852c3b29f65805fd80e528af74cf2f1463a911e40e
-------
+empty stdout
 
-empty stderr
+stderr
+------
+ INFO Deleting installation 6bb4fe4c8205d18a8eaf0b852c3b29f65805fd80e528af74cf2f1463a911e40e
+------

@@ -11,8 +11,10 @@ stderr
 Delete all unused and untracked installations
 
 Usage:
-  criticalup-test clean
+  criticalup-test clean [OPTIONS]
 
 Options:
-  -h, --help  Print help
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help
 ------
