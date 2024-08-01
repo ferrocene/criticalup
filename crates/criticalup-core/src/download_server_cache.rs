@@ -28,11 +28,7 @@ impl<'a> DownloadServerCache<'a> {
         Ok(Self { root, client })
     }
 
-    fn release_path(
-        &self,
-        product: &str,
-        release: &str,
-    ) -> PathBuf {
+    fn release_path(&self, product: &str, release: &str) -> PathBuf {
         self.root.join("artifacts").join(product).join(release)
     }
 
@@ -50,17 +46,11 @@ impl<'a> DownloadServerCache<'a> {
         })
     }
 
-    fn product_release_manfest_path(
-        &self,
-        product: &str,
-        release: &str,
-    ) -> PathBuf {
+    fn product_release_manfest_path(&self, product: &str, release: &str) -> PathBuf {
         self.release_path(product, release).join("manifest.json")
     }
 
-    fn keys_path(
-        &self,
-    ) -> PathBuf {
+    fn keys_path(&self) -> PathBuf {
         self.root.join("keys.json")
     }
 
