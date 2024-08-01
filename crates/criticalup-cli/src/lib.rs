@@ -55,9 +55,11 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
             Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx).await?,
             None => commands::auth::run(&ctx).await?,
         },
-        Commands::Install { project, reinstall } => {
-            commands::install::run(&ctx, reinstall, project).await?
-        }
+        Commands::Install {
+            project,
+            reinstall,
+            offline,
+        } => commands::install::run(&ctx, reinstall, offline, project).await?,
         Commands::Clean => commands::clean::run(&ctx).await?,
         Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
         Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
@@ -136,6 +138,9 @@ enum Commands {
         /// Reinstall products that may have already been installed
         #[arg(long)]
         reinstall: bool,
+        /// Don't download from the server, only use previously cached artifacts
+        #[arg(long)]
+        offline: bool,
     },
 
     /// Delete all unused and untracked installations

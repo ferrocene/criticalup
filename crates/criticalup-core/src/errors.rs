@@ -25,6 +25,21 @@ pub enum Error {
         kind: DownloadServerError,
     },
 
+    #[error("Network access required, but in offline mode")]
+    OfflineMode,
+
+    #[error("Creating `{}`", .0.display())]
+    Create(PathBuf, #[source] std::io::Error),
+
+    #[error("Writing to `{}`", .0.display())]
+    Write(PathBuf, #[source] std::io::Error),
+
+    #[error("Reading from `{}`", .0.display())]
+    Read(PathBuf, #[source] std::io::Error),
+
+    #[error("JSON Serialization error")]
+    JsonSerialization(#[from] serde_json::Error),
+
     #[error("state file at {} is not supported by this release (state format version {1})", .0.display())]
     UnsupportedStateFileVersion(PathBuf, u32),
     #[error("failed to read the criticalup state file at {}", .0.display())]

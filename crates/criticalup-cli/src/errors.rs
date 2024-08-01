@@ -22,9 +22,6 @@ pub(crate) enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("could not get parent of `{}`", .0.display())]
-    NoParent(PathBuf),
-
     #[error(transparent)]
     JoinPaths(#[from] std::env::JoinPathsError),
 
