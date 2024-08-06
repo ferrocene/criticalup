@@ -116,7 +116,7 @@ mod tests {
     fn test_roundtrip() {
         let localstack = Localstack::init();
         let key = localstack.create_key(KeySpec::EccNistP256);
-        let signed_revocation_info = RevocationInfo::new(datetime!(2025-01-01 0:00 UTC));
+        let signed_revocation_info = RevocationInfo::new(vec![], datetime!(2025-01-01 0:00 UTC));
 
         let keypair = AwsKmsKeyPair::new(
             &key,

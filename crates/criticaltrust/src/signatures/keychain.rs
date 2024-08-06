@@ -3,7 +3,7 @@
 
 use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::manifests::KeysManifest;
-use crate::revocation_info::{RevocationContentSha256, RevocationInfo};
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ impl Keychain {
         let mut keychain = Self {
             keys: HashMap::new(),
             revocation_info: RevocationInfo::new(
-                Vec::<RevocationContentSha256>::new(),
+                Vec::<Vec<u8>>::new(),
                 datetime!(2025-01-01 0:00 UTC),
             ),
         };
@@ -90,7 +90,8 @@ impl PublicKeysRepository for Keychain {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair};
-    use crate::signatures::SignedPayload;
+    use crate::manifests::ManifestVersion;
+    use crate::signatures::{Signable, SignedPayload};
 
     #[test]
     fn test_new_with_root_key_as_trust_root() {
@@ -186,6 +187,68 @@ mod tests {
         other.add_signature(&root).unwrap();
 
         assert!(matches!(keychain.load(&other), Err(Error::UnsupportedKey)));
+    }
+
+    impl Signable for String {
+        const SIGNED_BY_ROLE: KeyRole = KeyRole::Packages;
+    }
+
+    impl Signable for Vec<u8> {
+        const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
+    }
+
+    #[test]
+    fn test_load_all_revoked_content_empty() {
+        // Test `load_all` method with RevocationInfo but empty list.
+        let root = generate_key(KeyRole::Root);
+        let revocation = generate_trusted_key(KeyRole::Revocation, &root);
+
+        let revoked_content = RevocationInfo::new(vec![], datetime!(2025-08-05 00:00 UTC));
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content.add_signature(&revocation.0).unwrap();
+
+        let mut keychain = Keychain::new(root.public()).unwrap();
+
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation.1],
+            revoked_signatures: signed_revoked_content,
+        };
+
+        keychain.load_all(&keys_manifest).unwrap();
+        assert_eq!(
+            keychain.revocation_info.expires_at,
+            datetime!(2025-08-05 00:00 UTC)
+        )
+    }
+
+    #[test]
+    fn test_load_all_revoked_content_one_item() {
+        // Test `load_all` method with RevocationInfo but with one item in the list.
+        // The call to `load_all` should not fail in verifying the revocation key.
+        let root = generate_key(KeyRole::Root);
+        let revocation = generate_trusted_key(KeyRole::Revocation, &root);
+        let revoked_content =
+            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content.add_signature(&revocation.0).unwrap();
+
+        let mut keychain = Keychain::new(root.public()).unwrap();
+
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation.1],
+            revoked_signatures: signed_revoked_content,
+        };
+
+        keychain.load_all(&keys_manifest).unwrap();
+        let actual = keychain
+            .revocation_info
+            .revoked_content_sha256
+            .first()
+            .unwrap();
+        let expected: &Vec<u8> = &vec![1, 2, 3];
+        assert_eq!(actual, expected);
     }
 
     // Utilities

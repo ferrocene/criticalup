@@ -13,7 +13,7 @@ use time::OffsetDateTime;
 /// There is intentionally no way to persist the private key of ephemeral key pairs, as that's
 /// considerably less secure than storing the key in a Hardware Security Module. Ephemeral key
 /// pairs are primarily meant to be used during automated testing.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EphemeralKeyPair {
     public: PublicKey,
     private: PrivateKeyBytes<'static>,

@@ -10,25 +10,13 @@ use time::OffsetDateTime;
 /// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationInfo {
-    pub revoked_content_sha256: Vec<RevocationContentSha256>,
+    pub revoked_content_sha256: Vec<Vec<u8>>,
     #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
-pub struct RevocationContentSha256(#[serde(with = "crate::serde_base64")] Vec<u8>);
-
-impl From<Vec<u8>> for RevocationContentSha256 {
-    fn from(revoked_content_sha256: Vec<u8>) -> Self {
-        RevocationContentSha256(revoked_content_sha256)
-    }
-}
-
 impl RevocationInfo {
-    pub fn new(
-        revoked_content_sha256: Vec<RevocationContentSha256>,
-        expires_at: OffsetDateTime,
-    ) -> Self {
+    pub fn new(revoked_content_sha256: Vec<Vec<u8>>, expires_at: OffsetDateTime) -> Self {
         RevocationInfo {
             revoked_content_sha256,
             expires_at,
@@ -44,3 +32,15 @@ impl Signable for RevocationInfo {
 ///
 /// If we did, then this would be a circular logic and we say No! to such logic.
 impl NoRevocationsCheck for RevocationInfo {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use time::macros::datetime;
+
+    #[test]
+    fn debug_revocation_info() {
+        let r = RevocationInfo::new(vec![vec![12, 21, 33]], datetime!(2025-08-05 00:00 UTC));
+        assert_eq!("RevocationInfo { revoked_content_sha256: [[12, 21, 33]], expires_at: 2025-08-05 0:00:00.0 +00:00:00 }", format!("{:?}", r));
+    }
+}

@@ -240,8 +240,10 @@ pub trait PublicKeysRepository {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, PublicKey};
+    use crate::manifests::{KeysManifest, ManifestVersion};
     use crate::signatures::Keychain;
     use crate::test_utils::{base64_encode, TestEnvironment};
+    use time::macros::datetime;
 
     const SAMPLE_DATA: &str = r#"{"answer":42}"#;
 
@@ -470,6 +472,209 @@ mod tests {
                 .unwrap()
                 .answer
         );
+    }
+
+    // Revocation.
+
+    #[test]
+    fn test_verify_revocation_info() {
+        let mut test_env = TestEnvironment::prepare();
+        let key_revocation = test_env.create_key(KeyRole::Revocation);
+        let revoked_content =
+            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content
+            .add_signature(&key_revocation)
+            .unwrap();
+
+        let revovation_info = signed_revoked_content
+            .get_verified_no_revocations_check(&key_revocation)
+            .unwrap();
+
+        let expected: &Vec<u8> = &vec![1, 2, 3];
+        assert_eq!(
+            revovation_info.revoked_content_sha256.first().unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_verify_revocation_info_incorrect_keyrole() {
+        let mut test_env = TestEnvironment::prepare();
+        let key_not_revocation_role = test_env.create_key(KeyRole::Packages);
+        let revoked_content =
+            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content
+            .add_signature(&key_not_revocation_role)
+            .unwrap();
+
+        let revocation_info =
+            signed_revoked_content.get_verified_no_revocations_check(&key_not_revocation_role);
+        assert!(matches!(
+            revocation_info.unwrap_err(),
+            Error::VerificationFailed
+        ));
+    }
+
+    #[test]
+    fn test_verify_deserialized_with_revocation_info() {
+        let mut keychain = Keychain::new(
+            &serde_json::from_str(
+                r#"
+                {
+                "role":"root",
+                "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
+                "expiry":null,
+                "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECWHCWK690xv1riGZVu5NtBaDinbHndmOvwYAO71qTEZUC/sI5zWcjI1EedPl7zRidfLToVGvqU/DDMcMg6o0dA=="
+                }
+                "#
+            ).unwrap()
+        ).unwrap();
+
+        let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+            {
+            "signatures":[
+                {
+                    "key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
+                    "signature":"MEUCIDzxak++Ybvs1UurFG4ZFwooCfk04qJckv1Qu7rq5EqxAiEA/xQrzmAaXZHOykxrfJnMlaSHQk/GuoXWEDO62pISiio="
+                }
+            ],
+            "signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEujVreV8hOhE8zzXWFSPGIcopeMX8HPIsmmnLZCy6+ojaPX7N3FwpGVjtoYbFXDdPbn71V1CjMO9hmzYLAUCV/g==\"}"
+            }
+        "#).unwrap();
+
+        let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+            {
+            "signatures":[
+                {
+                    "key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
+                    "signature":"MEQCIEzQxuBBoicimHDF0UCP27h9ER6mlGIq2XtpqiN9f6AOAiBRN/6+l+HiRdTQX/jUHIIHp4kcg3OF34YfsONfzUKr/Q=="
+                }
+            ],
+            "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvruMS2cS1lTwcCOU64Nce36iueXudb8/nn0kXy8JHUP44XPMgFMdWwbd1HX3csd0r9rhtUwbERi/7cAZhYKErA==\"}"}"#
+        ).unwrap();
+
+        let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
+            r#"
+            {
+            "signatures":[
+                {"key_sha256":"Xb6qYHsmDiHMkBTrijStwOUoduuHq59DxMAQ1HMWzyA=",
+                "signature":"MEUCIQCEgDqlYvHTBJCPJmvmSoK2MiicsTYo9MuXWOsVe4HH6AIgCDXulLu4bvX/NVJkr+Ck4g6cW8dllk/yTkyQcI52XUw="}
+                ],
+                "signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"2025-08-05T00:00:00Z\"}"
+            }
+            "#
+        ).unwrap();
+
+        let km = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation_key, packages_key],
+            revoked_signatures,
+        };
+
+        assert!(keychain.load_all(&km).is_ok());
+        assert!(keychain.revocation_info().revoked_content_sha256.is_empty());
+    }
+
+    #[test]
+    fn verify_revoked_payload() {
+        let mut keychain = Keychain::new(
+            &serde_json::from_str(
+                r#"
+              {"role":"root","algorithm":"ecdsa-p256-sha256-asn1-spki-der","expiry":null,"public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsmIrrJH8LARwp79Qh6w9cEAFVS/QwDpbJwHQwyGC7LiAFvXpox2Whn2zgVKgs2ehLSCnNNdqDH6H+WTDfcU91Q=="}
+                "#
+            ).unwrap()
+        ).unwrap();
+
+        let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+                {"signatures":[{"key_sha256":"0Hjy0uISLPXHhJygWpfT/subu3C07tvzuaV3xJNIoSU=","signature":"MEQCICEqWyDgJ81t5y9f7xiixTD//5s8/EuYG5laHR6O7rV3AiBx4zpBQmIbci6FXCcYJIBSXjCspJbKgAgeYRcToeSUvw=="}],"signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdPE2wdSb3dqGW/sFa0TYRAXe0hGKL1xTk9XZcrNtz4bfssW7QI8GXXAO/rlTm/n69obkPK8lin69QnUCOpAW5g==\"}"}
+        "#).unwrap();
+
+        let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+               {"signatures":[{"key_sha256":"0Hjy0uISLPXHhJygWpfT/subu3C07tvzuaV3xJNIoSU=","signature":"MEQCIGeVaDYN5ADdZ3PCsfBJ+f4GvdUN+nELsuVaJyNCx6Z/AiBWaeMTXVez3MEXg51KAgu9Z8uYX9P3VmsNxgzaDtu2Rg=="}],"signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDuOHCcbc7DNhLpHBwZolEgX33VOf039pRi0FQH6rfS/0uSRawucX4LSKc6Dg4eim3SAbbtRTf+oSl0tTG3KUUg==\"}"}
+            "#
+        ).unwrap();
+
+        let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
+            r#"
+              {"signatures":[{"key_sha256":"jpwiXafZnKIYVd50u9qlqp/X+KXuB/qtu0chxx3bO5w=","signature":"MEUCIQCQoHFae7QtfiSw0Okz+dQ4HOtR4Or0XutByRMySpdhwgIgNoQQpeEPmTK/2Vkg6xWP0oIBUF3PV88/RMIUSwLZATU="}],"signed":"{\"revoked_content_sha256\":[[57,55,54,101,97,97,99,53,53,99,101,102,102,50,49,53,53,48,99,55,100,52,97,57,100,52,97,101,100,101,52,101,48,49,102,48,57,100,99,57,53,51,48,48,57,51,97,98,98,57,102,49,100,48,56,53,101,49,48,50,51,99,55,49]],\"expires_at\":\"2025-08-05T00:00:00Z\"}"}
+            "#
+        ).unwrap();
+
+        let km = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation_key, packages_key],
+            revoked_signatures,
+        };
+
+        assert!(keychain.load_all(&km).is_ok());
+        assert_eq!(keychain.revocation_info().revoked_content_sha256.len(), 1);
+
+        let s: SignedPayload<String> = serde_json::from_str(
+            r#"
+              {"signatures":[{"key_sha256":"UExDkEYvGWey+Cbllq3lu0gWZnj+k3yXmtKT10E8hUw=","signature":"MEQCIBhecxmblDtvC0LM0Kb/GEZszbUK14XHEVTKY3mKJ70hAiBkzqiQx++aCbUKEn3GWOqlu60BoZJo5JcrwAbGggAueg=="}],"signed":"976eaac55ceff21550c7d4a9d4aede4e01f09dc9530093abb9f1d085e1023c71"}
+            "#
+        ).unwrap();
+
+        // Since the payload is in the revoked signatures, this verification will fail.
+        assert!(matches!(
+            s.get_verified(&keychain, keychain.revocation_info()),
+            Err(Error::VerificationFailed)
+        ));
+    }
+
+    #[test]
+    fn verify_revoked_payload_expired_hashes() {
+        let mut keychain = Keychain::new(
+            &serde_json::from_str(
+                r#"
+              {"role":"root","algorithm":"ecdsa-p256-sha256-asn1-spki-der","expiry":null,"public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEysuTQtxZPS8brgpNB9drJEVKAw/VKgMBNwj8Z9rgJu2gZvs3lhScO6PYLJF4RlYOeroVKJ5iTQAwvS5+f8fuPw=="}
+                "#
+            ).unwrap()
+        ).unwrap();
+
+        let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+                 {"signatures":[{"key_sha256":"kymyTeYBNiOW8JqBr3FBB96stFb07TdvWmKsYFaASqY=","signature":"MEYCIQD4op6c7uAoYwENrInZ3+DlUYeCfIzhk3fPZjacSpEZqQIhANmADQcvEFdtSfsIY550Vsozmyk9q+DD8V5bN7VqVALi"}],"signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqReu6kYhzYa6fI7LB14gG2yecR+jtXChwf1Z5wEHLasU6NDu7iE2eBWUeggOhIMnbKkR66F5B6F4KQIxdp9A2w==\"}"}
+        "#).unwrap();
+
+        let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+                {"signatures":[{"key_sha256":"kymyTeYBNiOW8JqBr3FBB96stFb07TdvWmKsYFaASqY=","signature":"MEYCIQDSqBcxonf8PhwWl1IrJoRmHJTmDj6kNO283vmpeXyxnwIhAOJckzfu/PQ1J3UjR3xVYwOM8ZUMK/jmPjLb9wmyPFNb"}],"signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmZl6pB5HF0fc7hkOfnrP4WNhk+jFDxzXDUoawhRnpu+XrYrdgMTl1+wcobxk5rwSdAtarm63vPPkQJEV6LrTxA==\"}"}
+            "#
+        ).unwrap();
+
+        let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
+            r#"
+              {"signatures":[{"key_sha256":"jONxDp7vf+gLKbRwNhriqdZgKrNzKz66hyNTpMLDJNQ=","signature":"MEUCIQCvcU+4YVx2roWJ9Coq/OzUJJxOANLm2VSTyCeCOZptDwIgA7bZYU78oHQPISarXI6mI+BAU0ut3zqWjAh2/bpRejU="}],"signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"1999-12-31T00:00:00Z\"}"}
+            "#
+        ).unwrap();
+
+        let km = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation_key, packages_key],
+            revoked_signatures,
+        };
+
+        assert!(keychain.load_all(&km).is_ok());
+        assert_eq!(keychain.revocation_info().revoked_content_sha256.len(), 0);
+
+        let s: SignedPayload<String> = serde_json::from_str(
+            r#"
+               {"signatures":[{"key_sha256":"+bdNiRBQ5inCKFRFsoLVFP1hGAdUs1RylZT/SSUQGvI=","signature":"MEQCID8V05t2bFC/GtUFit9jF17AlUqVchRWBFMhFuLjX0PuAiAlofxEfyIc9ZqB5fvmHk5NEP+vis4auT4429xqICv9Sw=="}],"signed":"\"976eaac55ceff21550c7d4a9d4aede4e01f09dc9530093abb9f1d085e1023c71\""}
+            "#
+        ).unwrap();
+
+        // Since revocation info has a date that is long passed, the error is about expiration of signatures.
+        assert!(matches!(
+            s.get_verified(&keychain, keychain.revocation_info()),
+            Err(Error::SignaturesExpired)
+        ));
     }
 
     // Utilities

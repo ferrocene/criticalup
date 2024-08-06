@@ -47,7 +47,7 @@ impl PublicKey {
         let hashed_payload = hash_sha256(payload.as_bytes());
         if revocation_info
             .revoked_content_sha256
-            .contains(&hashed_payload.into())
+            .contains(&hashed_payload)
         {
             return Err(Error::ContentRevoked);
         }
