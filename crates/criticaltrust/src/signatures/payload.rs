@@ -112,7 +112,7 @@ impl<T: Signable> SignedPayload<T> {
 impl<T: Signable + NoRevocationsCheck> SignedPayload<T> {
     /// Use this to verify only signed payloads that inherently do not require revocations checks.
     /// Examples include Keys in the KeysManifest. Rest all should be checked with RevocationInfo
-    /// using get_verified.
+    /// using [`SignedPayload::get_verified`].
     pub fn get_verified_no_revocations_check(
         &self,
         keys: &dyn PublicKeysRepository,
@@ -140,7 +140,7 @@ impl<T: Signable + NoRevocationsCheck> SignedPayload<T> {
 
     /// Use this to verify only signed payloads that inherently do not require revocations checks.
     /// Examples include Keys in the KeysManifest. Rest all should be checked with RevocationInfo
-    /// using into_verified.
+    /// using [`SignedPayload::into_verified`].
     pub fn into_verified_no_revocations_check(
         self,
         keys: &dyn PublicKeysRepository,
@@ -519,55 +519,39 @@ mod tests {
 
     #[test]
     fn test_verify_deserialized_with_revocation_info() {
+        // We need to recreate and initialize the keys for each these tests separately because
+        // for most part the content and datetime etc. are different. So, a new set of keys is
+        // generated for each test and used here.
         let mut keychain = Keychain::new(
             &serde_json::from_str(
-                r#"
-                {
-                "role":"root",
-                "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
-                "expiry":null,
-                "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECWHCWK690xv1riGZVu5NtBaDinbHndmOvwYAO71qTEZUC/sI5zWcjI1EedPl7zRidfLToVGvqU/DDMcMg6o0dA=="
-                }
-                "#
-            ).unwrap()
+            r#"{
+            "role":"root",
+            "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
+            "expiry":null,
+            "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECWHCWK690xv1riGZVu5NtBaDinbHndmOvwYAO71qTEZUC/sI5zWcjI1EedPl7zRidfLToVGvqU/DDMcMg6o0dA=="}
+            "#).unwrap()
         ).unwrap();
 
         let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
-            r#"
-            {
-            "signatures":[
-                {
-                    "key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
-                    "signature":"MEUCIDzxak++Ybvs1UurFG4ZFwooCfk04qJckv1Qu7rq5EqxAiEA/xQrzmAaXZHOykxrfJnMlaSHQk/GuoXWEDO62pISiio="
-                }
-            ],
+            r#"{
+            "signatures":[{"key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
+                    "signature":"MEUCIDzxak++Ybvs1UurFG4ZFwooCfk04qJckv1Qu7rq5EqxAiEA/xQrzmAaXZHOykxrfJnMlaSHQk/GuoXWEDO62pISiio="}],
             "signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEujVreV8hOhE8zzXWFSPGIcopeMX8HPIsmmnLZCy6+ojaPX7N3FwpGVjtoYbFXDdPbn71V1CjMO9hmzYLAUCV/g==\"}"
-            }
-        "#).unwrap();
+            }"#).unwrap();
 
         let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
-            r#"
-            {
-            "signatures":[
-                {
-                    "key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
-                    "signature":"MEQCIEzQxuBBoicimHDF0UCP27h9ER6mlGIq2XtpqiN9f6AOAiBRN/6+l+HiRdTQX/jUHIIHp4kcg3OF34YfsONfzUKr/Q=="
-                }
-            ],
-            "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvruMS2cS1lTwcCOU64Nce36iueXudb8/nn0kXy8JHUP44XPMgFMdWwbd1HX3csd0r9rhtUwbERi/7cAZhYKErA==\"}"}"#
-        ).unwrap();
+            r#"{
+            "signatures":[{"key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
+                 "signature":"MEQCIEzQxuBBoicimHDF0UCP27h9ER6mlGIq2XtpqiN9f6AOAiBRN/6+l+HiRdTQX/jUHIIHp4kcg3OF34YfsONfzUKr/Q=="}],
+            "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvruMS2cS1lTwcCOU64Nce36iueXudb8/nn0kXy8JHUP44XPMgFMdWwbd1HX3csd0r9rhtUwbERi/7cAZhYKErA==\"}"
+            }"#).unwrap();
 
         let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
-            r#"
-            {
-            "signatures":[
-                {"key_sha256":"Xb6qYHsmDiHMkBTrijStwOUoduuHq59DxMAQ1HMWzyA=",
-                "signature":"MEUCIQCEgDqlYvHTBJCPJmvmSoK2MiicsTYo9MuXWOsVe4HH6AIgCDXulLu4bvX/NVJkr+Ck4g6cW8dllk/yTkyQcI52XUw="}
-                ],
+            r#"{
+            "signatures":[{"key_sha256":"Xb6qYHsmDiHMkBTrijStwOUoduuHq59DxMAQ1HMWzyA=",
+                "signature":"MEUCIQCEgDqlYvHTBJCPJmvmSoK2MiicsTYo9MuXWOsVe4HH6AIgCDXulLu4bvX/NVJkr+Ck4g6cW8dllk/yTkyQcI52XUw="}],
                 "signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"2025-08-05T00:00:00Z\"}"
-            }
-            "#
-        ).unwrap();
+                }"#).unwrap();
 
         let km = KeysManifest {
             version: ManifestVersion,
@@ -583,28 +567,35 @@ mod tests {
     fn verify_revoked_payload() {
         let mut keychain = Keychain::new(
             &serde_json::from_str(
-                r#"
-              {"role":"root","algorithm":"ecdsa-p256-sha256-asn1-spki-der","expiry":null,"public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsmIrrJH8LARwp79Qh6w9cEAFVS/QwDpbJwHQwyGC7LiAFvXpox2Whn2zgVKgs2ehLSCnNNdqDH6H+WTDfcU91Q=="}
-                "#
+            r#"{
+            "role":"root",
+            "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
+            "expiry":null,
+            "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsmIrrJH8LARwp79Qh6w9cEAFVS/QwDpbJwHQwyGC7LiAFvXpox2Whn2zgVKgs2ehLSCnNNdqDH6H+WTDfcU91Q=="}
+            "#
             ).unwrap()
         ).unwrap();
 
         let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"
-                {"signatures":[{"key_sha256":"0Hjy0uISLPXHhJygWpfT/subu3C07tvzuaV3xJNIoSU=","signature":"MEQCICEqWyDgJ81t5y9f7xiixTD//5s8/EuYG5laHR6O7rV3AiBx4zpBQmIbci6FXCcYJIBSXjCspJbKgAgeYRcToeSUvw=="}],"signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdPE2wdSb3dqGW/sFa0TYRAXe0hGKL1xTk9XZcrNtz4bfssW7QI8GXXAO/rlTm/n69obkPK8lin69QnUCOpAW5g==\"}"}
-        "#).unwrap();
+                {"signatures":[{"key_sha256":"0Hjy0uISLPXHhJygWpfT/subu3C07tvzuaV3xJNIoSU=",
+                "signature":"MEQCICEqWyDgJ81t5y9f7xiixTD//5s8/EuYG5laHR6O7rV3AiBx4zpBQmIbci6FXCcYJIBSXjCspJbKgAgeYRcToeSUvw=="}],
+                "signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdPE2wdSb3dqGW/sFa0TYRAXe0hGKL1xTk9XZcrNtz4bfssW7QI8GXXAO/rlTm/n69obkPK8lin69QnUCOpAW5g==\"}"
+                }"#).unwrap();
 
         let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"
-               {"signatures":[{"key_sha256":"0Hjy0uISLPXHhJygWpfT/subu3C07tvzuaV3xJNIoSU=","signature":"MEQCIGeVaDYN5ADdZ3PCsfBJ+f4GvdUN+nELsuVaJyNCx6Z/AiBWaeMTXVez3MEXg51KAgu9Z8uYX9P3VmsNxgzaDtu2Rg=="}],"signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDuOHCcbc7DNhLpHBwZolEgX33VOf039pRi0FQH6rfS/0uSRawucX4LSKc6Dg4eim3SAbbtRTf+oSl0tTG3KUUg==\"}"}
-            "#
-        ).unwrap();
+               {"signatures":[{"key_sha256":"0Hjy0uISLPXHhJygWpfT/subu3C07tvzuaV3xJNIoSU=",
+               "signature":"MEQCIGeVaDYN5ADdZ3PCsfBJ+f4GvdUN+nELsuVaJyNCx6Z/AiBWaeMTXVez3MEXg51KAgu9Z8uYX9P3VmsNxgzaDtu2Rg=="}],
+               "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDuOHCcbc7DNhLpHBwZolEgX33VOf039pRi0FQH6rfS/0uSRawucX4LSKc6Dg4eim3SAbbtRTf+oSl0tTG3KUUg==\"}"}
+            "#).unwrap();
 
         let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
             r#"
-              {"signatures":[{"key_sha256":"jpwiXafZnKIYVd50u9qlqp/X+KXuB/qtu0chxx3bO5w=","signature":"MEUCIQCQoHFae7QtfiSw0Okz+dQ4HOtR4Or0XutByRMySpdhwgIgNoQQpeEPmTK/2Vkg6xWP0oIBUF3PV88/RMIUSwLZATU="}],"signed":"{\"revoked_content_sha256\":[[57,55,54,101,97,97,99,53,53,99,101,102,102,50,49,53,53,48,99,55,100,52,97,57,100,52,97,101,100,101,52,101,48,49,102,48,57,100,99,57,53,51,48,48,57,51,97,98,98,57,102,49,100,48,56,53,101,49,48,50,51,99,55,49]],\"expires_at\":\"2025-08-05T00:00:00Z\"}"}
-            "#
-        ).unwrap();
+              {"signatures":[{"key_sha256":"jpwiXafZnKIYVd50u9qlqp/X+KXuB/qtu0chxx3bO5w=",
+              "signature":"MEUCIQCQoHFae7QtfiSw0Okz+dQ4HOtR4Or0XutByRMySpdhwgIgNoQQpeEPmTK/2Vkg6xWP0oIBUF3PV88/RMIUSwLZATU="}],
+              "signed":"{\"revoked_content_sha256\":[[57,55,54,101,97,97,99,53,53,99,101,102,102,50,49,53,53,48,99,55,100,52,97,57,100,52,97,101,100,101,52,101,48,49,102,48,57,100,99,57,53,51,48,48,57,51,97,98,98,57,102,49,100,48,56,53,101,49,48,50,51,99,55,49]],\"expires_at\":\"2025-08-05T00:00:00Z\"}"
+              }"#).unwrap();
 
         let km = KeysManifest {
             version: ManifestVersion,
@@ -617,7 +608,9 @@ mod tests {
 
         let s: SignedPayload<String> = serde_json::from_str(
             r#"
-              {"signatures":[{"key_sha256":"UExDkEYvGWey+Cbllq3lu0gWZnj+k3yXmtKT10E8hUw=","signature":"MEQCIBhecxmblDtvC0LM0Kb/GEZszbUK14XHEVTKY3mKJ70hAiBkzqiQx++aCbUKEn3GWOqlu60BoZJo5JcrwAbGggAueg=="}],"signed":"976eaac55ceff21550c7d4a9d4aede4e01f09dc9530093abb9f1d085e1023c71"}
+              {"signatures":[{"key_sha256":"UExDkEYvGWey+Cbllq3lu0gWZnj+k3yXmtKT10E8hUw=",
+              "signature":"MEQCIBhecxmblDtvC0LM0Kb/GEZszbUK14XHEVTKY3mKJ70hAiBkzqiQx++aCbUKEn3GWOqlu60BoZJo5JcrwAbGggAueg=="}],
+              "signed":"976eaac55ceff21550c7d4a9d4aede4e01f09dc9530093abb9f1d085e1023c71"}
             "#
         ).unwrap();
 
@@ -633,25 +626,33 @@ mod tests {
         let mut keychain = Keychain::new(
             &serde_json::from_str(
                 r#"
-              {"role":"root","algorithm":"ecdsa-p256-sha256-asn1-spki-der","expiry":null,"public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEysuTQtxZPS8brgpNB9drJEVKAw/VKgMBNwj8Z9rgJu2gZvs3lhScO6PYLJF4RlYOeroVKJ5iTQAwvS5+f8fuPw=="}
-                "#
-            ).unwrap()
+              {"role":"root",
+              "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
+              "expiry":null,
+              "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEysuTQtxZPS8brgpNB9drJEVKAw/VKgMBNwj8Z9rgJu2gZvs3lhScO6PYLJF4RlYOeroVKJ5iTQAwvS5+f8fuPw=="}
+             "#).unwrap()
         ).unwrap();
 
         let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"
-                 {"signatures":[{"key_sha256":"kymyTeYBNiOW8JqBr3FBB96stFb07TdvWmKsYFaASqY=","signature":"MEYCIQD4op6c7uAoYwENrInZ3+DlUYeCfIzhk3fPZjacSpEZqQIhANmADQcvEFdtSfsIY550Vsozmyk9q+DD8V5bN7VqVALi"}],"signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqReu6kYhzYa6fI7LB14gG2yecR+jtXChwf1Z5wEHLasU6NDu7iE2eBWUeggOhIMnbKkR66F5B6F4KQIxdp9A2w==\"}"}
+                 {"signatures":[{"key_sha256":"kymyTeYBNiOW8JqBr3FBB96stFb07TdvWmKsYFaASqY=",
+                 "signature":"MEYCIQD4op6c7uAoYwENrInZ3+DlUYeCfIzhk3fPZjacSpEZqQIhANmADQcvEFdtSfsIY550Vsozmyk9q+DD8V5bN7VqVALi"}],
+                 "signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqReu6kYhzYa6fI7LB14gG2yecR+jtXChwf1Z5wEHLasU6NDu7iE2eBWUeggOhIMnbKkR66F5B6F4KQIxdp9A2w==\"}"}
         "#).unwrap();
 
         let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"
-                {"signatures":[{"key_sha256":"kymyTeYBNiOW8JqBr3FBB96stFb07TdvWmKsYFaASqY=","signature":"MEYCIQDSqBcxonf8PhwWl1IrJoRmHJTmDj6kNO283vmpeXyxnwIhAOJckzfu/PQ1J3UjR3xVYwOM8ZUMK/jmPjLb9wmyPFNb"}],"signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmZl6pB5HF0fc7hkOfnrP4WNhk+jFDxzXDUoawhRnpu+XrYrdgMTl1+wcobxk5rwSdAtarm63vPPkQJEV6LrTxA==\"}"}
+                {"signatures":[{"key_sha256":"kymyTeYBNiOW8JqBr3FBB96stFb07TdvWmKsYFaASqY=",
+                "signature":"MEYCIQDSqBcxonf8PhwWl1IrJoRmHJTmDj6kNO283vmpeXyxnwIhAOJckzfu/PQ1J3UjR3xVYwOM8ZUMK/jmPjLb9wmyPFNb"}],
+                "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmZl6pB5HF0fc7hkOfnrP4WNhk+jFDxzXDUoawhRnpu+XrYrdgMTl1+wcobxk5rwSdAtarm63vPPkQJEV6LrTxA==\"}"}
             "#
         ).unwrap();
 
         let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
             r#"
-              {"signatures":[{"key_sha256":"jONxDp7vf+gLKbRwNhriqdZgKrNzKz66hyNTpMLDJNQ=","signature":"MEUCIQCvcU+4YVx2roWJ9Coq/OzUJJxOANLm2VSTyCeCOZptDwIgA7bZYU78oHQPISarXI6mI+BAU0ut3zqWjAh2/bpRejU="}],"signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"1999-12-31T00:00:00Z\"}"}
+              {"signatures":[{"key_sha256":"jONxDp7vf+gLKbRwNhriqdZgKrNzKz66hyNTpMLDJNQ=",
+              "signature":"MEUCIQCvcU+4YVx2roWJ9Coq/OzUJJxOANLm2VSTyCeCOZptDwIgA7bZYU78oHQPISarXI6mI+BAU0ut3zqWjAh2/bpRejU="}],
+              "signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"1999-12-31T00:00:00Z\"}"}
             "#
         ).unwrap();
 
@@ -666,7 +667,9 @@ mod tests {
 
         let s: SignedPayload<String> = serde_json::from_str(
             r#"
-               {"signatures":[{"key_sha256":"+bdNiRBQ5inCKFRFsoLVFP1hGAdUs1RylZT/SSUQGvI=","signature":"MEQCID8V05t2bFC/GtUFit9jF17AlUqVchRWBFMhFuLjX0PuAiAlofxEfyIc9ZqB5fvmHk5NEP+vis4auT4429xqICv9Sw=="}],"signed":"\"976eaac55ceff21550c7d4a9d4aede4e01f09dc9530093abb9f1d085e1023c71\""}
+               {"signatures":[{"key_sha256":"+bdNiRBQ5inCKFRFsoLVFP1hGAdUs1RylZT/SSUQGvI=",
+               "signature":"MEQCID8V05t2bFC/GtUFit9jF17AlUqVchRWBFMhFuLjX0PuAiAlofxEfyIc9ZqB5fvmHk5NEP+vis4auT4429xqICv9Sw=="}],
+               "signed":"\"976eaac55ceff21550c7d4a9d4aede4e01f09dc9530093abb9f1d085e1023c71\""}
             "#
         ).unwrap();
 

@@ -46,6 +46,9 @@ impl Keychain {
         &self.revocation_info
     }
 
+    /// Load the following into [`Keychain`] provided the [`KeysManifest`].
+    /// 1. All the verified keys.
+    /// 2. Revocation information from the revoked content.
     pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
         // Load all keys from KeysManifest.
         for key in &keys_manifest.keys {

@@ -10,6 +10,7 @@ use time::OffsetDateTime;
 /// Holds hashes of revoked content which are included as a part of the [`KeysManifest`].
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RevocationInfo {
+    // Incoming SHA256 data from the API is in the form of String, but we save each as a `Vec<u8>`.
     pub revoked_content_sha256: Vec<Vec<u8>>,
     #[serde(with = "time::serde::rfc3339")]
     pub expires_at: OffsetDateTime,
