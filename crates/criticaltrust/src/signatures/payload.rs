@@ -143,7 +143,7 @@ pub trait Signable: Serialize + for<'de> Deserialize<'de> {
 /// cases or tests, individual [`PublicKey`]s also implement this trait.
 pub trait PublicKeysRepository {
     /// Retrieve a key by its ID.
-    fn get<'a>(&'a self, id: &KeyId) -> Option<&'a PublicKey>;
+    fn get(&self, id: &KeyId) -> Option<&PublicKey>;
 }
 
 #[cfg(test)]
