@@ -153,8 +153,9 @@ impl<'a> DownloadServerCache<'a> {
         tracing::trace!(%cache_hit, cache_key = %cache_key.display());
 
         let data = match (cache_hit, &self.client) {
-            (false, Some(client)) => {
-                // Cache miss, online mode
+            (_, Some(client)) => {
+                // Cache hit or miss, online mode
+                // Eagerly refresh keys whenever online in case there are new keys with new expiration dates.
                 create_dir_all(&self.root)
                     .await
                     .map_err(|e| Error::Create(self.root.to_path_buf(), e))?;
@@ -171,8 +172,9 @@ impl<'a> DownloadServerCache<'a> {
                 // Cache miss, offline mode
                 return Err(Error::OfflineMode);
             }
-            (true, _) => {
-                // Cache hit
+            (true, None) => {
+                // Cache hit, offline mode
+                // We cannot refresh keys, so continue as usual
                 let data = read(&cache_key)
                     .await
                     .map_err(|e| Error::Read(cache_key.clone(), e))?;

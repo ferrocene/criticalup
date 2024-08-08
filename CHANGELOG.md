@@ -7,12 +7,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-**CriticalUp is now travel and spotty internet friendly!** New retry and caching behavior, as well as
-an `--offline` mode for `criticalup install` means downloading new packages should be more reliable,
-and packages should not need to be redownloaded when used between multiple projects or toolchain
-reinstallation. *Now you can finally write automotive software while on a road trip into a remote part
-of the Pacific coast of Canada!*
-
 ## Added
 
 - An `--offline` flag has been added to `criticalup install`, when enabled only the download cache
