@@ -10,5 +10,5 @@ stderr
 ------
 Visit https://customers-test.ferrocene.dev/users/tokens to create a new token, then enter it below.
 enter the authentication token: 
-error: invalid authentication token provided
+error: Invalid authentication token provided.
 ------

@@ -8,6 +8,6 @@ empty stdout
 
 stderr
 ------
-error: failed to find canonical path for /path/to/criticalup.toml
+error: Failed to find canonical path for /path/to/criticalup.toml.
   caused by: No such file or directory (os error 2)
 ------

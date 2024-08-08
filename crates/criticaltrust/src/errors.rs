@@ -7,24 +7,24 @@ use thiserror::Error;
 #[non_exhaustive]
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("failed to sign data")]
+    #[error("Failed to sign data.")]
     SignatureFailed,
-    #[error("failed to verify signed data")]
+    #[error("Failed to verify signed data.")]
     VerificationFailed,
-    #[error("failed to generate a local key")]
+    #[error("Failed to generate a local key.")]
     LocalKeyGenerationFailed,
-    #[error("wrong key role for the trust root key (expected Root, found {0:?})")]
+    #[error("Wrong key role for the trust root key (expected Root, found {0:?}).")]
     WrongKeyRoleForTrustRoot(KeyRole),
-    #[error("failed to serialize the contents of the signed payload")]
+    #[error("Failed to serialize the contents of the signed payload.")]
     SignedPayloadSerializationFailed(#[source] serde_json::Error),
-    #[error("failed to deserialize verified data")]
+    #[error("Failed to deserialize verified data.")]
     DeserializationFailed(#[source] serde_json::Error),
-    #[error("failed to load key pair")]
+    #[error("Failed to load key pair.")]
     InvalidKey(String),
-    #[error("unsupported key")]
+    #[error("Unsupported key.")]
     UnsupportedKey,
     #[cfg(feature = "aws-kms")]
-    #[error("failed to retrieve the public key from AWS KMS")]
+    #[error("Failed to retrieve the public key from AWS KMS.")]
     AwsKmsFailedToGetPublicKey(
         #[from]
         aws_sdk_kms::error::SdkError<
@@ -33,7 +33,7 @@ pub enum Error {
         >,
     ),
     #[cfg(feature = "aws-kms")]
-    #[error("failed to sign data with AWS KMS")]
+    #[error("Failed to sign data with AWS KMS.")]
     AwsKmsFailedToSign(
         #[from]
         aws_sdk_kms::error::SdkError<
