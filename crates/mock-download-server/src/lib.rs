@@ -5,13 +5,14 @@ mod handlers;
 mod server;
 
 pub use crate::server::MockServer;
-use criticaltrust::keys::PublicKey;
-use criticaltrust::manifests::{ReleaseManifest, RevocationInfo};
+use criticaltrust::keys::{EphemeralKeyPair, PublicKey};
+use criticaltrust::manifests::ReleaseManifest;
+use criticaltrust::revocation_info::RevocationInfo;
 use criticaltrust::signatures::SignedPayload;
 use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use time::{Duration, OffsetDateTime};
+use time::macros::datetime;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "kebab-case")]
@@ -33,10 +34,10 @@ pub fn new() -> Builder {
         data: Data {
             tokens: HashMap::new(),
             keys: Vec::new(),
-            revoked_signatures: SignedPayload::new(&RevocationInfo {
-                revoked_content_sha256: Vec::new(),
-                expires_at: OffsetDateTime::now_utc() + Duration::days(99),
-            })
+            revoked_signatures: SignedPayload::new(&RevocationInfo::new(
+                Vec::new(),
+                datetime!(3025-01-01 0:00 UTC),
+            ))
             .unwrap(),
             release_manifests: HashMap::new(),
         },
@@ -55,6 +56,14 @@ impl Builder {
 
     pub fn add_key(mut self, key: SignedPayload<PublicKey>) -> Self {
         self.data.keys.push(key);
+        self
+    }
+
+    pub fn add_revocation_info(mut self, revocation_key: &EphemeralKeyPair) -> Self {
+        self.data
+            .revoked_signatures
+            .add_signature(revocation_key)
+            .unwrap();
         self
     }
 

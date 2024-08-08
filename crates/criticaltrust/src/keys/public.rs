@@ -4,9 +4,10 @@
 use super::newtypes::SignatureBytes;
 use crate::keys::newtypes::{PayloadBytes, PublicKeyBytes};
 use crate::keys::KeyAlgorithm;
+use crate::revocation_info::RevocationInfo;
 use crate::sha256::hash_sha256;
 use crate::signatures::{PublicKeysRepository, Signable};
-use crate::Error;
+use crate::{Error, NoRevocationsCheck};
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -22,6 +23,39 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
+    /// Verify whether the provided payload matches the provided signature and check if the
+    /// revoked content does not match the payload.
+    ///
+    /// Signature verification could fail if:
+    /// * The Expiration date has passed.
+    /// * The signature is present in the `RevocationInfo`.
+    /// * The `RevocationInfo` cannot be verified.
+    /// * [`verify_payload`](PublicKey::verify_without_revocations) fails.
+    pub fn verify(
+        &self,
+        role: KeyRole,
+        payload: &PayloadBytes<'_>,
+        signature: &SignatureBytes<'_>,
+        revocation_info: &RevocationInfo,
+    ) -> Result<(), Error> {
+        let current_utc = OffsetDateTime::now_utc();
+        let expiration_in_days = (revocation_info.expires_at - current_utc).whole_days();
+        if expiration_in_days <= 0 {
+            return Err(Error::SignaturesExpired);
+        }
+
+        let hashed_payload = hash_sha256(payload.as_bytes());
+        if revocation_info
+            .revoked_content_sha256
+            .contains(&hashed_payload)
+        {
+            return Err(Error::ContentRevoked);
+        }
+        self.verify_no_revocations_check(role, payload, signature)?;
+
+        Ok(())
+    }
+
     /// Verify whether the provided payload matches the provided signature. Signature verification
     /// could fail if:
     ///
@@ -29,7 +63,10 @@ impl PublicKey {
     /// * The current key expired.
     /// * The signature doesn't match the payload.
     /// * The signature wasn't performed by the current key.
-    pub fn verify(
+    ///
+    /// This method is local to this crate only to makes sure external API users do not use this
+    /// directly.
+    pub(crate) fn verify_no_revocations_check(
         &self,
         role: KeyRole,
         payload: &PayloadBytes<'_>,
@@ -61,6 +98,8 @@ impl PublicKey {
         self.role != KeyRole::Unknown && self.algorithm != KeyAlgorithm::Unknown
     }
 }
+
+impl NoRevocationsCheck for PublicKey {}
 
 impl PublicKeysRepository for PublicKey {
     fn get<'a>(&'a self, id: &KeyId) -> Option<&'a PublicKey> {
@@ -121,7 +160,7 @@ mod tests {
 
         assert!(key
             .public()
-            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
+            .verify_no_revocations_check(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
             .is_ok())
     }
 
@@ -132,7 +171,7 @@ mod tests {
 
         assert!(key
             .public()
-            .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
+            .verify_no_revocations_check(KeyRole::Root, &SAMPLE_PAYLOAD, &signature)
             .is_ok());
     }
 
@@ -142,8 +181,11 @@ mod tests {
         let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key.public()
-                .verify(KeyRole::Packages, &SAMPLE_PAYLOAD, &signature),
+            key.public().verify_no_revocations_check(
+                KeyRole::Packages,
+                &SAMPLE_PAYLOAD,
+                &signature
+            ),
             Err(Error::VerificationFailed)
         ));
     }
@@ -155,7 +197,7 @@ mod tests {
 
         assert!(matches!(
             key.public()
-                .verify(KeyRole::Unknown, &SAMPLE_PAYLOAD, &signature),
+                .verify_no_revocations_check(KeyRole::Unknown, &SAMPLE_PAYLOAD, &signature),
             Err(Error::VerificationFailed)
         ));
     }
@@ -167,7 +209,7 @@ mod tests {
 
         assert!(matches!(
             key.public()
-                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+                .verify_no_revocations_check(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
             Err(Error::VerificationFailed)
         ));
     }
@@ -181,7 +223,7 @@ mod tests {
         *bad_signature.last_mut().unwrap() = bad_signature.last().unwrap().wrapping_add(1);
 
         assert!(matches!(
-            key.public().verify(
+            key.public().verify_no_revocations_check(
                 KeyRole::Root,
                 &SAMPLE_PAYLOAD,
                 &SignatureBytes::owned(bad_signature)
@@ -196,7 +238,7 @@ mod tests {
         let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
 
         assert!(matches!(
-            key.public().verify(
+            key.public().verify_no_revocations_check(
                 KeyRole::Root,
                 &PayloadBytes::borrowed("Hello world!".as_bytes()),
                 &signature
@@ -210,7 +252,7 @@ mod tests {
         let key = generate(KeyRole::Root, None);
 
         assert!(matches!(
-            key.public().verify(
+            key.public().verify_no_revocations_check(
                 KeyRole::Root,
                 &SAMPLE_PAYLOAD,
                 &SignatureBytes::borrowed(&[])
@@ -228,7 +270,7 @@ mod tests {
 
         assert!(matches!(
             key2.public()
-                .verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+                .verify_no_revocations_check(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
             Err(Error::VerificationFailed)
         ));
     }
@@ -242,7 +284,7 @@ mod tests {
         public.algorithm = KeyAlgorithm::Unknown;
 
         assert!(matches!(
-            public.verify(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
+            public.verify_no_revocations_check(KeyRole::Root, &SAMPLE_PAYLOAD, &signature),
             Err(Error::UnsupportedKey)
         ));
     }
@@ -294,7 +336,7 @@ mod tests {
         .unwrap();
 
         // Ensure the key can verify messages signed with the corresponding private key.
-        key.verify(
+        key.verify_no_revocations_check(
             KeyRole::Root,
             &SAMPLE_PAYLOAD,
             &SignatureBytes::owned(base64_decode(SAMPLE_SIGNATURE).unwrap()),

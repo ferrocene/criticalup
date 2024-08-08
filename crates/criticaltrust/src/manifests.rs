@@ -6,10 +6,10 @@
 use std::path::PathBuf;
 
 use crate::keys::{KeyRole, PublicKey};
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Signable, SignedPayload};
 use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
-use time::OffsetDateTime;
 
 /// Typed representation of a manifest version number.
 ///
@@ -155,19 +155,6 @@ pub struct PackageFile {
     #[serde(with = "crate::serde_base64")]
     pub sha256: Vec<u8>,
     pub needs_proxy: bool,
-}
-
-// Revocations
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct RevocationInfo {
-    pub revoked_content_sha256: Vec<String>,
-    pub expires_at: OffsetDateTime,
-}
-
-impl Signable for RevocationInfo {
-    const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
 }
 
 // Keys

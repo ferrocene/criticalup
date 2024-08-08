@@ -142,7 +142,7 @@ impl<'a> IntegrityVerifier<'a> {
                 inner: e,
             })?
             .signed
-            .into_verified(self.keychain)
+            .into_verified(self.keychain, self.keychain.revocation_info())
             .map_err(|e| IntegrityError::PackageManifestVerification {
                 path: path.into(),
                 inner: e,

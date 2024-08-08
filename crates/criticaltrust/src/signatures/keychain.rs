@@ -2,13 +2,17 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::{KeyId, KeyRole, PublicKey};
+use crate::manifests::KeysManifest;
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
+use time::macros::datetime;
 
 /// Collection of all trusted public keys.
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
+    revocation_info: RevocationInfo,
 }
 
 impl Keychain {
@@ -20,6 +24,10 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
+            revocation_info: RevocationInfo::new(
+                Vec::<Vec<u8>>::new(),
+                datetime!(2025-01-01 0:00 UTC),
+            ),
         };
 
         if trust_root.role != KeyRole::Root {
@@ -30,12 +38,38 @@ impl Keychain {
         Ok(keychain)
     }
 
+    pub fn keys(&self) -> &HashMap<KeyId, PublicKey> {
+        &self.keys
+    }
+
+    pub fn revocation_info(&self) -> &RevocationInfo {
+        &self.revocation_info
+    }
+
+    /// Load the following into [`Keychain`] provided the [`KeysManifest`].
+    /// 1. All the verified keys.
+    /// 2. Revocation information from the revoked content.
+    pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
+        // Load all keys from KeysManifest.
+        for key in &keys_manifest.keys {
+            let _ = self.load(key)?;
+        }
+
+        // Special case: verify and load only RevocationInfo.
+        let revocation_info = keys_manifest
+            .revoked_signatures
+            .get_verified_no_revocations_check(self)?;
+        self.revocation_info = revocation_info.clone();
+
+        Ok(())
+    }
+
     /// Add a new signed key to the keychain.
     ///
     /// The key has to be signed by either the root of trust or another key with the root role
     /// already part of the keychain.
     pub fn load(&mut self, key: &SignedPayload<PublicKey>) -> Result<KeyId, Error> {
-        let key = key.get_verified(self)?;
+        let key = key.get_verified_no_revocations_check(self)?;
         self.load_inner(&key)
     }
 
@@ -59,6 +93,8 @@ impl PublicKeysRepository for Keychain {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair};
+    use crate::manifests::ManifestVersion;
+    use crate::signatures::{Signable, SignedPayload};
 
     #[test]
     fn test_new_with_root_key_as_trust_root() {
@@ -154,6 +190,68 @@ mod tests {
         other.add_signature(&root).unwrap();
 
         assert!(matches!(keychain.load(&other), Err(Error::UnsupportedKey)));
+    }
+
+    impl Signable for String {
+        const SIGNED_BY_ROLE: KeyRole = KeyRole::Packages;
+    }
+
+    impl Signable for Vec<u8> {
+        const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
+    }
+
+    #[test]
+    fn test_load_all_revoked_content_empty() {
+        // Test `load_all` method with RevocationInfo but empty list.
+        let root = generate_key(KeyRole::Root);
+        let revocation = generate_trusted_key(KeyRole::Revocation, &root);
+
+        let revoked_content = RevocationInfo::new(vec![], datetime!(2025-08-05 00:00 UTC));
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content.add_signature(&revocation.0).unwrap();
+
+        let mut keychain = Keychain::new(root.public()).unwrap();
+
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation.1],
+            revoked_signatures: signed_revoked_content,
+        };
+
+        keychain.load_all(&keys_manifest).unwrap();
+        assert_eq!(
+            keychain.revocation_info.expires_at,
+            datetime!(2025-08-05 00:00 UTC)
+        )
+    }
+
+    #[test]
+    fn test_load_all_revoked_content_one_item() {
+        // Test `load_all` method with RevocationInfo but with one item in the list.
+        // The call to `load_all` should not fail in verifying the revocation key.
+        let root = generate_key(KeyRole::Root);
+        let revocation = generate_trusted_key(KeyRole::Revocation, &root);
+        let revoked_content =
+            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content.add_signature(&revocation.0).unwrap();
+
+        let mut keychain = Keychain::new(root.public()).unwrap();
+
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation.1],
+            revoked_signatures: signed_revoked_content,
+        };
+
+        keychain.load_all(&keys_manifest).unwrap();
+        let actual = keychain
+            .revocation_info
+            .revoked_content_sha256
+            .first()
+            .unwrap();
+        let expected: &Vec<u8> = &vec![1, 2, 3];
+        assert_eq!(actual, expected);
     }
 
     // Utilities

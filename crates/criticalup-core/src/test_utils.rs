@@ -126,7 +126,8 @@ impl TestEnvironmentBuilder {
         };
 
         let mock_server = if self.download_server {
-            let server = start_mock_server(keys.as_ref().unwrap().signed_public_keys());
+            let keys = keys.as_ref().unwrap();
+            let server = start_mock_server(keys.signed_public_keys(), &keys.revocation);
             config.whitelabel.download_server_url = server.url();
             Some(server)
         } else {
@@ -164,6 +165,7 @@ pub(crate) struct TestKeys {
     pub(crate) packages: EphemeralKeyPair,
     pub(crate) releases: EphemeralKeyPair,
     pub(crate) redirects: EphemeralKeyPair,
+    pub(crate) revocation: EphemeralKeyPair,
 
     pub(crate) alternate_trust_root: EphemeralKeyPair,
     pub(crate) alternate_root: EphemeralKeyPair,
@@ -183,6 +185,7 @@ impl TestKeys {
             packages: generate(KeyRole::Packages),
             releases: generate(KeyRole::Releases),
             redirects: generate(KeyRole::Redirects),
+            revocation: generate(KeyRole::Revocation),
 
             alternate_trust_root: generate(KeyRole::Root),
             alternate_root: generate(KeyRole::Root),
@@ -204,6 +207,7 @@ impl TestKeys {
         sign(&self.packages, &[&self.root]);
         sign(&self.releases, &[&self.root]);
         sign(&self.redirects, &[&self.root]);
+        sign(&self.revocation, &[&self.root]);
 
         sign(&self.alternate_root, &[&self.alternate_trust_root]);
         sign(&self.alternate_packages, &[&self.alternate_root]);
@@ -212,7 +216,10 @@ impl TestKeys {
     }
 }
 
-fn start_mock_server(keys: Vec<SignedPayload<PublicKey>>) -> MockServer {
+fn start_mock_server(
+    keys: Vec<SignedPayload<PublicKey>>,
+    revocation_key: &EphemeralKeyPair,
+) -> MockServer {
     use mock_download_server::AuthenticationToken;
 
     let mut builder = mock_download_server::new();
@@ -228,6 +235,8 @@ fn start_mock_server(keys: Vec<SignedPayload<PublicKey>>) -> MockServer {
     for key in keys {
         builder = builder.add_key(key);
     }
+
+    builder = builder.add_revocation_info(revocation_key);
 
     builder.start()
 }
