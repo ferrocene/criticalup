@@ -12,46 +12,46 @@ use std::path::PathBuf;
 /// without wrapping it into a criticalup-specific error.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("could not detect the criticalup root directory")]
+    #[error("Could not detect the criticalup root directory.")]
     CouldNotDetectRootDirectory,
 
-    #[error("could not detect the criticalup cache directory")]
+    #[error("Could not detect the criticalup cache directory.")]
     CouldNotDetectCacheDirectory,
 
-    #[error("failed to download {url}")]
+    #[error("Failed to download {url}.")]
     DownloadServerError {
         url: String,
         #[source]
         kind: DownloadServerError,
     },
 
-    #[error("Network access required, but in offline mode")]
+    #[error("Network access required, but in offline mode.")]
     OfflineMode,
 
-    #[error("Creating `{}`", .0.display())]
+    #[error("Creating `{}`.", .0.display())]
     Create(PathBuf, #[source] std::io::Error),
 
-    #[error("Writing to `{}`", .0.display())]
+    #[error("Writing to `{}`.", .0.display())]
     Write(PathBuf, #[source] std::io::Error),
 
-    #[error("Reading from `{}`", .0.display())]
+    #[error("Reading from `{}`.", .0.display())]
     Read(PathBuf, #[source] std::io::Error),
 
     #[error("JSON Serialization error")]
     JsonSerialization(#[from] serde_json::Error),
 
-    #[error("state file at {} is not supported by this release (state format version {1})", .0.display())]
+    #[error("State file at {} is not supported by this release (state format version {1}).", .0.display())]
     UnsupportedStateFileVersion(PathBuf, u32),
-    #[error("failed to read the criticalup state file at {}", .0.display())]
+    #[error("Failed to read the criticalup state file at {}.", .0.display())]
     CantReadStateFile(PathBuf, #[source] std::io::Error),
-    #[error("failed to write the criticalup state file to {}", .0.display())]
+    #[error("Failed to write the criticalup state file to {}.", .0.display())]
     CantWriteStateFile(PathBuf, #[source] WriteFileError),
-    #[error("failed to parse the criticalup state file at {}, is it corrupt?", .0.display())]
+    #[error("Failed to parse the criticalup state file at {}, is it corrupt?", .0.display())]
     CorruptStateFile(PathBuf, #[source] serde_json::Error),
 
-    #[error("could not find a project manifest in the current or parent directories")]
+    #[error("Could not find a project manifest in the current or parent directories.")]
     ProjectManifestDetectionFailed,
-    #[error("failed to load the project manifest at {} ", .path.display(),)]
+    #[error("Failed to load the project manifest at {}.", .path.display(),)]
     ProjectManifestLoadingFailed {
         path: PathBuf,
         #[source]
@@ -59,41 +59,41 @@ pub enum Error {
         // Otherwise Clippy will tell you to try reducing the size of `errors::Error`.
         kind: Box<ProjectManifestLoadingError>,
     },
-    #[error("failed to create product directory for product {} at {}", .product, .path.display())]
+    #[error("Failed to create product directory for product {} at {}.", .product, .path.display())]
     ProjectManifestProductDirCreationFailed {
         path: PathBuf,
         product: String,
         #[source]
         source: std::io::Error,
     },
-    #[error("installation {} does not exist; please run `criticalup install` again", .0)]
+    #[error("Installation {} does not exist; please run `criticalup install` again.", .0)]
     InstallationDoesNotExist(String),
 
-    #[error("failed to read the project directory; maybe it is missing?")]
+    #[error("Failed to read the project directory; maybe it is missing?")]
     FailedToReadDirectory(#[source] std::io::Error),
 
-    #[error("failed to initialize the keychain used to verify signatures")]
+    #[error("Failed to initialize the keychain used to verify signatures.")]
     KeychainInitFailed(#[source] TrustError),
 
-    #[error("unknown variable substitution: ${{{0}}}")]
+    #[error("Unknown variable substitution: ${{{0}}}.")]
     UnknownVariableSubstitution(String),
-    #[error("unterminated variable")]
+    #[error("Unterminated variable.")]
     UnterminatedVariable,
 
     #[error(transparent)]
     Reqwest(#[from] ReqError),
 
-    #[error("failed to create request to the download server")]
+    #[error("Failed to create request to the download server.")]
     RequestCloningFailed,
 
-    #[error("failed to find canonical path for {}", path.display())]
+    #[error("Failed to find canonical path for {}.", path.display())]
     FailedToFindCanonicalPath {
         path: PathBuf,
         #[source]
         kind: std::io::Error,
     },
 
-    #[error("failed to load keys into keychain")]
+    #[error("Failed to load keys into keychain.")]
     KeychainLoadingFailed(#[source] criticaltrust::Error),
 }
 
@@ -101,48 +101,48 @@ pub enum Error {
 pub enum WriteFileError {
     #[error(transparent)]
     Io(std::io::Error),
-    #[error("failed to create the parent directory")]
+    #[error("Failed to create the parent directory.")]
     CantCreateParentDirectory(#[source] std::io::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum DownloadServerError {
-    #[error("failed to authenticate (missing or wrong authentication token)")]
+    #[error("Failed to authenticate; missing or wrong authentication token.")]
     AuthenticationFailed,
-    #[error("resource not found")]
+    #[error("Resource not found.")]
     NotFound,
-    #[error("invalid request sent to the server")]
+    #[error("Invalid request sent to the server.")]
     BadRequest,
-    #[error("too many requests, please try later (rate limited)")]
+    #[error("Too many requests, please try later (rate limited).")]
     RateLimited,
-    #[error("an internal error occured on the download server (status code {0})")]
+    #[error("Internal error occurred on the download server (status code {0}).")]
     InternalServerError(StatusCode),
-    #[error("the response from the download server was not expected (status code {0})")]
+    #[error("The response from the download server was not expected (status code {0}).")]
     UnexpectedResponseStatus(StatusCode),
-    #[error("the contents in the response from the download server were not expected")]
+    #[error("The contents in the response from the download server were not expected.")]
     UnexpectedResponseData(#[source] serde_json::Error),
-    #[error("failed to send the network request")]
+    #[error("Failed to send the network request.")]
     Network(#[source] reqwest::Error),
-    #[error("failed to send the network request")]
+    #[error("Failed to send the network request.")]
     NetworkWithMiddleware(#[source] reqwest_middleware::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProjectManifestLoadingError {
-    #[error("failed to read the file")]
+    #[error("Failed to read the file.")]
     FailedToRead(#[source] std::io::Error),
-    #[error("failed to parse")]
+    #[error("Failed to parse.")]
     FailedToParse(#[source] toml_edit::de::Error),
 
     #[error(
-        "current version of criticalup does not support multiple products. found {0} products."
+        "Current version of criticalup does not support multiple products; found {0} products."
     )]
     MultipleProductsNotSupportedInProjectManifest(usize),
 
-    #[error("the `manifest-version` in your project manifest \
-        is smaller than what this release of criticalup supports\n  \
-        please change the `manifest-version` to {}\n  \
-        your project manifest version: {}",
+    #[error("The `manifest-version` in your project manifest \
+        is smaller than what this release of criticalup supports.\n  \
+        Please change the `manifest-version` to {}.\n  \
+        Your project manifest version: {}.",
     .default_supported_version,
     .user_version,
     )]
@@ -151,39 +151,39 @@ pub enum ProjectManifestLoadingError {
         default_supported_version: u32,
     },
 
-    #[error("the `manifest-version` in your project manifest \
-        is greater than what this release of criticalup supports\n  \
-        please update criticalup to the latest version\n  \
-        your project manifest version: {}",
+    #[error("The `manifest-version` in your project manifest \
+        is greater than what this release of criticalup supports.\n  \
+        Please update criticalup to the latest version.\n  \
+        Your project manifest version: {}.",
     .user_version,
     )]
     ManifestVersionTooBig { user_version: u32 },
 
-    #[error("the 'packages' list for product '{}' in your project manifest is empty. \
-    please provide at least one package in the 'packages' list.", .product_name)]
+    #[error("The 'packages' list for product '{}' in your project manifest is empty. \
+    Please provide at least one package in the 'packages' list.", .product_name)]
     MissingPackagesInManifestProduct { product_name: String },
 
-    #[error("unknown substitution variable: ${{{0}}}")]
+    #[error("Unknown substitution variable: ${{{0}}}.")]
     UnknownVariableInSubstitution(String),
-    #[error("unterminated substitution")]
+    #[error("Unterminated substitution.")]
     UnterminatedVariableInSubstitution,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum BinaryProxyUpdateError {
-    #[error("failed to list the {} directory", .0.display())]
+    #[error("Failed to list the {} directory.", .0.display())]
     ListDirectoryFailed(PathBuf, #[source] std::io::Error),
-    #[error("failed to inspect {}", .0.display())]
+    #[error("Failed to inspect {}.", .0.display())]
     InspectFailed(PathBuf, #[source] std::io::Error),
-    #[error("failed to remove unexpected path {}", .0.display())]
+    #[error("Failed to remove unexpected path {}.", .0.display())]
     UnexpectedPathRemovalFailed(PathBuf, #[source] std::io::Error),
-    #[error("failed to create a symlink from {} to {}", .source.display(), .dest.display())]
+    #[error("Failed to create a symlink from {} to {}.", .source.display(), .dest.display())]
     SymlinkFailed {
         source: PathBuf,
         dest: PathBuf,
         #[source]
         inner: std::io::Error,
     },
-    #[error("failed to create the parent directory {}", .0.display())]
+    #[error("Failed to create the parent directory {}.", .0.display())]
     ParentDirectoryCreationFailed(PathBuf, #[source] std::io::Error),
 }

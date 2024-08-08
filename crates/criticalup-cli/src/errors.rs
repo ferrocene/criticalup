@@ -25,19 +25,19 @@ pub(crate) enum Error {
     #[error(transparent)]
     JoinPaths(#[from] std::env::JoinPathsError),
 
-    #[error("exiting with code {0}")]
+    #[error("Exiting with code {0}.")]
     Exit(i32),
-    #[error("failed to parse command line arguments")]
+    #[error("Failed to parse command line arguments.")]
     CliArgumentParsing(#[source] clap::Error),
 
-    #[error("failed to read the token from stdin")]
+    #[error("Failed to read the token from stdin.")]
     CantReadTokenFromStdin(#[source] std::io::Error),
-    #[error("invalid authentication token provided")]
+    #[error("Invalid authentication token provided.")]
     InvalidAuthenticationToken,
 
-    #[error("some files did not pass the integrity checks after the download\n \
-        please clean your installation directory and re-install the project again\n \
-        the following errors were found:\n\n{}",
+    #[error("Some files did not pass the integrity checks after the download.\n \
+        Please clean your installation directory and re-install the project again.\n \
+        The following errors were found:\n\n{}",
       .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
     )]
     IntegrityErrorsWhileInstallation(Vec<IntegrityError>),
@@ -47,7 +47,7 @@ pub(crate) enum Error {
 
     #[error("arg0 is not encoded in UTF-8")]
     NonUtf8Arg0,
-    #[error("failed to invoke proxied command {}", .0.display())]
+    #[error("Failed to invoke proxied command {}.", .0.display())]
     FailedToInvokeProxiedCommand(PathBuf, #[source] std::io::Error),
     #[error(
         "'{0}' is not installed for this project.\n\n\
@@ -62,50 +62,50 @@ pub(crate) enum Error {
     BinaryProxyInvocationFailed(#[source] Box<Error>),
 
     #[error(
-        "dependencies are not supported in the current criticalup release.\n \
-            found package {0} with dependencies in the manifest.\n \
-            please updated criticalup to the latest version to resolve this error."
+        "Dependencies are not supported in the current criticalup release.\n \
+            Found package {0} with dependencies in the manifest.\n \
+            Please updated criticalup to the latest version to resolve this error."
     )]
     PackageDependenciesNotSupported(String),
 
-    #[error("there was an error while trying to delete the unused installation directory at {}", path.display())]
+    #[error("There was an error while trying to delete the unused installation directory at {}.", path.display())]
     DeletingUnusedInstallationDir {
         path: PathBuf,
         #[source]
         kind: std::io::Error,
     },
 
-    #[error("there was an error while trying to delete the untracked installation directory at {}", path.display())]
+    #[error("There was an error while trying to delete the untracked installation directory at {}.", path.display())]
     DeletingUntrackedInstallationDir {
         path: PathBuf,
         #[source]
         kind: std::io::Error,
     },
 
-    #[error("Parsing tracing directives")]
+    #[error("Parsing tracing directives.")]
     EnvFilter(
         #[from]
         #[source]
         tracing_subscriber::filter::ParseError,
     ),
 
-    #[error("Parsing tracing directives from environment")]
+    #[error("Parsing tracing directives from environment.")]
     FromEnv(
         #[from]
         #[source]
         tracing_subscriber::filter::FromEnvError,
     ),
 
-    #[error("Initializing tracing")]
+    #[error("Initializing tracing.")]
     TryInit(
         #[from]
         #[source]
         tracing_subscriber::util::TryInitError,
     ),
 
-    #[error("failed to run install command")]
+    #[error("Failed to run install command.")]
     RevocationSignatureExpired(#[source] criticaltrust::Error),
-    #[error("failed to install package '{}'", .0)]
+    #[error("Failed to install package '{}'.", .0)]
     RevocationCheckFailed(String, #[source] criticaltrust::Error),
 
     #[cfg(windows)]
