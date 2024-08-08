@@ -36,7 +36,7 @@ pub fn new() -> Builder {
             keys: Vec::new(),
             revoked_signatures: SignedPayload::new(&RevocationInfo::new(
                 Vec::new(),
-                datetime!(2025-01-01 0:00 UTC),
+                datetime!(3025-01-01 0:00 UTC),
             ))
             .unwrap(),
             release_manifests: HashMap::new(),
