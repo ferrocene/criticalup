@@ -4,9 +4,11 @@
 use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Collection of all trusted public keys.
+#[derive(Serialize, Deserialize)]
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
 }

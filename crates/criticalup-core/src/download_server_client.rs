@@ -52,6 +52,7 @@ impl DownloadServerClient {
         .await
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_keys(&self) -> Result<Keychain, Error> {
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
 
@@ -68,6 +69,10 @@ impl DownloadServerClient {
         Ok(keychain)
     }
 
+    #[tracing::instrument(level = "debug", skip_all, fields(
+        %product,
+        %release,
+    ))]
     pub async fn get_product_release_manifest(
         &self,
         product: &str,
@@ -81,6 +86,12 @@ impl DownloadServerClient {
         .await
     }
 
+    #[tracing::instrument(level = "debug", skip_all, fields(
+        %product,
+        %release,
+        %package,
+        %format
+    ))]
     pub async fn download_package(
         &self,
         product: &str,
@@ -93,6 +104,7 @@ impl DownloadServerClient {
         let download_url =
             format!("/v1/releases/{product}/{release}/download/{package}/{artifact_format}");
 
+        tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
         let response = self
             .send_with_auth(self.client.get(self.url(download_url.as_str())))
             .await?;

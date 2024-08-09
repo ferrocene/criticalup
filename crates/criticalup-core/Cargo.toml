@@ -21,6 +21,7 @@ dirs = { version = "5.0.1", default-features = false }
 tokio.workspace = true
 reqwest-middleware.workspace = true
 reqwest-retry.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 mock-download-server = { path = "../mock-download-server" }

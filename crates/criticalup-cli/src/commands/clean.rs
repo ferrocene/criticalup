@@ -14,13 +14,22 @@ pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
     let installations_dir = &ctx.config.paths.installation_dir;
     let state = State::load(&ctx.config).await?;
 
+    delete_cache_directory(&ctx.config.paths.cache_dir).await?;
     delete_unused_installations(installations_dir, &state).await?;
     delete_untracked_installation_dirs(installations_dir, state).await?;
 
     Ok(())
 }
 
-/// Deletes installation from `State` wl; ith `InstallationId`s that have empty manifest section, and
+async fn delete_cache_directory(cache_dir: &Path) -> Result<(), Error> {
+    if cache_dir.exists() {
+        tracing::info!("Cleaning cache directory");
+        tokio::fs::remove_dir_all(&cache_dir).await?;
+    }
+    Ok(())
+}
+
+/// Deletes installation from `State` with `InstallationId`s that have empty manifest section, and
 /// deletes the installation directory from the disk if present.
 async fn delete_unused_installations(installations_dir: &Path, state: &State) -> Result<(), Error> {
     let unused_installations: Vec<InstallationId> = state
