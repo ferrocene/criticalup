@@ -136,13 +136,17 @@ impl<'a> IntegrityVerifier<'a> {
         found: &FoundPackageManifest,
         contents: &[u8],
     ) -> Result<(), IntegrityError> {
+        let revocation_info = self
+            .keychain
+            .revocation_info()
+            .ok_or_else(|| IntegrityError::MissingRevocationInfo)?;
         let manifest = serde_json::from_slice::<PackageManifest>(contents)
             .map_err(|e| IntegrityError::PackageManifestDeserialization {
                 path: path.into(),
                 inner: e,
             })?
             .signed
-            .into_verified(self.keychain, self.keychain.revocation_info())
+            .into_verified(self.keychain, &revocation_info)
             .map_err(|e| IntegrityError::PackageManifestVerification {
                 path: path.into(),
                 inner: e,

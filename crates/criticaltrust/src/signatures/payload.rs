@@ -383,7 +383,7 @@ mod tests {
         assert_eq!(
             42,
             payload
-                .get_verified(test_env.keychain(), test_env.revocation_info())
+                .get_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
                 .unwrap()
                 .answer
         );
@@ -396,7 +396,7 @@ mod tests {
             payload
                 .get_verified(
                     TestEnvironment::prepare().keychain(),
-                    test_env.revocation_info()
+                    &test_env.revocation_info().unwrap()
                 )
                 .unwrap()
                 .answer
@@ -412,63 +412,53 @@ mod tests {
 
         let payload = prepare_payload(&[&key], r#"{"answer": 42"#);
         assert!(matches!(
-            payload.get_verified(test_env.keychain(), test_env.revocation_info()),
+            payload.get_verified(test_env.keychain(), &test_env.revocation_info().unwrap()),
             Err(Error::DeserializationFailed(_))
         ));
 
         let payload = prepare_payload(&[&key], r#"{"answer": 42"#);
         assert!(matches!(
-            payload.into_verified(test_env.keychain(), test_env.revocation_info()),
+            payload.into_verified(test_env.keychain(), &test_env.revocation_info().unwrap()),
             Err(Error::DeserializationFailed(_))
         ));
     }
 
     #[test]
     fn test_verify_deserialized() {
-        let mut keychain = Keychain::new(
-            &serde_json::from_str(
-                r#"{
-                    "role": "root",
-                    "algorithm": "ecdsa-p256-sha256-asn1-spki-der",
-                    "expiry": null,
-                    "public": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE+S7QgNLkBo2VEMdZXowZUFmvQJMm6qoQtC33hvDB95HpjPXd50eBEUnEuVRye5qC84K7ZHpoAXWf5BzmcFtvVg=="
-                }"#,
-            )
-            .unwrap(),
+        let root_key: PublicKey = serde_json::from_str(
+            r#"{"role":"root","algorithm":"ecdsa-p256-sha256-asn1-spki-der","expiry":null,"public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPwr988+ZhlrVMKaCuj7gAqoMfQs5dzJvmLD8fKkdetvGxAY1ZsoeNCzoCNVrRv3StBYI3XsDX+CZ+DbmhcMFng=="}"#,
         ).unwrap();
 
-        keychain.load(
-            &serde_json::from_str(
-                r#"{
-                    "signatures": [
-                        {
-                            "key_sha256": "oWLXbXl20A0Z5MNOcEC4vNjHxT3IHAo9ExDYMAyHatU=",
-                            "signature": "MEUCIQDY3xkoVYowUQBSnHddpWVdlG9FufeucTasX9YJNOzPsQIgRj99gqJioVB6TLa9gdmPezFG68CC+tAkqGA9GwfVurs="
-                        }
-                    ],
-                    "signed": "{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExmWCqNu5ClVwVgoMYU/cRUTTohljVT5yJy5InJPzXaXRQS7zT5WaTUxzJQqfDc7+nUgEZ6Z6XbxzG72yffrckA==\"}"
-                }"#,
-            )
-            .unwrap(),
+        let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+                {"signatures":[{"key_sha256":"8fv93bY1AN2az0b31s2ShFo7taWPHOCg9RuF1TQGjW8=","signature":"MEQCICV7uBjmOf7pxySSCCtfhvx+7uMqQSkW1j0s0Fi8UxydAiAOOHcCsuOtqCoDaSTZFI7oqiCKRMI589D40yTXudmGdA=="}],"signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhbAs2Otw4i0shimMnRx0dOlaif/pQqaZdyHIhQXhKvLIgolFSBumhJx0GKL5te+iGQQD/eSBkItRaDsMElQWhw==\"}"}
+                "#
+        ).unwrap();
+
+        let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"{"signatures":[{"key_sha256":"8fv93bY1AN2az0b31s2ShFo7taWPHOCg9RuF1TQGjW8=","signature":"MEUCIHuIOtLLe8bQZCuGdsb2Hz7+UK9JN66wh1HdkXNxrRleAiEAuP+8pWdNElS2BdoSB8qEOoU5vIlYNKyoRFTiOh437Yo="}],"signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWTsJ7a4+yRfs1GAfkXfWS4TloCdbHBIS/QhM4g/YuLI3EJdE6xiUo7nOT2hOrZyBwWjyiD7IJzmec/RzV48jyQ==\"}"}"#
         ).unwrap();
 
         let payload: SignedPayload<TestData> = serde_json::from_str(
-            r#"{
-                "signatures": [
-                    {
-                        "key_sha256": "xzcGUBKHYDGbucyvirl6dhsDXPCxQR/4/PRKiL9Qz2A=",
-                        "signature": "MEYCIQCToeOQpzoZxYSBaBcb1Ko+NFtr4/fmLwaTrrvuWagzQgIhAO8AvDZHk+osFj0Wag5MU9CzQeXgCi4Cr8FCk4KhKVX6"
-                    }
-                ],
-                "signed": "{\"answer\":42}"
-            }"#,
+            r#"{"signatures":[{"key_sha256":"QwiR8ZvIGajekpgRCKwIl8tuZa0ev2aF29cK3oDrprA=","signature":"MEUCIA0Okxh3u7iX84aIL6Y39mQUhY9JpaVgELqJ1j4Fs6WMAiEA68msF14+G2Pa6m58HuOwNQjNl2Xel5g9IfSS8ilCwQo="}],"signed":"{\"answer\":42}"}"#,
         ).unwrap();
 
-        let revocation_info = keychain.revocation_info();
+        let revoked_signatures = serde_json::from_str(r#"
+        {"signatures":[{"key_sha256":"lAlOsF9oweacMa2h8ZRABi2OPgCQGGd/dOuMFz0UEaI=","signature":"MEUCIAOLHSyjAo7U7HqbhiqOBAYRhvBhFB5scVZhdQv19Gb1AiEAzg7bdYxgrNEW5Sh0TU6j+c41SQzj5AztnbwhuS3v2Yg="}],"signed":"{\"revoked_content_sha256\":[[57,55,54,101,97,97,99,53,53,99,101,102,102,50,49,53,53,48,99,55,100,52,97,57,100,52,97,101,100,101,52,101,48,49,102,48,57,100,99,57,53,51,48,48,57,51,97,98,98,57,102,49,100,48,56,53,101,49,48,50,51,99,55,49]],\"expires_at\":\"2025-08-05T00:00:00Z\"}"}
+        "#).unwrap();
+
+        let km = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation_key, packages_key],
+            revoked_signatures,
+        };
+
+        let mut keychain = Keychain::new(&root_key).unwrap();
+        keychain.load_all(&km).unwrap();
         assert_eq!(
             42,
             payload
-                .get_verified(&keychain, revocation_info)
+                .get_verified(&keychain, &keychain.revocation_info().unwrap())
                 .unwrap()
                 .answer
         );
@@ -529,8 +519,7 @@ mod tests {
             "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
             "expiry":null,
             "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECWHCWK690xv1riGZVu5NtBaDinbHndmOvwYAO71qTEZUC/sI5zWcjI1EedPl7zRidfLToVGvqU/DDMcMg6o0dA=="}
-            "#).unwrap()
-        ).unwrap();
+            "#).unwrap()).unwrap();
 
         let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"{
@@ -560,7 +549,11 @@ mod tests {
         };
 
         assert!(keychain.load_all(&km).is_ok());
-        assert!(keychain.revocation_info().revoked_content_sha256.is_empty());
+        assert!(keychain
+            .revocation_info()
+            .unwrap()
+            .revoked_content_sha256
+            .is_empty());
     }
 
     #[test]
@@ -573,8 +566,7 @@ mod tests {
             "expiry":null,
             "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEsmIrrJH8LARwp79Qh6w9cEAFVS/QwDpbJwHQwyGC7LiAFvXpox2Whn2zgVKgs2ehLSCnNNdqDH6H+WTDfcU91Q=="}
             "#
-            ).unwrap()
-        ).unwrap();
+            ).unwrap()).unwrap();
 
         let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"
@@ -604,7 +596,14 @@ mod tests {
         };
 
         assert!(keychain.load_all(&km).is_ok());
-        assert_eq!(keychain.revocation_info().revoked_content_sha256.len(), 1);
+        assert_eq!(
+            keychain
+                .revocation_info()
+                .unwrap()
+                .revoked_content_sha256
+                .len(),
+            1
+        );
 
         let s: SignedPayload<String> = serde_json::from_str(
             r#"
@@ -616,7 +615,7 @@ mod tests {
 
         // Since the payload is in the revoked signatures, this verification will fail.
         assert!(matches!(
-            s.get_verified(&keychain, keychain.revocation_info()),
+            s.get_verified(&keychain, &keychain.revocation_info().unwrap()),
             Err(Error::VerificationFailed)
         ));
     }
@@ -630,8 +629,7 @@ mod tests {
               "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
               "expiry":null,
               "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEysuTQtxZPS8brgpNB9drJEVKAw/VKgMBNwj8Z9rgJu2gZvs3lhScO6PYLJF4RlYOeroVKJ5iTQAwvS5+f8fuPw=="}
-             "#).unwrap()
-        ).unwrap();
+             "#).unwrap()).unwrap();
 
         let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
             r#"
@@ -663,7 +661,14 @@ mod tests {
         };
 
         assert!(keychain.load_all(&km).is_ok());
-        assert_eq!(keychain.revocation_info().revoked_content_sha256.len(), 0);
+        assert_eq!(
+            keychain
+                .revocation_info()
+                .unwrap()
+                .revoked_content_sha256
+                .len(),
+            0
+        );
 
         let s: SignedPayload<String> = serde_json::from_str(
             r#"
@@ -675,7 +680,7 @@ mod tests {
 
         // Since revocation info has a date that is long passed, the error is about expiration of signatures.
         assert!(matches!(
-            s.get_verified(&keychain, keychain.revocation_info()),
+            s.get_verified(&keychain, &keychain.revocation_info().unwrap()),
             Err(Error::SignaturesExpired)
         ));
     }
@@ -688,7 +693,7 @@ mod tests {
         assert_eq!(
             42,
             get_payload
-                .get_verified(test_env.keychain(), test_env.revocation_info())
+                .get_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
                 .unwrap()
                 .answer
         );
@@ -698,7 +703,7 @@ mod tests {
         assert_eq!(
             42,
             into_payload
-                .into_verified(test_env.keychain(), test_env.revocation_info())
+                .into_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
                 .unwrap()
                 .answer
         );
@@ -709,7 +714,7 @@ mod tests {
         let get_payload = prepare_payload(keys, SAMPLE_DATA);
         assert!(matches!(
             get_payload
-                .get_verified(test_env.keychain(), test_env.revocation_info())
+                .get_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
                 .unwrap_err(),
             Error::VerificationFailed
         ));
@@ -718,7 +723,7 @@ mod tests {
         let into_payload = prepare_payload(keys, SAMPLE_DATA);
         assert!(matches!(
             into_payload
-                .into_verified(test_env.keychain(), test_env.revocation_info())
+                .into_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
                 .unwrap_err(),
             Error::VerificationFailed
         ));

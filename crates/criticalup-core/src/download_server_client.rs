@@ -53,10 +53,10 @@ impl DownloadServerClient {
     }
 
     pub async fn get_keys(&self) -> Result<Keychain, Error> {
-        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
         let resp: KeysManifest = self
             .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
             .await?;
+        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
         let _ = keychain.load_all(&resp);
         Ok(keychain)
     }

@@ -7,12 +7,11 @@ use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use std::collections::HashMap;
-use time::macros::datetime;
 
 /// Collection of all trusted public keys.
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
-    revocation_info: RevocationInfo,
+    revocation_info: Option<RevocationInfo>,
 }
 
 impl Keychain {
@@ -24,10 +23,7 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
-            revocation_info: RevocationInfo::new(
-                Vec::<Vec<u8>>::new(),
-                datetime!(2025-01-01 0:00 UTC),
-            ),
+            revocation_info: None,
         };
 
         if trust_root.role != KeyRole::Root {
@@ -42,8 +38,8 @@ impl Keychain {
         &self.keys
     }
 
-    pub fn revocation_info(&self) -> &RevocationInfo {
-        &self.revocation_info
+    pub fn revocation_info(&self) -> Option<RevocationInfo> {
+        self.revocation_info.clone()
     }
 
     /// Load the following into [`Keychain`] provided the [`KeysManifest`].
@@ -59,7 +55,7 @@ impl Keychain {
         let revocation_info = keys_manifest
             .revoked_signatures
             .get_verified_no_revocations_check(self)?;
-        self.revocation_info = revocation_info.clone();
+        self.revocation_info = Some(revocation_info.clone());
 
         Ok(())
     }
@@ -95,6 +91,7 @@ mod tests {
     use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair};
     use crate::manifests::ManifestVersion;
     use crate::signatures::{Signable, SignedPayload};
+    use time::macros::datetime;
 
     #[test]
     fn test_new_with_root_key_as_trust_root() {
@@ -220,7 +217,7 @@ mod tests {
 
         keychain.load_all(&keys_manifest).unwrap();
         assert_eq!(
-            keychain.revocation_info.expires_at,
+            keychain.revocation_info.unwrap().expires_at,
             datetime!(2025-08-05 00:00 UTC)
         )
     }
@@ -245,11 +242,8 @@ mod tests {
         };
 
         keychain.load_all(&keys_manifest).unwrap();
-        let actual = keychain
-            .revocation_info
-            .revoked_content_sha256
-            .first()
-            .unwrap();
+        let binding = keychain.revocation_info.unwrap();
+        let actual = binding.revoked_content_sha256.first().unwrap();
         let expected: &Vec<u8> = &vec![1, 2, 3];
         assert_eq!(actual, expected);
     }

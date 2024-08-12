@@ -42,6 +42,9 @@ pub(crate) enum Error {
     )]
     IntegrityErrorsWhileInstallation(Vec<IntegrityError>),
 
+    #[error(transparent)]
+    MissingRevocationInfo(#[from] IntegrityError),
+
     #[error("arg0 is not encoded in UTF-8")]
     NonUtf8Arg0,
     #[error("failed to invoke proxied command {}", .0.display())]

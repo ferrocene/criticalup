@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use owo_colors::OwoColorize;
 
-use criticaltrust::integrity::IntegrityVerifier;
+use criticaltrust::integrity::{IntegrityError, IntegrityVerifier};
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
@@ -77,7 +77,9 @@ async fn install_product_afresh(
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let client = DownloadServerClient::new(&ctx.config, state);
     let keys = client.get_keys().await?;
-    let revocation_info = &keys.revocation_info();
+    let revocation_info = &keys
+        .revocation_info()
+        .ok_or_else(|| Error::MissingRevocationInfo(IntegrityError::MissingRevocationInfo))?;
 
     // TODO: Add tracing to support log levels, structured logging.
     println!(

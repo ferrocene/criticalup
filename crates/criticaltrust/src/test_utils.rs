@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
+use crate::manifests::{KeysManifest, ManifestVersion};
 use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Keychain, SignedPayload};
 use base64::Engine;
+use time::macros::datetime;
 use time::{Duration, OffsetDateTime};
 
 const ALGORITHM: KeyAlgorithm = KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer;
@@ -17,7 +19,26 @@ pub(crate) struct TestEnvironment {
 impl TestEnvironment {
     pub(crate) fn prepare() -> Self {
         let root = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
-        let keychain = Keychain::new(root.public()).unwrap();
+
+        let revocation_key =
+            EphemeralKeyPair::generate(ALGORITHM, KeyRole::Revocation, None).unwrap();
+        let mut signed_revocation_key = SignedPayload::new(revocation_key.public()).unwrap();
+        signed_revocation_key.add_signature(&root).unwrap();
+
+        let mut revoked_signatures = SignedPayload::new(&RevocationInfo::new(
+            vec![],
+            datetime!(2400-10-10 00:00 UTC),
+        ))
+        .unwrap();
+        revoked_signatures.add_signature(&revocation_key).unwrap();
+
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![signed_revocation_key],
+            revoked_signatures,
+        };
+        let mut keychain = Keychain::new(root.public()).unwrap();
+        keychain.load_all(&keys_manifest).unwrap();
         Self { root, keychain }
     }
 
@@ -25,7 +46,7 @@ impl TestEnvironment {
         &self.keychain
     }
 
-    pub(crate) fn revocation_info(&self) -> &RevocationInfo {
+    pub(crate) fn revocation_info(&self) -> Option<RevocationInfo> {
         self.keychain.revocation_info()
     }
 
