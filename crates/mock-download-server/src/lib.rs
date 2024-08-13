@@ -12,7 +12,10 @@ use criticaltrust::signatures::SignedPayload;
 use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use time::macros::datetime;
+use time::{Duration, OffsetDateTime};
+
+// Make sure there is enough number of days for expiration so tests don't need constant updates.
+const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "kebab-case")]
@@ -36,7 +39,7 @@ pub fn new() -> Builder {
             keys: Vec::new(),
             revoked_signatures: SignedPayload::new(&RevocationInfo::new(
                 Vec::new(),
-                datetime!(3025-01-01 0:00 UTC),
+                OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
             ))
             .unwrap(),
             release_manifests: HashMap::new(),

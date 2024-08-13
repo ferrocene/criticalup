@@ -6,10 +6,11 @@ use crate::manifests::{KeysManifest, ManifestVersion};
 use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Keychain, SignedPayload};
 use base64::Engine;
-use time::macros::datetime;
 use time::{Duration, OffsetDateTime};
 
 const ALGORITHM: KeyAlgorithm = KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer;
+// Make sure there is enough number of days for expiration so tests don't need constant updates.
+const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
 pub(crate) struct TestEnvironment {
     root: EphemeralKeyPair,
@@ -25,11 +26,9 @@ impl TestEnvironment {
         let mut signed_revocation_key = SignedPayload::new(revocation_key.public()).unwrap();
         signed_revocation_key.add_signature(&root).unwrap();
 
-        let mut revoked_signatures = SignedPayload::new(&RevocationInfo::new(
-            vec![],
-            datetime!(2400-10-10 00:00 UTC),
-        ))
-        .unwrap();
+        let expiration_datetime = OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS;
+        let mut revoked_signatures =
+            SignedPayload::new(&RevocationInfo::new(vec![], expiration_datetime)).unwrap();
         revoked_signatures.add_signature(&revocation_key).unwrap();
 
         let keys_manifest = KeysManifest {

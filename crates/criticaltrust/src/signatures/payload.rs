@@ -243,9 +243,11 @@ mod tests {
     use crate::manifests::{KeysManifest, ManifestVersion};
     use crate::signatures::Keychain;
     use crate::test_utils::{base64_encode, TestEnvironment};
-    use time::macros::datetime;
+    use time::{Duration, OffsetDateTime};
 
     const SAMPLE_DATA: &str = r#"{"answer":42}"#;
+    // Make sure there is enough number of days for expiration so tests don't need constant updates.
+    const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
     #[test]
     fn tets_verify_no_signatures() {
@@ -470,8 +472,10 @@ mod tests {
     fn test_verify_revocation_info() {
         let mut test_env = TestEnvironment::prepare();
         let key_revocation = test_env.create_key(KeyRole::Revocation);
-        let revoked_content =
-            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let revoked_content = RevocationInfo::new(
+            vec![vec![1, 2, 3]],
+            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
+        );
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&key_revocation)
@@ -492,8 +496,10 @@ mod tests {
     fn test_verify_revocation_info_incorrect_keyrole() {
         let mut test_env = TestEnvironment::prepare();
         let key_not_revocation_role = test_env.create_key(KeyRole::Packages);
-        let revoked_content =
-            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let revoked_content = RevocationInfo::new(
+            vec![vec![1, 2, 3]],
+            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
+        );
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&key_not_revocation_role)

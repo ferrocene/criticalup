@@ -92,6 +92,10 @@ mod tests {
     use crate::manifests::ManifestVersion;
     use crate::signatures::{Signable, SignedPayload};
     use time::macros::datetime;
+    use time::{Duration, OffsetDateTime};
+
+    // Make sure there is enough number of days for expiration so tests don't need constant updates.
+    const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
     #[test]
     fn test_new_with_root_key_as_trust_root() {
@@ -203,7 +207,7 @@ mod tests {
         let root = generate_key(KeyRole::Root);
         let revocation = generate_trusted_key(KeyRole::Revocation, &root);
 
-        let revoked_content = RevocationInfo::new(vec![], datetime!(2025-08-05 00:00 UTC));
+        let revoked_content = RevocationInfo::new(vec![], datetime!(2400-10-10 00:00 UTC));
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content.add_signature(&revocation.0).unwrap();
 
@@ -218,7 +222,7 @@ mod tests {
         keychain.load_all(&keys_manifest).unwrap();
         assert_eq!(
             keychain.revocation_info.unwrap().expires_at,
-            datetime!(2025-08-05 00:00 UTC)
+            datetime!(2400-10-10 00:00 UTC)
         )
     }
 
@@ -228,8 +232,10 @@ mod tests {
         // The call to `load_all` should not fail in verifying the revocation key.
         let root = generate_key(KeyRole::Root);
         let revocation = generate_trusted_key(KeyRole::Revocation, &root);
-        let revoked_content =
-            RevocationInfo::new(vec![vec![1, 2, 3]], datetime!(2025-08-05 00:00 UTC));
+        let revoked_content = RevocationInfo::new(
+            vec![vec![1, 2, 3]],
+            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
+        );
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content.add_signature(&revocation.0).unwrap();
 
