@@ -3,8 +3,7 @@
 
 use crate::keys::newtypes::{PayloadBytes, SignatureBytes};
 use crate::keys::{KeyId, KeyPair, KeyRole, PublicKey};
-use crate::revocation_info::RevocationInfo;
-use crate::{Error, NoRevocationsCheck};
+use crate::Error;
 use serde::{Deserialize, Serialize};
 use std::cell::{Ref, RefCell};
 
@@ -58,11 +57,7 @@ impl<T: Signable> SignedPayload<T> {
     /// As signature verification and deserialization is expensive, it is only performed the first
     /// time the method is called. The cached results from the initial call will be returned in the
     /// rest of the cases.
-    pub fn get_verified(
-        &self,
-        keys: &dyn PublicKeysRepository,
-        revocation_info: &RevocationInfo,
-    ) -> Result<Ref<'_, T>, Error> {
+    pub fn get_verified(&self, keys: &dyn PublicKeysRepository) -> Result<Ref<'_, T>, Error> {
         let borrow = self.verified_deserialized.borrow();
 
         if borrow.is_none() {
@@ -70,7 +65,6 @@ impl<T: Signable> SignedPayload<T> {
                 keys,
                 &self.signatures,
                 PayloadBytes::borrowed(self.signed.as_bytes()),
-                revocation_info,
             )?;
 
             // In theory, `borrow_mut()` could panic if an immutable borrow was alive at the same
@@ -91,64 +85,11 @@ impl<T: Signable> SignedPayload<T> {
     /// [`get_verified`](Self::get_verified) method), the cached deserialized payload will be
     /// returned. Otherwise, signature verification will be performed with the provided keychain
     /// before deserializing.
-    pub fn into_verified(
-        self,
-        keys: &dyn PublicKeysRepository,
-        revocation_info: &RevocationInfo,
-    ) -> Result<T, Error> {
+    pub fn into_verified(self, keys: &dyn PublicKeysRepository) -> Result<T, Error> {
         if let Some(deserialized) = self.verified_deserialized.into_inner() {
             Ok(deserialized)
         } else {
             verify_signature(
-                keys,
-                &self.signatures,
-                PayloadBytes::borrowed(self.signed.as_bytes()),
-                revocation_info,
-            )
-        }
-    }
-}
-
-impl<T: Signable + NoRevocationsCheck> SignedPayload<T> {
-    /// Use this to verify only signed payloads that inherently do not require revocations checks.
-    /// Examples include Keys in the KeysManifest. Rest all should be checked with RevocationInfo
-    /// using [`SignedPayload::get_verified`].
-    pub fn get_verified_no_revocations_check(
-        &self,
-        keys: &dyn PublicKeysRepository,
-    ) -> Result<Ref<'_, T>, Error> {
-        let borrow = self.verified_deserialized.borrow();
-
-        if borrow.is_none() {
-            let value = verify_signature_no_revocations_check(
-                keys,
-                &self.signatures,
-                PayloadBytes::borrowed(self.signed.as_bytes()),
-            )?;
-
-            // In theory, `borrow_mut()` could panic if an immutable borrow was alive at the same
-            // time. In practice that won't happen, as we only populate the cache before returning
-            // any reference to the cached data.
-            drop(borrow);
-            *self.verified_deserialized.borrow_mut() = Some(value)
-        }
-
-        Ok(Ref::map(self.verified_deserialized.borrow(), |b| {
-            b.as_ref().unwrap()
-        }))
-    }
-
-    /// Use this to verify only signed payloads that inherently do not require revocations checks.
-    /// Examples include Keys in the KeysManifest. Rest all should be checked with RevocationInfo
-    /// using [`SignedPayload::into_verified`].
-    pub fn into_verified_no_revocations_check(
-        self,
-        keys: &dyn PublicKeysRepository,
-    ) -> Result<T, Error> {
-        if let Some(deserialized) = self.verified_deserialized.into_inner() {
-            Ok(deserialized)
-        } else {
-            verify_signature_no_revocations_check(
                 keys,
                 &self.signatures,
                 PayloadBytes::borrowed(self.signed.as_bytes()),
@@ -161,7 +102,6 @@ fn verify_signature<T: Signable>(
     keys: &dyn PublicKeysRepository,
     signatures: &[Signature],
     signed: PayloadBytes<'_>,
-    revocation_info: &RevocationInfo,
 ) -> Result<T, Error> {
     for signature in signatures {
         let key = match keys.get(&signature.key_sha256) {
@@ -169,37 +109,7 @@ fn verify_signature<T: Signable>(
             None => continue,
         };
 
-        match key.verify(
-            T::SIGNED_BY_ROLE,
-            &signed,
-            &signature.signature,
-            revocation_info,
-        ) {
-            Ok(()) => {}
-            Err(Error::VerificationFailed) => continue,
-            Err(other) => return Err(other),
-        }
-
-        // Deserialization is performed after the signature is verified, to ensure we are not
-        // deserializing malicious data.
-        return serde_json::from_slice(signed.as_bytes()).map_err(Error::DeserializationFailed);
-    }
-
-    Err(Error::VerificationFailed)
-}
-
-fn verify_signature_no_revocations_check<T: Signable + NoRevocationsCheck>(
-    keys: &dyn PublicKeysRepository,
-    signatures: &[Signature],
-    signed: PayloadBytes<'_>,
-) -> Result<T, Error> {
-    for signature in signatures {
-        let key = match keys.get(&signature.key_sha256) {
-            Some(key) => key,
-            None => continue,
-        };
-
-        match key.verify_no_revocations_check(T::SIGNED_BY_ROLE, &signed, &signature.signature) {
+        match key.verify(T::SIGNED_BY_ROLE, &signed, &signature.signature) {
             Ok(()) => {}
             Err(Error::VerificationFailed) => continue,
             Err(other) => return Err(other),
@@ -241,6 +151,7 @@ mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, PublicKey};
     use crate::manifests::{KeysManifest, ManifestVersion};
+    use crate::revocation_info::RevocationInfo;
     use crate::signatures::Keychain;
     use crate::test_utils::{base64_encode, TestEnvironment};
     use time::{Duration, OffsetDateTime};
@@ -384,10 +295,7 @@ mod tests {
 
         assert_eq!(
             42,
-            payload
-                .get_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
-                .unwrap()
-                .answer
+            payload.get_verified(test_env.keychain()).unwrap().answer
         );
 
         // If there was no caching, this method call would fail, as there is no valid key to
@@ -396,10 +304,7 @@ mod tests {
         assert_eq!(
             42,
             payload
-                .get_verified(
-                    TestEnvironment::prepare().keychain(),
-                    &test_env.revocation_info().unwrap()
-                )
+                .get_verified(TestEnvironment::prepare().keychain())
                 .unwrap()
                 .answer
         );
@@ -414,13 +319,13 @@ mod tests {
 
         let payload = prepare_payload(&[&key], r#"{"answer": 42"#);
         assert!(matches!(
-            payload.get_verified(test_env.keychain(), &test_env.revocation_info().unwrap()),
+            payload.get_verified(test_env.keychain()),
             Err(Error::DeserializationFailed(_))
         ));
 
         let payload = prepare_payload(&[&key], r#"{"answer": 42"#);
         assert!(matches!(
-            payload.into_verified(test_env.keychain(), &test_env.revocation_info().unwrap()),
+            payload.into_verified(test_env.keychain()),
             Err(Error::DeserializationFailed(_))
         ));
     }
@@ -457,13 +362,7 @@ mod tests {
 
         let mut keychain = Keychain::new(&root_key).unwrap();
         keychain.load_all(&km).unwrap();
-        assert_eq!(
-            42,
-            payload
-                .get_verified(&keychain, &keychain.revocation_info().unwrap())
-                .unwrap()
-                .answer
-        );
+        assert_eq!(42, payload.get_verified(&keychain).unwrap().answer);
     }
 
     // Revocation.
@@ -482,7 +381,7 @@ mod tests {
             .unwrap();
 
         let revovation_info = signed_revoked_content
-            .get_verified_no_revocations_check(&key_revocation)
+            .get_verified(&key_revocation)
             .unwrap();
 
         let expected: &Vec<u8> = &vec![1, 2, 3];
@@ -505,8 +404,7 @@ mod tests {
             .add_signature(&key_not_revocation_role)
             .unwrap();
 
-        let revocation_info =
-            signed_revoked_content.get_verified_no_revocations_check(&key_not_revocation_role);
+        let revocation_info = signed_revoked_content.get_verified(&key_not_revocation_role);
         assert!(matches!(
             revocation_info.unwrap_err(),
             Error::VerificationFailed
@@ -621,7 +519,7 @@ mod tests {
 
         // Since the payload is in the revoked signatures, this verification will fail.
         assert!(matches!(
-            s.get_verified(&keychain, &keychain.revocation_info().unwrap()),
+            s.get_verified(&keychain),
             Err(Error::VerificationFailed)
         ));
     }
@@ -686,7 +584,7 @@ mod tests {
 
         // Since revocation info has a date that is long passed, the error is about expiration of signatures.
         assert!(matches!(
-            s.get_verified(&keychain, &keychain.revocation_info().unwrap()),
+            s.get_verified(&keychain),
             Err(Error::SignaturesExpired)
         ));
     }
@@ -699,7 +597,7 @@ mod tests {
         assert_eq!(
             42,
             get_payload
-                .get_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
+                .get_verified(test_env.keychain())
                 .unwrap()
                 .answer
         );
@@ -709,7 +607,7 @@ mod tests {
         assert_eq!(
             42,
             into_payload
-                .into_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
+                .into_verified(test_env.keychain())
                 .unwrap()
                 .answer
         );
@@ -719,18 +617,14 @@ mod tests {
     fn assert_verify_fail(test_env: &TestEnvironment, keys: &[&dyn KeyPair]) {
         let get_payload = prepare_payload(keys, SAMPLE_DATA);
         assert!(matches!(
-            get_payload
-                .get_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
-                .unwrap_err(),
+            get_payload.get_verified(test_env.keychain()).unwrap_err(),
             Error::VerificationFailed
         ));
 
         // Two separate payloads are used to avoid caching.
         let into_payload = prepare_payload(keys, SAMPLE_DATA);
         assert!(matches!(
-            into_payload
-                .into_verified(test_env.keychain(), &test_env.revocation_info().unwrap())
-                .unwrap_err(),
+            into_payload.into_verified(test_env.keychain()).unwrap_err(),
             Error::VerificationFailed
         ));
     }

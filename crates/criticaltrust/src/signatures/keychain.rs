@@ -52,9 +52,7 @@ impl Keychain {
         }
 
         // Special case: verify and load only RevocationInfo.
-        let revocation_info = keys_manifest
-            .revoked_signatures
-            .get_verified_no_revocations_check(self)?;
+        let revocation_info = keys_manifest.revoked_signatures.get_verified(self)?;
         self.revocation_info = Some(revocation_info.clone());
 
         Ok(())
@@ -65,7 +63,7 @@ impl Keychain {
     /// The key has to be signed by either the root of trust or another key with the root role
     /// already part of the keychain.
     pub fn load(&mut self, key: &SignedPayload<PublicKey>) -> Result<KeyId, Error> {
-        let key = key.get_verified_no_revocations_check(self)?;
+        let key = key.get_verified(self)?;
         self.load_inner(&key)
     }
 

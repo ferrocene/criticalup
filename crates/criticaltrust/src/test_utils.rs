@@ -45,10 +45,6 @@ impl TestEnvironment {
         &self.keychain
     }
 
-    pub(crate) fn revocation_info(&self) -> Option<RevocationInfo> {
-        self.keychain.revocation_info()
-    }
-
     pub(crate) fn create_untrusted_key(&self, role: KeyRole) -> EphemeralKeyPair {
         EphemeralKeyPair::generate(ALGORITHM, role, None).unwrap()
     }

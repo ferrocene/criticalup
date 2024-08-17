@@ -14,10 +14,8 @@ mod sha256;
 pub mod signatures;
 
 pub mod revocation_info;
+
 #[cfg(test)]
 mod test_utils;
 
 pub use errors::Error;
-
-/// Trait to make sure that verification of only certain types does not check for revocation.
-pub trait NoRevocationsCheck {}

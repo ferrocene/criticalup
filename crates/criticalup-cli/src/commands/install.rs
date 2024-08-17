@@ -1,18 +1,22 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use owo_colors::OwoColorize;
 
 use criticaltrust::integrity::{IntegrityError, IntegrityVerifier};
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
+use criticaltrust::revocation_info::RevocationInfo;
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
 
 use crate::errors::Error;
-use crate::errors::Error::{IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported};
+use crate::errors::Error::{
+    IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported, RevocationCheckFailed,
+};
 use crate::Context;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
@@ -77,9 +81,6 @@ async fn install_product_afresh(
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let client = DownloadServerClient::new(&ctx.config, state);
     let keys = client.get_keys().await?;
-    let revocation_info = &keys
-        .revocation_info()
-        .ok_or_else(|| Error::MissingRevocationInfo(IntegrityError::MissingRevocationInfo))?;
 
     // TODO: Add tracing to support log levels, structured logging.
     println!(
@@ -93,9 +94,13 @@ async fn install_product_afresh(
     let release_manifest_from_server = client
         .get_product_release_manifest(product_name, product.release())
         .await?;
-    let verified_release_manifest = release_manifest_from_server
-        .signed
-        .into_verified(&keys, revocation_info)?;
+    let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
+
+    // Checks for making sure that there is no revoked content in the incoming packages.
+    let revocation_info = &keys
+        .revocation_info()
+        .ok_or_else(|| Error::MissingRevocationInfo(IntegrityError::MissingRevocationInfo))?;
+    check_for_revocation(&revocation_info, &verified_release_manifest)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
     // We have to use manifest's Release because the information about dependencies
@@ -173,6 +178,33 @@ async fn install_product_afresh(
         manifest_path,
         &ctx.config,
     )?;
+    Ok(())
+}
+
+fn check_for_revocation(
+    revocation_info: &&RevocationInfo,
+    verified_release_manifest: &Release,
+) -> Result<(), Error> {
+    // Convert Verified Release Manifest packages into a map so we can quickly check.
+    let mut base64_bytes_to_package_name: BTreeMap<Vec<u8>, String> = BTreeMap::new();
+    for release_package in &verified_release_manifest.packages {
+        for release_artifact in &release_package.artifacts {
+            base64_bytes_to_package_name.insert(
+                release_artifact.sha256.clone(),
+                release_package.package.clone(),
+            );
+        }
+    }
+
+    for revoked_sha in &revocation_info.revoked_content_sha256 {
+        if let Some(package) = base64_bytes_to_package_name.get(revoked_sha) {
+            return Err(RevocationCheckFailed(
+                package.clone(),
+                criticaltrust::Error::ContentRevoked,
+            ));
+        }
+    }
+
     Ok(())
 }
 

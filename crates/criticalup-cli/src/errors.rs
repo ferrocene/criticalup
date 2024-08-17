@@ -82,6 +82,9 @@ pub(crate) enum Error {
         kind: std::io::Error,
     },
 
+    #[error("failed to install package '{}' because it has been revoked", .0)]
+    RevocationCheckFailed(String, #[source] criticaltrust::Error),
+
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
     CtrlHandler,

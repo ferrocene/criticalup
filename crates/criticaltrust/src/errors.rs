@@ -30,8 +30,6 @@ pub enum Error {
     SignaturesExpired,
     #[error("failed to verify signed data because payload is revoked")]
     ContentRevoked,
-    #[error("failed to calculate SHA256 from payload")]
-    PayloadSha256CalcFailed(#[source] FromUtf8Error),
     #[cfg(feature = "aws-kms")]
     #[error("failed to retrieve the public key from AWS KMS")]
     AwsKmsFailedToGetPublicKey(
