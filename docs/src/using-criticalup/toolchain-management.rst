@@ -83,6 +83,9 @@ Then run the install command again:
 
    criticalup install
 
+When an internet connection is not available, a previously installed package
+can be reinstalled without using the network by passing the ``--offline`` flag.
+
 Removing Toolchains
 ^^^^^^^^^^^^^^^^^^^
 
@@ -97,9 +100,9 @@ from the directory containing the ``criticalup.toml``:
 Cleaning Unused Toolchains
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Over time CriticalUp's stored installations may accumulate artifacts that
-are no longer used. If CriticalUp's state directory begins to consume too much
-disk space the ``clean`` command can help by deleting unused toolchains.
+Over time CriticalUp's stored installations or cache may accumulate artifacts
+that are no longer used. If CriticalUp's state directory begins to consume too
+much disk space the ``clean`` command can help by deleting unused toolchains.
 
 
 .. code-block::

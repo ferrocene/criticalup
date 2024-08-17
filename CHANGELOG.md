@@ -7,6 +7,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## Added
+
+- An `--offline` flag has been added to `criticalup install`, when enabled only the download cache
+  will be used where possible, and the cache will not be populated on cache miss.
+- Caching of downloaded keys, manifests, and installation tarballs has been added. Newly downloaded
+  artifacts will also be stored in the OS-specific cache directory. The cache can be cleaned with
+  `criticalup clean` or any relevant OS behaviors.
+- `tracing` support was added for structured and multi-level logging. `--verbose` and `-v` are now
+  generally accepted and enable debug logging. Passing the flag twice (eg. `-vv`) will enable
+  trace logging as well. The `--log-level` argument can accept arbitrary
+  [tracing directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives)
+  for fine grained control over logging where required.
+
 ## [1.0.2] - 2024-07-11
 
 ### Added

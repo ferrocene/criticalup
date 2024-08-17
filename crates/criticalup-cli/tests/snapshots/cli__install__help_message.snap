@@ -14,6 +14,10 @@ Usage:
   criticalup-test install [OPTIONS]
 
 Options:
-      --project <PROJECT>  Path to the manifest `criticalup.toml`
-  -h, --help               Print help
+      --project <PROJECT>           Path to the manifest `criticalup.toml`
+      --reinstall                   Reinstall products that may have already been installed
+      --offline                     Don't download from the server, only use previously cached artifacts
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help
 ------

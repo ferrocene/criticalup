@@ -5,7 +5,6 @@ use crate::errors::Error;
 use crate::Context;
 use criticalup_core::project_manifest::ProjectManifest;
 use criticalup_core::state::State;
-use owo_colors::OwoColorize;
 use std::path::PathBuf;
 use tokio::fs;
 
@@ -19,11 +18,7 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
     state.persist().await?;
 
     for installation_id in &installations_from_which_manifest_was_deleted {
-        println!(
-            "{} deleting installation {}",
-            "info:".bold(),
-            installation_id.0
-        );
+        tracing::info!("Deleting installation {}", installation_id.0);
         let installation_path = installation_dir.join(installation_id.0.as_str());
         if installation_path.exists() {
             fs::remove_dir_all(&installation_path).await?;
@@ -31,10 +26,7 @@ pub(crate) async fn run(ctx: &Context, project: Option<PathBuf>) -> Result<(), E
     }
 
     if installations_from_which_manifest_was_deleted.is_empty() {
-        println!(
-            "{} no existing installations found to be deleted",
-            "info:".bold()
-        );
+        tracing::info!("No existing installations found to be deleted",);
     }
 
     Ok(())

@@ -15,12 +15,30 @@ pub enum Error {
     #[error("could not detect the criticalup root directory")]
     CouldNotDetectRootDirectory,
 
+    #[error("could not detect the criticalup cache directory")]
+    CouldNotDetectCacheDirectory,
+
     #[error("failed to download {url}")]
     DownloadServerError {
         url: String,
         #[source]
         kind: DownloadServerError,
     },
+
+    #[error("Network access required, but in offline mode")]
+    OfflineMode,
+
+    #[error("Creating `{}`", .0.display())]
+    Create(PathBuf, #[source] std::io::Error),
+
+    #[error("Writing to `{}`", .0.display())]
+    Write(PathBuf, #[source] std::io::Error),
+
+    #[error("Reading from `{}`", .0.display())]
+    Read(PathBuf, #[source] std::io::Error),
+
+    #[error("JSON Serialization error")]
+    JsonSerialization(#[from] serde_json::Error),
 
     #[error("state file at {} is not supported by this release (state format version {1})", .0.display())]
     UnsupportedStateFileVersion(PathBuf, u32),

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+mod arg;
 mod binary_proxies;
 mod commands;
 mod errors;
@@ -39,18 +40,26 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
     let matches = command
         .try_get_matches_from(args)
         .map_err(Error::CliArgumentParsing)?;
+
     let cli = Cli::from_arg_matches(&matches).map_err(Error::CliArgumentParsing)?;
+
+    cli.instrumentation.setup(whitelabel.name).await?;
 
     let config = Config::detect(whitelabel)?;
     let ctx = Context { config };
 
+    tracing::trace!(command = ?cli.commands, "Got command");
     match cli.commands {
         Commands::Auth { commands } => match commands {
             Some(AuthCommands::Set { token }) => commands::auth_set::run(&ctx, token).await?,
             Some(AuthCommands::Remove) => commands::auth_remove::run(&ctx).await?,
             None => commands::auth::run(&ctx).await?,
         },
-        Commands::Install { project } => commands::install::run(&ctx, project).await?,
+        Commands::Install {
+            project,
+            reinstall,
+            offline,
+        } => commands::install::run(&ctx, reinstall, offline, project).await?,
         Commands::Clean => commands::clean::run(&ctx).await?,
         Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
         Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
@@ -110,6 +119,8 @@ struct Context {
 struct Cli {
     #[command(subcommand)]
     commands: Commands,
+    #[clap(flatten)]
+    pub(crate) instrumentation: arg::Instrumentation,
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -124,6 +135,12 @@ enum Commands {
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
+        /// Reinstall products that may have already been installed
+        #[arg(long)]
+        reinstall: bool,
+        /// Don't download from the server, only use previously cached artifacts
+        #[arg(long)]
+        offline: bool,
     },
 
     /// Delete all unused and untracked installations

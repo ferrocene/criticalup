@@ -21,20 +21,24 @@ pub struct Config {
 impl Config {
     /// Detect and load the criticalup configuration from the execution environment.
     pub fn detect(whitelabel: WhitelabelConfig) -> Result<Self, Error> {
-        Self::detect_inner(whitelabel, None)
+        Self::detect_inner(whitelabel, None, None)
     }
 
     fn detect_inner(
         whitelabel: WhitelabelConfig,
         root: Option<std::path::PathBuf>,
+        cache_dir: Option<std::path::PathBuf>,
     ) -> Result<Self, Error> {
-        let paths = Paths::detect(&whitelabel, root)?;
+        let paths = Paths::detect(&whitelabel, root, cache_dir)?;
         Ok(Self { whitelabel, paths })
     }
 
     #[cfg(test)]
-    pub(crate) fn test(root: std::path::PathBuf) -> Result<Self, Error> {
-        Self::detect_inner(WhitelabelConfig::test(), Some(root))
+    pub(crate) fn test(
+        root: std::path::PathBuf,
+        cache_dir: std::path::PathBuf,
+    ) -> Result<Self, Error> {
+        Self::detect_inner(WhitelabelConfig::test(), Some(root), Some(cache_dir))
     }
 }
 

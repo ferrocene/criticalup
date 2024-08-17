@@ -17,6 +17,8 @@ Arguments:
   <BINARY>  Name of the binary to find the absolute path of
 
 Options:
-      --project <PROJECT>  Path to the manifest `criticalup.toml`
-  -h, --help               Print help
+      --project <PROJECT>           Path to the manifest `criticalup.toml`
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help
 ------

@@ -102,7 +102,7 @@ pub struct ReleaseArtifact {
     pub sha256: Vec<u8>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Copy)]
 pub enum ReleaseArtifactFormat {
     #[serde(rename = "tar.zst")]
     TarZst,

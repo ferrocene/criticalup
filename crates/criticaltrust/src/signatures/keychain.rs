@@ -6,9 +6,11 @@ use crate::manifests::KeysManifest;
 use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Collection of all trusted public keys.
+#[derive(Serialize, Deserialize)]
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
     revocation_info: Option<RevocationInfo>,

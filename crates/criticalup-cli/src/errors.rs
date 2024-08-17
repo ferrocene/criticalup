@@ -82,6 +82,27 @@ pub(crate) enum Error {
         kind: std::io::Error,
     },
 
+    #[error("Parsing tracing directives")]
+    EnvFilter(
+        #[from]
+        #[source]
+        tracing_subscriber::filter::ParseError,
+    ),
+
+    #[error("Parsing tracing directives from environment")]
+    FromEnv(
+        #[from]
+        #[source]
+        tracing_subscriber::filter::FromEnvError,
+    ),
+
+    #[error("Initializing tracing")]
+    TryInit(
+        #[from]
+        #[source]
+        tracing_subscriber::util::TryInitError,
+    ),
+
     #[error("failed to install package '{}' because it has been revoked", .0)]
     RevocationCheckFailed(String, #[source] criticaltrust::Error),
 

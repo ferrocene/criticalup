@@ -100,12 +100,18 @@ impl TestEnvironmentBuilder {
     pub(crate) async fn prepare(self) -> TestEnvironment {
         #[cfg(not(target_os = "windows"))]
         let root = TempDir::new().expect("failed to create temp dir");
-
         #[cfg(target_os = "windows")]
         let root =
             TempDir::new_in(std::env::current_dir().unwrap()).expect("failed to create temp dir");
-
         let mut root_path = root.path().to_path_buf();
+
+        #[cfg(not(target_os = "windows"))]
+        let cache = TempDir::new().expect("failed to create temp dir");
+        #[cfg(target_os = "windows")]
+        let cache =
+            TempDir::new_in(std::env::current_dir().unwrap()).expect("failed to create temp dir");
+        let cache_path = cache.path().to_path_buf();
+
         if let Some(subdir) = self.root_in_subdir {
             // A subdir creation is a requirement because root cannot be changed to anything
             // that does not exist.
@@ -115,7 +121,7 @@ impl TestEnvironmentBuilder {
             root_path = root_path.join(subdir);
         }
 
-        let mut config = Config::test(root_path).expect("failed to create config");
+        let mut config = Config::test(root_path, cache_path).expect("failed to create config");
 
         let keys = if self.keys {
             let keys = TestKeys::generate();
