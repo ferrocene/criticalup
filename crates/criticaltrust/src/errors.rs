@@ -28,6 +28,8 @@ pub enum Error {
     UnsupportedKey,
     #[error("verification failed because the signatures expired")]
     SignaturesExpired,
+    #[error("revocation info is expired")]
+    RevocationSignatureExpired,
     #[error("failed to verify signed data because payload is revoked")]
     ContentRevoked,
     #[cfg(feature = "aws-kms")]

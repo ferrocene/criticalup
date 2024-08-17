@@ -103,6 +103,8 @@ pub(crate) enum Error {
         tracing_subscriber::util::TryInitError,
     ),
 
+    #[error("failed to run install")]
+    RevocationSignatureExpired(#[source] criticaltrust::Error),
     #[error("failed to install package '{}' because it has been revoked", .0)]
     RevocationCheckFailed(String, #[source] criticaltrust::Error),
 

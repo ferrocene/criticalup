@@ -4,6 +4,12 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use crate::errors::Error;
+use crate::errors::Error::{
+    IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported, RevocationCheckFailed,
+    RevocationSignatureExpired,
+};
+use crate::Context;
 use criticaltrust::integrity::{IntegrityError, IntegrityVerifier};
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticaltrust::revocation_info::RevocationInfo;
@@ -12,12 +18,6 @@ use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
 use tokio::fs::read;
-
-use crate::errors::Error;
-use crate::errors::Error::{
-    IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported, RevocationCheckFailed,
-};
-use crate::Context;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
@@ -113,7 +113,7 @@ async fn install_product_afresh(
     let revocation_info = &keys
         .revocation_info()
         .ok_or_else(|| Error::MissingRevocationInfo(IntegrityError::MissingRevocationInfo))?;
-    check_for_revocation(&revocation_info, &verified_release_manifest)?;
+    check_for_revocation(revocation_info, &verified_release_manifest)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
     // We have to use manifest's Release because the information about dependencies
@@ -177,9 +177,15 @@ async fn install_product_afresh(
 }
 
 fn check_for_revocation(
-    revocation_info: &&RevocationInfo,
+    revocation_info: &RevocationInfo,
     verified_release_manifest: &Release,
 ) -> Result<(), Error> {
+    if time::OffsetDateTime::now_utc() <= revocation_info.expires_at {
+        return Err(RevocationSignatureExpired(
+            criticaltrust::Error::RevocationSignatureExpired,
+        ));
+    }
+
     // Convert Verified Release Manifest packages into a map so we can quickly check.
     let mut base64_bytes_to_package_name: BTreeMap<Vec<u8>, String> = BTreeMap::new();
     for release_package in &verified_release_manifest.packages {
