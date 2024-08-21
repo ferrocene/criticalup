@@ -54,6 +54,9 @@ impl Keychain {
 
         // Load all keys from KeysManifest.
         for key in &keys_manifest.keys {
+            // Invalid keys are silently ignored, as they might be signed by a different root key
+            // used by a different release of criticalup, or they might be using an algorithm not
+            // supported by the current version of criticaltrust.
             let _ = self.load(key)?;
         }
 
