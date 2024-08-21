@@ -32,6 +32,8 @@ pub enum Error {
     RevocationSignatureExpired,
     #[error("failed to verify signed data because payload is revoked")]
     ContentRevoked,
+    #[error("calling the method to load all keys and revocation info failed because revocation info already exists.")]
+    RevocationInfoOverwriting,
     #[cfg(feature = "aws-kms")]
     #[error("failed to retrieve the public key from AWS KMS")]
     AwsKmsFailedToGetPublicKey(

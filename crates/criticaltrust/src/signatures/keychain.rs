@@ -48,6 +48,10 @@ impl Keychain {
     /// 1. Verify and load all the verified keys.
     /// 2. Verify and replace the Revocation information from the revoked content.
     pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
+        if self.revocation_info.is_some() {
+            return Err(Error::RevocationInfoOverwriting);
+        }
+
         // Load all keys from KeysManifest.
         for key in &keys_manifest.keys {
             let _ = self.load(key)?;
@@ -252,6 +256,33 @@ mod tests {
         let actual = binding.revoked_content_sha256.first().unwrap();
         let expected: &Vec<u8> = &vec![1, 2, 3];
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_error_on_load_all_when_revocation_info_is_some() {
+        let root = generate_key(KeyRole::Root);
+        let (revocation_keypair, signed_public_revocation_key) =
+            generate_trusted_key(KeyRole::Revocation, &root);
+        let revoked_content = RevocationInfo::new(
+            vec![vec![1, 2, 3]],
+            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
+        );
+        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
+        signed_revoked_content
+            .add_signature(&revocation_keypair)
+            .unwrap();
+        let mut keychain = Keychain::new(root.public()).unwrap();
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![signed_public_revocation_key],
+            revoked_signatures: signed_revoked_content,
+        };
+        keychain.load_all(&keys_manifest).unwrap();
+        assert!(keychain.revocation_info.is_some());
+        assert!(matches!(
+            keychain.load_all(&keys_manifest),
+            Err(Error::RevocationInfoOverwriting)
+        ));
     }
 
     // Utilities
