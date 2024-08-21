@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_load_all_revoked_content_empty() {
-        // Test `load_all` method with RevocationInfo but empty list.
+        // Test `load_all` method with RevocationInfo being an empty list.
         let root = generate_key(KeyRole::Root);
         let revocation = generate_trusted_key(KeyRole::Revocation, &root);
 
