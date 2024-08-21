@@ -465,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Test will be fixed before merging"]
+    #[ignore = "Needs to be tested along with Install command"]
     fn verify_revoked_payload() {
         let mut keychain = Keychain::new(
             &serde_json::from_str(
@@ -530,7 +530,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Test will be fixed before merging"]
+    #[ignore = "Needs to be tested along with Install command"]
     fn verify_revoked_payload_expired_hashes() {
         let mut keychain = Keychain::new(
             &serde_json::from_str(
