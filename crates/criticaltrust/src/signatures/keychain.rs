@@ -201,9 +201,9 @@ mod tests {
         const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
     }
 
+    // Test `load_all` method with RevocationInfo being an empty list.
     #[test]
     fn test_load_all_revoked_content_empty() {
-        // Test `load_all` method with RevocationInfo being an empty list.
         let root = generate_key(KeyRole::Root);
         let revocation = generate_trusted_key(KeyRole::Revocation, &root);
 
@@ -226,10 +226,10 @@ mod tests {
         )
     }
 
+    // Test `load_all` method with RevocationInfo but with one item in the list. The call
+    // to `load_all` should not fail in verifying the revocation key.
     #[test]
     fn test_load_all_revoked_content_one_item() {
-        // Test `load_all` method with RevocationInfo but with one item in the list.
-        // The call to `load_all` should not fail in verifying the revocation key.
         let root = generate_key(KeyRole::Root);
         let revocation = generate_trusted_key(KeyRole::Revocation, &root);
         let revoked_content = RevocationInfo::new(
