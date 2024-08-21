@@ -209,17 +209,20 @@ mod tests {
     #[test]
     fn test_load_all_revoked_content_empty() {
         let root = generate_key(KeyRole::Root);
-        let revocation = generate_trusted_key(KeyRole::Revocation, &root);
+        let (revocation_keypair, signed_public_revocation_key) =
+            generate_trusted_key(KeyRole::Revocation, &root);
 
         let revoked_content = RevocationInfo::new(vec![], datetime!(2400-10-10 00:00 UTC));
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
-        signed_revoked_content.add_signature(&revocation.0).unwrap();
+        signed_revoked_content
+            .add_signature(&revocation_keypair)
+            .unwrap();
 
         let mut keychain = Keychain::new(root.public()).unwrap();
 
         let keys_manifest = KeysManifest {
             version: ManifestVersion,
-            keys: vec![revocation.1],
+            keys: vec![signed_public_revocation_key],
             revoked_signatures: signed_revoked_content,
         };
 
@@ -235,19 +238,22 @@ mod tests {
     #[test]
     fn test_load_all_revoked_content_one_item() {
         let root = generate_key(KeyRole::Root);
-        let revocation = generate_trusted_key(KeyRole::Revocation, &root);
+        let (revocation_keypair, signed_public_revocation_key) =
+            generate_trusted_key(KeyRole::Revocation, &root);
         let revoked_content = RevocationInfo::new(
             vec![vec![1, 2, 3]],
             OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
         );
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
-        signed_revoked_content.add_signature(&revocation.0).unwrap();
+        signed_revoked_content
+            .add_signature(&revocation_keypair)
+            .unwrap();
 
         let mut keychain = Keychain::new(root.public()).unwrap();
 
         let keys_manifest = KeysManifest {
             version: ManifestVersion,
-            keys: vec![revocation.1],
+            keys: vec![signed_public_revocation_key],
             revoked_signatures: signed_revoked_content,
         };
 
