@@ -29,7 +29,7 @@ impl PublicKey {
     /// * The current key expired.
     /// * The signature doesn't match the payload.
     /// * The signature wasn't performed by the current key.
-    pub(crate) fn verify(
+    pub fn verify(
         &self,
         role: KeyRole,
         payload: &PayloadBytes<'_>,
