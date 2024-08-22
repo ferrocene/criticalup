@@ -591,7 +591,7 @@ mod tests {
         // Since revocation info has a date that is long passed, the error is about expiration of signatures.
         assert!(matches!(
             s.get_verified(&keychain),
-            Err(Error::SignaturesExpired)
+            Err(Error::RevocationSignatureExpired(..))
         ));
     }
 

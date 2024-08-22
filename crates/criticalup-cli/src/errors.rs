@@ -103,9 +103,9 @@ pub(crate) enum Error {
         tracing_subscriber::util::TryInitError,
     ),
 
-    #[error("failed to run install")]
+    #[error("failed to run install command")]
     RevocationSignatureExpired(#[source] criticaltrust::Error),
-    #[error("failed to install package '{}' because it has been revoked", .0)]
+    #[error("failed to install package '{}'", .0)]
     RevocationCheckFailed(String, #[source] criticaltrust::Error),
 
     #[cfg(windows)]

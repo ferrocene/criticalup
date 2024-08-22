@@ -182,7 +182,7 @@ fn check_for_revocation(
 ) -> Result<(), Error> {
     if time::OffsetDateTime::now_utc() >= revocation_info.expires_at {
         return Err(RevocationSignatureExpired(
-            criticaltrust::Error::RevocationSignatureExpired,
+            criticaltrust::Error::RevocationSignatureExpired(revocation_info.expires_at),
         ));
     }
 
@@ -200,8 +200,8 @@ fn check_for_revocation(
     for revoked_sha in &revocation_info.revoked_content_sha256 {
         if let Some(package) = base64_bytes_to_package_name.get(revoked_sha) {
             return Err(RevocationCheckFailed(
-                package.clone(),
-                criticaltrust::Error::ContentRevoked,
+                package.to_owned(),
+                criticaltrust::Error::ContentRevoked(package.to_owned()),
             ));
         }
     }

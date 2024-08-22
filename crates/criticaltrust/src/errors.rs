@@ -4,6 +4,8 @@
 use crate::keys::KeyRole;
 use std::string::FromUtf8Error;
 use thiserror::Error;
+use time::macros::format_description;
+use time::OffsetDateTime;
 
 #[non_exhaustive]
 #[derive(Debug, Error)]
@@ -26,12 +28,10 @@ pub enum Error {
     InvalidKey(String),
     #[error("unsupported key")]
     UnsupportedKey,
-    #[error("verification failed because the signatures expired")]
-    SignaturesExpired,
-    #[error("revocation info is expired")]
-    RevocationSignatureExpired,
-    #[error("failed to verify signed data because payload is revoked")]
-    ContentRevoked,
+    #[error("verification failed because the signatures expired on '{}'", format!("{}", .0.format(format_description!("[year]-[month]-[day] +[offset_hour]::[offset_minute]")).expect("formatting OffsetDatetime failed")))]
+    RevocationSignatureExpired(OffsetDateTime),
+    #[error("failed to verify signed package '{}' because content is revoked", .0)]
+    ContentRevoked(String),
     #[error("calling the method to load all keys and revocation info failed because revocation info already exists.")]
     RevocationInfoOverwriting,
     #[cfg(feature = "aws-kms")]
