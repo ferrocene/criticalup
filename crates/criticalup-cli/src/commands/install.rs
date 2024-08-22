@@ -180,7 +180,7 @@ fn check_for_revocation(
     revocation_info: &RevocationInfo,
     verified_release_manifest: &Release,
 ) -> Result<(), Error> {
-    if time::OffsetDateTime::now_utc() <= revocation_info.expires_at {
+    if time::OffsetDateTime::now_utc() >= revocation_info.expires_at {
         return Err(RevocationSignatureExpired(
             criticaltrust::Error::RevocationSignatureExpired,
         ));
