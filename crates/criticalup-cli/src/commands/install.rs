@@ -218,39 +218,95 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
     Ok(())
 }
 
-#[test]
-fn dependencies_check() {
-    use criticaltrust::manifests::ReleasePackage;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use criticaltrust::manifests::{ReleaseArtifact, ReleasePackage};
+    use time::macros::datetime;
 
-    let dependencies = vec!["dependency_a".to_string()];
+    const PACKAGE_SHA256: &[u8] = &[
+        57, 55, 54, 101, 97, 97, 99, 53, 53, 99, 101, 102, 102, 50, 49, 53, 53, 48, 99, 55, 100,
+        52, 97, 57, 100, 52, 97, 101, 100, 101, 52, 101, 48, 49, 102, 48, 57, 100, 99, 57, 53, 51,
+        48, 48, 57, 51, 97, 98, 98, 57, 102, 49, 100, 48, 56, 53, 101, 49, 48, 50, 51, 99, 55, 49,
+    ];
 
-    let good = Release {
-        product: "ferrocene".to_string(),
-        release: "nightly-2024-02-28".to_string(),
-        commit: "123".to_string(),
-        packages: vec![ReleasePackage {
-            package: "awesome".to_string(),
-            artifacts: vec![],
-            dependencies: vec![],
-        }],
-    };
+    #[test]
+    fn dependencies_check() {
+        use criticaltrust::manifests::ReleasePackage;
 
-    assert!(check_for_package_dependencies(&good).is_ok());
+        let dependencies = vec!["dependency_a".to_string()];
 
-    let bad = Release {
-        product: "ferrocene".to_string(),
-        release: "nightly-2024-02-28".to_string(),
-        commit: "123".to_string(),
-        packages: vec![ReleasePackage {
-            package: "awesome".to_string(),
-            artifacts: vec![],
-            dependencies,
-        }],
-    };
+        let good = Release {
+            product: "ferrocene".to_string(),
+            release: "nightly-2024-02-28".to_string(),
+            commit: "123".to_string(),
+            packages: vec![ReleasePackage {
+                package: "awesome".to_string(),
+                artifacts: vec![],
+                dependencies: vec![],
+            }],
+        };
 
-    assert!(check_for_package_dependencies(&bad).is_err());
-    assert!(matches!(
-        check_for_package_dependencies(&bad),
-        Err(PackageDependenciesNotSupported(..))
-    ));
+        assert!(check_for_package_dependencies(&good).is_ok());
+
+        let bad = Release {
+            product: "ferrocene".to_string(),
+            release: "nightly-2024-02-28".to_string(),
+            commit: "123".to_string(),
+            packages: vec![ReleasePackage {
+                package: "awesome".to_string(),
+                artifacts: vec![],
+                dependencies,
+            }],
+        };
+
+        assert!(check_for_package_dependencies(&bad).is_err());
+        assert!(matches!(
+            check_for_package_dependencies(&bad),
+            Err(PackageDependenciesNotSupported(..))
+        ));
+    }
+
+    // Check if there is a revoked content Sha256 in the package.
+    #[test]
+    fn revocation_check() {
+        let revocation_info =
+            RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2400-10-10 00:00 UTC));
+        let release = generate_release();
+        assert!(matches!(
+            check_for_revocation(&revocation_info, &release),
+            Err(RevocationCheckFailed(..))
+        ))
+    }
+
+    // Check if the revocation info signature is expired.
+    #[test]
+    fn revocation_check_expired() {
+        let revocation_info =
+            RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2000-10-10 00:00 UTC));
+        let release = generate_release();
+        assert!(matches!(
+            check_for_revocation(&revocation_info, &release),
+            Err(RevocationSignatureExpired(..))
+        ))
+    }
+
+    // Utilities.
+
+    fn generate_release() -> Release {
+        Release {
+            product: "ferrocene".to_string(),
+            release: "amazing".to_string(),
+            commit: "bsdf32avsd2312".to_string(),
+            packages: vec![ReleasePackage {
+                package: "x86".to_string(),
+                artifacts: vec![ReleaseArtifact {
+                    format: ReleaseArtifactFormat::TarZst,
+                    size: 10,
+                    sha256: PACKAGE_SHA256.into(),
+                }],
+                dependencies: vec![],
+            }],
+        }
+    }
 }
