@@ -3,6 +3,8 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+extern crate core;
+
 pub mod errors;
 pub mod integrity;
 pub mod keys;
@@ -10,6 +12,8 @@ pub mod manifests;
 mod serde_base64;
 mod sha256;
 pub mod signatures;
+
+pub mod revocation_info;
 
 #[cfg(test)]
 mod test_utils;

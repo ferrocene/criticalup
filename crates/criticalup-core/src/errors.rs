@@ -92,6 +92,9 @@ pub enum Error {
         #[source]
         kind: std::io::Error,
     },
+
+    #[error("failed to load keys into keychain")]
+    KeychainLoadingFailed(#[source] criticaltrust::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

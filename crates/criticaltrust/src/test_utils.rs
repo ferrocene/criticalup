@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
+use crate::manifests::{KeysManifest, ManifestVersion};
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Keychain, SignedPayload};
 use base64::Engine;
 use time::{Duration, OffsetDateTime};
 
 const ALGORITHM: KeyAlgorithm = KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer;
+// Make sure there is enough number of days for expiration so tests don't need constant updates.
+const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
 pub(crate) struct TestEnvironment {
     root: EphemeralKeyPair,
@@ -16,8 +20,24 @@ pub(crate) struct TestEnvironment {
 impl TestEnvironment {
     pub(crate) fn prepare() -> Self {
         let root = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
-        let keychain = Keychain::new(root.public()).unwrap();
 
+        let revocation_key =
+            EphemeralKeyPair::generate(ALGORITHM, KeyRole::Revocation, None).unwrap();
+        let mut signed_revocation_key = SignedPayload::new(revocation_key.public()).unwrap();
+        signed_revocation_key.add_signature(&root).unwrap();
+
+        let expiration_datetime = OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS;
+        let mut revoked_signatures =
+            SignedPayload::new(&RevocationInfo::new(vec![], expiration_datetime)).unwrap();
+        revoked_signatures.add_signature(&revocation_key).unwrap();
+
+        let keys_manifest = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![signed_revocation_key],
+            revoked_signatures,
+        };
+        let mut keychain = Keychain::new(root.public()).unwrap();
+        keychain.load_all(&keys_manifest).unwrap();
         Self { root, keychain }
     }
 

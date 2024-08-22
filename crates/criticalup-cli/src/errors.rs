@@ -42,6 +42,9 @@ pub(crate) enum Error {
     )]
     IntegrityErrorsWhileInstallation(Vec<IntegrityError>),
 
+    #[error(transparent)]
+    MissingRevocationInfo(#[from] IntegrityError),
+
     #[error("arg0 is not encoded in UTF-8")]
     NonUtf8Arg0,
     #[error("failed to invoke proxied command {}", .0.display())]
@@ -99,6 +102,11 @@ pub(crate) enum Error {
         #[source]
         tracing_subscriber::util::TryInitError,
     ),
+
+    #[error("failed to run install command")]
+    RevocationSignatureExpired(#[source] criticaltrust::Error),
+    #[error("failed to install package '{}'", .0)]
+    RevocationCheckFailed(String, #[source] criticaltrust::Error),
 
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]

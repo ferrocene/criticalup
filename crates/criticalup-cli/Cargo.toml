@@ -30,6 +30,7 @@ xz2 = "0.1.7"
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+time = { version = "0.3.36", features = ["std", "serde", "serde-well-known", "macros"] }
 
 [dev-dependencies]
 insta = { version = "1.39.0", features = ["filters"] }

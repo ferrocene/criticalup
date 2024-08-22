@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::newtypes::{PayloadBytes, PrivateKeyBytes, SignatureBytes};
-use crate::keys::{KeyAlgorithm, KeyPair, KeyRole, PublicKey};
+use crate::keys::{KeyAlgorithm, KeyId, KeyPair, KeyRole, PublicKey};
+use crate::signatures::PublicKeysRepository;
 use crate::Error;
+use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 /// Pair of public and private keys generated at runtime and kept in memory.
@@ -11,9 +13,16 @@ use time::OffsetDateTime;
 /// There is intentionally no way to persist the private key of ephemeral key pairs, as that's
 /// considerably less secure than storing the key in a Hardware Security Module. Ephemeral key
 /// pairs are primarily meant to be used during automated testing.
+#[derive(Serialize, Deserialize, Debug)]
 pub struct EphemeralKeyPair {
     public: PublicKey,
     private: PrivateKeyBytes<'static>,
+}
+
+impl PublicKeysRepository for EphemeralKeyPair {
+    fn get<'a>(&'a self, _id: &KeyId) -> Option<&'a PublicKey> {
+        Some(&self.public)
+    }
 }
 
 impl EphemeralKeyPair {

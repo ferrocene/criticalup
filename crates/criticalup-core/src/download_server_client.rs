@@ -54,18 +54,11 @@ impl DownloadServerClient {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_keys(&self) -> Result<Keychain, Error> {
-        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
-
         let resp: KeysManifest = self
             .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
             .await?;
-        for key in &resp.keys {
-            // Invalid keys are silently ignored, as they might be signed by a different root key
-            // used by a different release of criticalup, or they might be using an algorithm not
-            // supported by the current version of criticaltrust.
-            let _ = keychain.load(key);
-        }
-
+        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
+        let _ = keychain.load_all(&resp);
         Ok(keychain)
     }
 
@@ -287,6 +280,7 @@ mod tests {
             &keys.packages,
             &keys.releases,
             &keys.redirects,
+            &keys.revocation,
         ] {
             assert!(keychain
                 .get(&expected_present.public().calculate_id())

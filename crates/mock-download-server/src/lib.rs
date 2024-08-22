@@ -5,13 +5,17 @@ mod handlers;
 mod server;
 
 pub use crate::server::MockServer;
-use criticaltrust::keys::PublicKey;
-use criticaltrust::manifests::{ReleaseManifest, RevocationInfo};
+use criticaltrust::keys::{EphemeralKeyPair, PublicKey};
+use criticaltrust::manifests::ReleaseManifest;
+use criticaltrust::revocation_info::RevocationInfo;
 use criticaltrust::signatures::SignedPayload;
 use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use time::{Duration, OffsetDateTime};
+
+// Make sure there is enough number of days for expiration so tests don't need constant updates.
+const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "kebab-case")]
@@ -33,10 +37,10 @@ pub fn new() -> Builder {
         data: Data {
             tokens: HashMap::new(),
             keys: Vec::new(),
-            revoked_signatures: SignedPayload::new(&RevocationInfo {
-                revoked_content_sha256: Vec::new(),
-                expires_at: OffsetDateTime::now_utc() + Duration::days(99),
-            })
+            revoked_signatures: SignedPayload::new(&RevocationInfo::new(
+                Vec::new(),
+                OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
+            ))
             .unwrap(),
             release_manifests: HashMap::new(),
         },
@@ -55,6 +59,14 @@ impl Builder {
 
     pub fn add_key(mut self, key: SignedPayload<PublicKey>) -> Self {
         self.data.keys.push(key);
+        self
+    }
+
+    pub fn add_revocation_info(mut self, revocation_key: &EphemeralKeyPair) -> Self {
+        self.data
+            .revoked_signatures
+            .add_signature(revocation_key)
+            .unwrap();
         self
     }
 
