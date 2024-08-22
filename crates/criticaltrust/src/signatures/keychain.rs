@@ -40,8 +40,8 @@ impl Keychain {
         &self.keys
     }
 
-    pub fn revocation_info(&self) -> Option<RevocationInfo> {
-        self.revocation_info.clone()
+    pub fn revocation_info(&self) -> Option<&RevocationInfo> {
+        self.revocation_info.as_ref()
     }
 
     /// Update the [`Keychain`] provided the [`KeysManifest`]:
