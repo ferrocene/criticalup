@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 
 ## Added
 
+- Support for package revocation added, `criticalup install` will verify packages have not been
+  revoked (due to, for example, a security event) before installation.
 - An `--offline` flag has been added to `criticalup install`, when enabled only the download cache
   will be used where possible, and the cache will not be populated on cache miss.
 - Caching of downloaded keys, manifests, and installation tarballs has been added. Newly downloaded
