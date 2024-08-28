@@ -21,6 +21,8 @@ All notable changes to this project will be documented in this file.
   trace logging as well. The `--log-level` argument can accept arbitrary
   [tracing directives](https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives)
   for fine grained control over logging where required.
+- Moved `criticalup` to an async runtime (`tokio`), this resulted in resolving some intermittent
+  networking issues on low bandwidth or unreliable connections.
 
 ## [1.0.2] - 2024-07-11
 
