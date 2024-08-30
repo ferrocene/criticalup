@@ -8,6 +8,6 @@ empty stdout
 
 stderr
 ------
-error: Failed to load the project manifest at /home/aj/proj/ferrous-systems/criticalup/crates/criticalup-cli/tests/resources/criticalup-empty-packages.toml.
+error: Failed to load the project manifest at /path/to/manifest/criticalup-empty-packages.toml.
   caused by: The 'packages' list for product 'ferrocene' in your project manifest is empty. Please provide at least one package in the 'packages' list.
 ------
