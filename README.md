@@ -42,7 +42,7 @@ To test CriticalUp:
 cargo test
 ```
 
-[criticalup-docs]: https://ferrocene.github.io/criticalup
+[criticalup-docs]: https://criticalup.ferrocene.dev/
 [rustup]: https://github.com/rust-lang/rustup
 [ferrocene]: https://ferrocene.dev/
 [rust-install]: https://www.rust-lang.org/tools/install
