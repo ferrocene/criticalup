@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Standardize error messages as close to English rules as possible.
+- Standardized error messages as close to English rules as possible.
 
 ## [1.1.0] - 2024-08-28
 
