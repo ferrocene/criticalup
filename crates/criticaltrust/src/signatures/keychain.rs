@@ -87,7 +87,7 @@ impl Keychain {
 }
 
 impl PublicKeysRepository for Keychain {
-    fn get<'a>(&'a self, id: &KeyId) -> Option<&'a PublicKey> {
+    fn get(&self, id: &KeyId) -> Option<&PublicKey> {
         self.keys.get(id)
     }
 }

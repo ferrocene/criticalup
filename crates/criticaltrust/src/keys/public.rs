@@ -63,7 +63,7 @@ impl PublicKey {
 }
 
 impl PublicKeysRepository for PublicKey {
-    fn get<'a>(&'a self, id: &KeyId) -> Option<&'a PublicKey> {
+    fn get(&self, id: &KeyId) -> Option<&PublicKey> {
         if *id == self.calculate_id() {
             Some(self)
         } else {
