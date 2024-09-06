@@ -6,13 +6,13 @@
 Authenticating
 ==============
 
-This chapter describes how to authenicate CriticalUp with on the
-`Ferrocene Customers Portal`_.
+This chapter describes how to authenticate CriticalUp on the
+`Ferrocene Customer Portal`_.
 
 The example assumes you have a preexisting Ferrocene account. This example
 presumes no existing directory structure.
 
-.. _Ferrocene Customers Portal: https://customers.ferrocene.dev/
+.. _Ferrocene Customer Portal: https://customers.ferrocene.dev/
 
 After :ref:`installing CriticalUp <install>` it's possible to authenticate
 CriticalUp via the ``auth set`` subcommand.
