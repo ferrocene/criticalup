@@ -27,14 +27,13 @@ pub struct AwsKmsKeyPair {
 impl AwsKmsKeyPair {
     /// Load an AWS KMS asymmetric key. The key must exist, and must use one of the algorithms
     /// supported by criticaltrust.
-    pub fn new(
+    pub async fn new(
         key_id: &str,
         tokio_handle: Handle,
         kms_client: Client,
         role: KeyRole,
     ) -> Result<Self, Error> {
-        let public_key_response =
-            tokio_handle.block_on(kms_client.get_public_key().key_id(key_id).send())?;
+        let public_key_response = kms_client.get_public_key().key_id(key_id).send().await?;
 
         let public_key = match public_key_response.key_spec() {
             Some(KeySpec::EccNistP256)
@@ -72,7 +71,7 @@ impl KeyPair for AwsKmsKeyPair {
         &self.public_key
     }
 
-    fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
+    async fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
         let (digest, algorithm) = match self.public_key.algorithm {
             KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer => (
                 hash_sha256(data.as_bytes()),
@@ -81,15 +80,15 @@ impl KeyPair for AwsKmsKeyPair {
             KeyAlgorithm::Unknown => return Err(Error::UnsupportedKey),
         };
 
-        let response = self.handle.block_on(
-            self.kms
-                .sign()
-                .key_id(&self.key_id)
-                .message(Blob::new(digest))
-                .message_type(MessageType::Digest)
-                .signing_algorithm(algorithm)
-                .send(),
-        )?;
+        let response = self
+            .kms
+            .sign()
+            .key_id(&self.key_id)
+            .message(Blob::new(digest))
+            .message_type(MessageType::Digest)
+            .signing_algorithm(algorithm)
+            .send()
+            .await?;
 
         Ok(SignatureBytes::owned(
             response.signature().unwrap().clone().into_inner(),
@@ -115,9 +114,9 @@ mod tests {
     // Make sure there is enough number of days for expiration so tests don't need constant updates.
     const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
-    #[test]
-    fn test_roundtrip() {
-        let localstack = Localstack::init();
+    #[tokio::test]
+    async fn test_roundtrip() {
+        let localstack = Localstack::init().await;
         let key = localstack.create_key(KeySpec::EccNistP256);
         let signed_revocation_info = RevocationInfo::new(
             vec![],
@@ -140,9 +139,9 @@ mod tests {
             .expect("failed to verify");
     }
 
-    #[test]
-    fn test_key_pair_with_unsupported_algorithm() {
-        let localstack = Localstack::init();
+    #[tokio::test]
+    async fn test_key_pair_with_unsupported_algorithm() {
+        let localstack = Localstack::init().await;
         let key = localstack.create_key(KeySpec::Rsa2048);
 
         let keypair = AwsKmsKeyPair::new(
@@ -161,7 +160,7 @@ mod tests {
     }
 
     impl Localstack {
-        fn init() -> Self {
+        async fn init() -> Self {
             let image = pull_localstack_docker_image();
             let container_name = format!("criticaltrust-localstack-{}", OsRng.next_u64());
 
@@ -185,20 +184,19 @@ mod tests {
                 .1;
 
             let runtime = Runtime::new().expect("failed to create tokio runtime");
-            let aws_config = runtime.block_on(
-                aws_config::from_env()
-                    // localstack doesn't validate IAM credentials, so we can configure a dummy
-                    // secret key and region.
-                    .credentials_provider(Credentials::new(
-                        "aws_access_key_id",
-                        "aws_secret_access_key",
-                        None,
-                        None,
-                        "hardcoded",
-                    ))
-                    .region("us-east-1")
-                    .load(),
-            );
+            let aws_config = aws_config::from_env()
+                // localstack doesn't validate IAM credentials, so we can configure a dummy
+                // secret key and region.
+                .credentials_provider(Credentials::new(
+                    "aws_access_key_id",
+                    "aws_secret_access_key",
+                    None,
+                    None,
+                    "hardcoded",
+                ))
+                .region("us-east-1")
+                .load()
+                .await;
 
             let kms_config = aws_sdk_kms::config::Builder::from(&aws_config)
                 .endpoint_url(format!("http://localhost:{port}"))
@@ -212,20 +210,17 @@ mod tests {
             }
         }
 
-        fn create_key(&self, spec: KeySpec) -> String {
-            self.runtime
-                .block_on(
-                    self.client
-                        .create_key()
-                        .key_usage(KeyUsageType::SignVerify)
-                        .key_spec(spec)
-                        .send(),
-                )
-                .expect("failed to create kms key")
-                .key_metadata()
-                .unwrap()
-                .key_id()
-                .into()
+        async fn create_key(&self, spec: KeySpec) -> String {
+            let send_request = self
+                .client
+                .create_key()
+                .key_usage(KeyUsageType::SignVerify)
+                .key_spec(spec)
+                .send()
+                .await
+                .expect("failed to create kms key");
+
+            send_request.key_metadata().unwrap().key_id().into()
         }
     }
 
