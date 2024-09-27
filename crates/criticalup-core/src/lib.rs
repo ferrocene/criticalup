@@ -11,5 +11,7 @@ pub mod state;
 
 mod utils;
 
+pub mod test_environment;
+
 #[cfg(test)]
 mod test_utils;
