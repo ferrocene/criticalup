@@ -100,29 +100,20 @@ impl KeyPair for AwsKmsKeyPair {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::revocation_info::RevocationInfo;
     use aws_sdk_kms::config::Credentials;
     use aws_sdk_kms::types::KeyUsageType;
     use rand_core::{OsRng, RngCore};
     use std::process::Command;
     use std::sync::Once;
-    use time::{Duration, OffsetDateTime};
     use tokio::runtime::Runtime;
     // We want to have tests for all of criticaltrust, which makes testing the integration with AWS
     // KMS quite tricky. To make it work, the tests for this module spawn a Docker container for
     // "localstack", a local replica of AWS services meant for testing.
 
-    // Make sure there is enough number of days for expiration so tests don't need constant updates.
-    const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
-
     #[test]
     fn test_roundtrip() {
         let localstack = Localstack::init();
         let key = localstack.create_key(KeySpec::EccNistP256);
-        let signed_revocation_info = RevocationInfo::new(
-            vec![],
-            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
-        );
 
         let keypair = AwsKmsKeyPair::new(
             &key,
@@ -136,7 +127,7 @@ mod tests {
         let signature = keypair.sign(&payload).expect("failed to sign");
         keypair
             .public()
-            .verify(KeyRole::Root, &payload, &signature, &signed_revocation_info)
+            .verify(KeyRole::Root, &payload, &signature)
             .expect("failed to verify");
     }
 

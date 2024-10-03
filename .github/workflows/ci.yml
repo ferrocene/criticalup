@@ -55,7 +55,7 @@ jobs:
 
       - name: Run the test suite
         shell: bash
-        run: cargo test --timings --workspace --locked
+        run: cargo test --timings --workspace --locked --features aws-kms
 
       # Incompatible with Windows, insta snapshots output Windows paths
       # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
