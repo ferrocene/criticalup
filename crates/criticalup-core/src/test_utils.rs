@@ -133,7 +133,7 @@ impl TestEnvironmentBuilder {
 
         let mock_server = if self.download_server {
             let keys = keys.as_ref().unwrap();
-            let server = start_mock_server(keys.signed_public_keys(), &keys.revocation);
+            let server = start_mock_server(keys.signed_public_keys().await, &keys.revocation).await;
             config.whitelabel.download_server_url = server.url();
             Some(server)
         } else {
@@ -199,30 +199,31 @@ impl TestKeys {
         }
     }
 
-    fn signed_public_keys(&self) -> Vec<SignedPayload<PublicKey>> {
+    async fn signed_public_keys(&self) -> Vec<SignedPayload<PublicKey>> {
         let mut result = Vec::new();
-        let mut sign = |key: &EphemeralKeyPair, keys: &[&EphemeralKeyPair]| {
+
+        async fn sign(key: &EphemeralKeyPair, keys: &[&EphemeralKeyPair]) -> SignedPayload<PublicKey> {
             let mut payload = SignedPayload::new(key.public()).unwrap();
             for key in keys {
-                payload.add_signature(*key).unwrap();
+                payload.add_signature(*key).await.unwrap();
             }
-            result.push(payload);
-        };
+            payload
+        }
 
-        sign(&self.root, &[&self.trust_root]);
-        sign(&self.packages, &[&self.root]);
-        sign(&self.releases, &[&self.root]);
-        sign(&self.redirects, &[&self.root]);
-        sign(&self.revocation, &[&self.root]);
+        result.push(sign(&self.root, &[&self.trust_root]).await);
+        result.push(sign(&self.packages, &[&self.root]).await);
+        result.push(sign(&self.releases, &[&self.root]).await);
+        result.push(sign(&self.redirects, &[&self.root]).await);
+        result.push(sign(&self.revocation, &[&self.root]).await);
 
-        sign(&self.alternate_root, &[&self.alternate_trust_root]);
-        sign(&self.alternate_packages, &[&self.alternate_root]);
+        result.push(sign(&self.alternate_root, &[&self.alternate_trust_root]).await);
+        result.push(sign(&self.alternate_packages, &[&self.alternate_root]).await);
 
         result
     }
 }
 
-fn start_mock_server(
+async fn start_mock_server(
     keys: Vec<SignedPayload<PublicKey>>,
     revocation_key: &EphemeralKeyPair,
 ) -> MockServer {
@@ -242,7 +243,7 @@ fn start_mock_server(
         builder = builder.add_key(key);
     }
 
-    builder = builder.add_revocation_info(revocation_key);
+    builder = builder.add_revocation_info(revocation_key).await;
 
     builder.start()
 }

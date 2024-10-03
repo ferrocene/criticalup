@@ -282,49 +282,49 @@ mod tests {
         }}
     }
 
-    #[test]
-    fn test_no_manifests() {
-        IntegrityTest::new().assert_errors(errors![IntegrityError::NoPackageManifestFound]);
+    #[tokio::test]
+    async fn test_no_manifests() {
+        IntegrityTest::new().await.assert_errors(errors![IntegrityError::NoPackageManifestFound]);
     }
 
-    #[test]
-    fn test_one_manifest_with_files() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
+    #[tokio::test]
+    async fn test_one_manifest_with_files() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A)).await
             .file(&BIN_A)
             .file(&SHARE_A)
             .assert_verified(&[("a", "b")]);
     }
 
-    #[test]
-    fn test_one_manifest_with_files_in_a_prefix() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_one_manifest_with_files_in_a_prefix() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .file(&SHARE_A)
                     .prefix("foo/"),
-            )
+            ).await
             .file(&BIN_A.clone().prefix("foo/"))
             .file(&SHARE_A.clone().prefix("foo/"))
             .assert_verified(&[("a", "b")]);
     }
 
-    #[test]
-    fn test_multiple_manifests_in_different_prefixes() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_multiple_manifests_in_different_prefixes() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .file(&SHARE_A)
                     .prefix("foo/"),
-            )
+            ).await
             .manifest(
                 ManifestBuilder::new("a", "c")
                     .file(&BIN_A)
                     .file(&SHARE_A)
                     .prefix("bar/"),
-            )
+            ).await
             .file(&BIN_A.clone().prefix("foo/"))
             .file(&BIN_A.clone().prefix("bar/"))
             .file(&SHARE_A.clone().prefix("foo/"))
@@ -332,11 +332,11 @@ mod tests {
             .assert_verified(&[("a", "b"), ("a", "c")]);
     }
 
-    #[test]
-    fn test_multiple_manifests_in_the_same_prefix() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
-            .manifest(ManifestBuilder::new("a", "c").file(&BIN_B).file(&SHARE_B))
+    #[tokio::test]
+    async fn test_multiple_manifests_in_the_same_prefix() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A)).await
+            .manifest(ManifestBuilder::new("a", "c").file(&BIN_B).file(&SHARE_B)).await
             .file(&BIN_A)
             .file(&BIN_B)
             .file(&SHARE_A)
@@ -344,16 +344,16 @@ mod tests {
             .assert_verified(&[("a", "b"), ("a", "c")]);
     }
 
-    #[test]
-    fn test_manifest_nested_inside_other_manifest() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
+    #[tokio::test]
+   async fn test_manifest_nested_inside_other_manifest() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A)).await
             .manifest(
                 ManifestBuilder::new("a", "c")
                     .file(&BIN_A)
                     .file(&SHARE_A)
                     .prefix("share/foo/"),
-            )
+            ).await
             .file(&BIN_A)
             .file(&BIN_A.clone().prefix("share/foo/"))
             .file(&SHARE_A.clone().prefix("share/foo/"))
@@ -361,11 +361,11 @@ mod tests {
             .assert_verified(&[("a", "b"), ("a", "c")]);
     }
 
-    #[test]
-    fn test_same_file_in_multiple_manifests() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A))
-            .manifest(ManifestBuilder::new("a", "c").file(&BIN_A).file(&BIN_B))
+    #[tokio::test]
+    async fn test_same_file_in_multiple_manifests() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A)).await
+            .manifest(ManifestBuilder::new("a", "c").file(&BIN_A).file(&BIN_B)).await
             .file(&BIN_A)
             .file(&BIN_B)
             .assert_errors(errors![
@@ -373,15 +373,15 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_files_with_wrong_checksum() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_files_with_wrong_checksum() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .file(&BIN_B)
                     .file(&SHARE_A),
-            )
+            ).await
             .file(&BIN_A.clone().add_content(b"!"))
             .file(&BIN_B.clone().add_content(b"!"))
             .file(&SHARE_A)
@@ -392,15 +392,15 @@ mod tests {
     }
 
     #[cfg(not(windows))] // Windows does not have file modes
-    #[test]
-    fn test_files_with_wrong_mode() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_files_with_wrong_mode() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .file(&BIN_B)
                     .file(&SHARE_A),
-            )
+            ).await
             .file(&BIN_A.clone().mode(0o644))
             .file(&BIN_B.clone().mode(0o644))
             .file(&SHARE_A)
@@ -419,10 +419,10 @@ mod tests {
     }
 
     #[cfg(not(windows))] // Windows does not have file modes
-    #[test]
-    fn test_files_with_both_wrong_mode_and_wrong_checksum() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&BIN_B))
+    #[tokio::test]
+   async fn test_files_with_both_wrong_mode_and_wrong_checksum() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&BIN_B)).await
             .file(&BIN_A.clone().add_content(b"!").mode(0o644))
             .file(&BIN_B)
             .assert_errors(errors![
@@ -435,13 +435,13 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_mismatched_product_name() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_mismatched_product_name() {
+        IntegrityTest::new().await
             .manifest_in(
                 "share/criticaltrust/z/b.json",
                 ManifestBuilder::new("a", "b").file(&BIN_A),
-            )
+            ).await
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::WrongProductName { path, expected }
@@ -452,13 +452,13 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_mismatched_package_name() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_mismatched_package_name() {
+        IntegrityTest::new().await
             .manifest_in(
                 "share/criticaltrust/a/z.json",
                 ManifestBuilder::new("a", "b").file(&BIN_A),
-            )
+            ).await
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::WrongPackageName { path, expected }
@@ -469,10 +469,10 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_files_not_in_manifest() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A))
+    #[tokio::test]
+    async fn test_files_not_in_manifest() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A)).await
             .file(&BIN_A)
             .file(&SHARE_A)
             .assert_errors(errors![
@@ -480,18 +480,18 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_files_in_manifest_not_present() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
+    #[tokio::test]
+   async fn test_files_in_manifest_not_present() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A)).await
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::MissingFile { path } if path == Path::new("share/a"),
             ]);
     }
 
-    #[test]
-    fn test_untrusted_manifest() {
+    #[tokio::test]
+    async fn test_untrusted_manifest() {
         // This key is not trusted by the keychain created by IntegrityTest.
         let key = EphemeralKeyPair::generate(
             crate::keys::KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
@@ -500,13 +500,13 @@ mod tests {
         )
         .unwrap();
 
-        IntegrityTest::new()
+        IntegrityTest::new().await
             .file(&TestFile {
                 path: "share/criticaltrust/a/b.json".into(),
                 mode: 0o644,
                 contents: ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
-                    .finish(&key)
+                    .finish(&key).await
                     .into(),
                 needs_proxy: false,
             })
@@ -520,9 +520,9 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_invalid_json_in_manifest() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_invalid_json_in_manifest() {
+        IntegrityTest::new().await
             .file(&TestFile::new(
                 "share/criticaltrust/a/b.json",
                 0o644,
@@ -536,10 +536,10 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_unprefixed_manifest_with_prefixed_files() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A))
+    #[tokio::test]
+    async fn test_unprefixed_manifest_with_prefixed_files() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).file(&SHARE_A)).await
             .file(&BIN_A.clone().prefix("foo/"))
             .file(&SHARE_A.clone().prefix("foo/"))
             .assert_errors(errors![
@@ -550,15 +550,15 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_prefixed_manifest_with_unprefixed_files() {
-        IntegrityTest::new()
+    #[tokio::test]
+   async fn test_prefixed_manifest_with_unprefixed_files() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .file(&SHARE_A)
                     .prefix("foo/"),
-            )
+            ).await
             .file(&BIN_A)
             .file(&SHARE_A)
             .assert_errors(errors![
@@ -569,10 +569,10 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_file_loaded_multiple_times() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A))
+    #[tokio::test]
+    async fn test_file_loaded_multiple_times() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A)).await
             .file(&BIN_A)
             .file(&BIN_A)
             .assert_errors(errors![
@@ -580,11 +580,11 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_manifest_loaded_multiple_times() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A))
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A))
+    #[tokio::test]
+    async fn test_manifest_loaded_multiple_times() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A)).await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A)).await
             .file(&BIN_A)
             .assert_errors(errors![
                 IntegrityError::FileLoadedMultipleTimes { path }
@@ -592,14 +592,14 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_collecting_needs_proxy_binaries() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_collecting_needs_proxy_binaries() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A.clone().needs_proxy())
                     .file(&BIN_B),
-            )
+            ).await
             .file(&BIN_A)
             .file(&BIN_B)
             .assert_verified(&[VerifiedPackage {
@@ -609,15 +609,16 @@ mod tests {
             }]);
     }
 
-    #[test]
-    fn test_collecting_needs_proxy_binaries_inside_a_prefix() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_collecting_needs_proxy_binaries_inside_a_prefix() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A.clone().needs_proxy())
                     .file(&BIN_B)
                     .prefix("foo/"),
             )
+            .await
             .file(&BIN_A.clone().prefix("foo/"))
             .file(&BIN_B.clone().prefix("foo/"))
             .assert_verified(&[VerifiedPackage {
@@ -627,24 +628,25 @@ mod tests {
             }]);
     }
 
-    #[test]
-    fn test_allowing_external_files() {
-        IntegrityTest::new()
-            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A))
+    #[tokio::test]
+    async fn test_allowing_external_files() {
+        IntegrityTest::new().await
+            .manifest(ManifestBuilder::new("a", "b").file(&BIN_A)).await
             .file(&BIN_A)
             .file(&BIN_B)
             .allow_external_files()
             .assert_verified(&[("a", "b")]);
     }
 
-    #[test]
-    fn test_allowing_external_files_in_managed_prefixes() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_allowing_external_files_in_managed_prefixes() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .managed_prefix("bin/"),
             )
+            .await
             .file(&BIN_A)
             .file(&BIN_B)
             .allow_external_files()
@@ -654,15 +656,15 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_allowing_external_files_in_managed_prefixes_inside_a_prefix() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_allowing_external_files_in_managed_prefixes_inside_a_prefix() {
+        IntegrityTest::new().await
             .manifest(
                 ManifestBuilder::new("a", "b")
                     .file(&BIN_A)
                     .managed_prefix("bin/")
                     .prefix("foo/"),
-            )
+            ).await
             .file(&BIN_A.clone().prefix("foo/"))
             .file(&BIN_B.clone().prefix("foo/"))
             .file(&BIN_A)
@@ -673,10 +675,11 @@ mod tests {
             ]);
     }
 
-    #[test]
-    fn test_allowing_external_files_inside_a_prefix() {
-        IntegrityTest::new()
+    #[tokio::test]
+    async fn test_allowing_external_files_inside_a_prefix() {
+        IntegrityTest::new().await
             .manifest(ManifestBuilder::new("a", "b").file(&BIN_A).prefix("foo/"))
+            .await
             .file(&BIN_A.clone().prefix("foo/"))
             .file(&BIN_B.clone().prefix("foo/"))
             .file(&BIN_A)
@@ -768,9 +771,9 @@ mod tests {
             self
         }
 
-        fn finish(self, key: &EphemeralKeyPair) -> Vec<u8> {
+        async fn finish(self, key: &EphemeralKeyPair) -> Vec<u8> {
             let mut signed = SignedPayload::new(&self.manifest).unwrap();
-            signed.add_signature(key).unwrap();
+            signed.add_signature(key).await.unwrap();
 
             serde_json::to_vec(&PackageManifest {
                 version: ManifestVersion,
@@ -788,9 +791,9 @@ mod tests {
     }
 
     impl IntegrityTest {
-        fn new() -> Self {
-            let mut env = TestEnvironment::prepare();
-            let key = env.create_key(KeyRole::Packages);
+        async fn new() -> Self {
+            let mut env = TestEnvironment::prepare().await;
+            let key = env.create_key(KeyRole::Packages).await;
             Self {
                 env,
                 key,
@@ -809,21 +812,21 @@ mod tests {
             self
         }
 
-        fn manifest(self, builder: ManifestBuilder) -> Self {
+        async fn manifest(self, builder: ManifestBuilder) -> Self {
             self.manifest_in(
                 builder.prefix.join(format!(
                     "share/criticaltrust/{}/{}.json",
                     builder.manifest.product, builder.manifest.package
                 )),
                 builder,
-            )
+            ).await
         }
 
-        fn manifest_in(mut self, path: impl AsRef<OsStr>, builder: ManifestBuilder) -> Self {
+        async fn manifest_in(mut self, path: impl AsRef<OsStr>, builder: ManifestBuilder) -> Self {
             self.files.push(TestFile {
                 path: path.as_ref().into(),
                 mode: 0o644,
-                contents: builder.finish(&self.key).into(),
+                contents: builder.finish(&self.key).await.into(),
                 needs_proxy: false,
             });
             self

@@ -114,10 +114,10 @@ mod tests {
     const SAMPLE_KEY: &str = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAGDPB8wZg17bAny3c0jPNg8wmnylcKtCLuPnX3GfwEQDf6ydkD1qnOPtMCZBh0P521Q5evvQ1e/rHsjrbBVPMQ==";
     const SAMPLE_SIGNATURE: &str = "MEYCIQC8MN8dk0jkZo1GIY8EZSaLpnDPUqR29E9eerKPjRyeJwIhAOd21m1VqpldE4kagUVZOUL0Pb/EZTQ0ry8ltbC446sh";
 
-    #[test]
-    fn test_verify_matches_with_no_expiration() {
+    #[tokio::test]
+    async fn test_verify_matches_with_no_expiration() {
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(key
             .public()
@@ -125,10 +125,10 @@ mod tests {
             .is_ok())
     }
 
-    #[test]
-    fn test_verify_matches_with_valid_expiration() {
+    #[tokio::test]
+    async fn test_verify_matches_with_valid_expiration() {
         let key = generate(KeyRole::Root, hours_diff(1));
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(key
             .public()
@@ -136,10 +136,10 @@ mod tests {
             .is_ok());
     }
 
-    #[test]
-    fn test_verify_fails_with_different_role() {
+    #[tokio::test]
+    async fn test_verify_fails_with_different_role() {
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(matches!(
             key.public()
@@ -148,10 +148,10 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_verify_fails_with_the_unknown_role() {
+    #[tokio::test]
+    async fn test_verify_fails_with_the_unknown_role() {
         let key = generate(KeyRole::Unknown, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(matches!(
             key.public()
@@ -160,10 +160,10 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_verify_fails_with_expired_key() {
+    #[tokio::test]
+    async fn test_verify_fails_with_expired_key() {
         let key = generate(KeyRole::Root, hours_diff(-1));
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(matches!(
             key.public()
@@ -172,10 +172,10 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_verify_fails_with_incorrect_signature() {
+    #[tokio::test]
+    async fn test_verify_fails_with_incorrect_signature() {
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         let mut bad_signature = signature.as_bytes().to_vec();
         *bad_signature.last_mut().unwrap() = bad_signature.last().unwrap().wrapping_add(1);
@@ -190,10 +190,10 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_verify_fails_with_incorrect_payload() {
+    #[tokio::test]
+    async fn test_verify_fails_with_incorrect_payload() {
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(matches!(
             key.public().verify(
@@ -219,12 +219,12 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_verify_fails_with_wrong_key() {
+    #[tokio::test]
+    async fn test_verify_fails_with_wrong_key() {
         let key1 = generate(KeyRole::Root, None);
         let key2 = generate(KeyRole::Root, None);
 
-        let signature = key1.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key1.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         assert!(matches!(
             key2.public()
@@ -233,10 +233,10 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_verify_fails_with_unknown_algorithm() {
+    #[tokio::test]
+    async fn test_verify_fails_with_unknown_algorithm() {
         let key = generate(KeyRole::Root, None);
-        let signature = key.sign(&SAMPLE_PAYLOAD).unwrap();
+        let signature = key.sign(&SAMPLE_PAYLOAD).await.unwrap();
 
         let mut public = key.public().clone();
         public.algorithm = KeyAlgorithm::Unknown;

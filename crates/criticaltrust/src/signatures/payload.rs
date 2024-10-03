@@ -160,137 +160,138 @@ mod tests {
     // Make sure there is enough number of days for expiration so tests don't need constant updates.
     const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
-    #[test]
-    fn tets_verify_no_signatures() {
-        let test_env = TestEnvironment::prepare();
-        assert_verify_fail(&test_env, &[]);
+    #[tokio::test]
+    async fn test_verify_no_signatures() {
+        let test_env = TestEnvironment::prepare().await;
+        let pairs: &[&EphemeralKeyPair] = &[];
+        assert_verify_fail(&test_env, pairs).await;
     }
 
-    #[test]
-    fn test_verify_one_valid_signature() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_one_valid_signature() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let key = test_env.create_key(KeyRole::Packages);
-        assert_verify_pass(&test_env, &[&key]);
+        let key = test_env.create_key(KeyRole::Packages).await;
+        assert_verify_pass(&test_env, &[&key]).await;
     }
 
-    #[test]
-    fn test_verify_multiple_valid_signatures() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_multiple_valid_signatures() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let key1 = test_env.create_key(KeyRole::Packages);
-        let key2 = test_env.create_key(KeyRole::Packages);
+        let key1 = test_env.create_key(KeyRole::Packages).await;
+        let key2 = test_env.create_key(KeyRole::Packages).await;
 
-        assert_verify_pass(&test_env, &[&key1, &key2]);
-        assert_verify_pass(&test_env, &[&key2, &key1]);
+        assert_verify_pass(&test_env, &[&key1, &key2]).await;
+        assert_verify_pass(&test_env, &[&key2, &key1]).await;
     }
 
     // Key roles
 
-    #[test]
-    fn test_verify_with_invalid_key_role() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_invalid_key_role() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let key = test_env.create_key(KeyRole::Redirects);
-        assert_verify_fail(&test_env, &[&key]);
+        let key = test_env.create_key(KeyRole::Redirects).await;
+        assert_verify_fail(&test_env, &[&key]).await;
     }
 
-    #[test]
-    fn test_verify_with_invalid_and_valid_key_roles() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+   async fn test_verify_with_invalid_and_valid_key_roles() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let valid = test_env.create_key(KeyRole::Packages);
-        let invalid = test_env.create_key(KeyRole::Redirects);
-        assert_verify_pass(&test_env, &[&valid, &invalid]);
-        assert_verify_pass(&test_env, &[&invalid, &valid]);
+        let valid = test_env.create_key(KeyRole::Packages).await;
+        let invalid = test_env.create_key(KeyRole::Redirects).await;
+        assert_verify_pass(&test_env, &[&valid, &invalid]).await;
+        assert_verify_pass(&test_env, &[&invalid, &valid]).await;
     }
 
     // Trusted/untrusted
-    #[test]
-    fn test_verify_with_untrusted_key() {
-        let test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_untrusted_key() {
+        let test_env = TestEnvironment::prepare().await;
 
         let untrusted = test_env.create_untrusted_key(KeyRole::Packages);
-        assert_verify_fail(&test_env, &[&untrusted]);
+        assert_verify_fail(&test_env, &[&untrusted]).await;
     }
 
-    #[test]
-    fn test_verify_with_trusted_and_untrusted_keys() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_trusted_and_untrusted_keys() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let trusted = test_env.create_key(KeyRole::Packages);
+        let trusted = test_env.create_key(KeyRole::Packages).await;
         let untrusted = test_env.create_untrusted_key(KeyRole::Packages);
 
-        assert_verify_pass(&test_env, &[&trusted, &untrusted]);
-        assert_verify_pass(&test_env, &[&untrusted, &trusted]);
+        assert_verify_pass(&test_env, &[&trusted, &untrusted]).await;
+        assert_verify_pass(&test_env, &[&untrusted, &trusted]).await;
     }
 
-    #[test]
-    fn test_verify_with_subset_of_trusted_keys() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_subset_of_trusted_keys() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let used_key = test_env.create_key(KeyRole::Packages);
-        let _other_trusted_key = test_env.create_key(KeyRole::Packages);
+        let used_key = test_env.create_key(KeyRole::Packages).await;
+        let _other_trusted_key = test_env.create_key(KeyRole::Packages).await;
 
-        assert_verify_pass(&test_env, &[&used_key]);
+        assert_verify_pass(&test_env, &[&used_key]).await;
     }
 
     // Expiry
 
-    #[test]
-    fn test_verify_with_expired_key() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_expired_key() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let expired = test_env.create_key_with_expiry(KeyRole::Packages, -1);
-        assert_verify_fail(&test_env, &[&expired]);
+        let expired = test_env.create_key_with_expiry(KeyRole::Packages, -1).await;
+        assert_verify_fail(&test_env, &[&expired]).await;
     }
 
-    #[test]
-    fn test_verify_with_not_expired_key() {
-        let mut env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_not_expired_key() {
+        let mut env = TestEnvironment::prepare().await;
 
-        let not_expired = env.create_key_with_expiry(KeyRole::Packages, 1);
-        assert_verify_pass(&env, &[&not_expired]);
+        let not_expired = env.create_key_with_expiry(KeyRole::Packages, 1).await;
+        assert_verify_pass(&env, &[&not_expired]).await;
     }
 
-    #[test]
-    fn test_verify_with_expired_and_not_expired_keys() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_expired_and_not_expired_keys() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let expired = test_env.create_key_with_expiry(KeyRole::Packages, -1);
-        let not_expired = test_env.create_key_with_expiry(KeyRole::Packages, 1);
+        let expired = test_env.create_key_with_expiry(KeyRole::Packages, -1).await;
+        let not_expired = test_env.create_key_with_expiry(KeyRole::Packages, 1).await;
 
-        assert_verify_pass(&test_env, &[&expired, &not_expired]);
-        assert_verify_pass(&test_env, &[&not_expired, &expired]);
+        assert_verify_pass(&test_env, &[&expired, &not_expired]).await;
+        assert_verify_pass(&test_env, &[&not_expired, &expired]).await;
     }
 
     // Signature
 
-    #[test]
-    fn test_verify_with_bad_signature() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_bad_signature() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let bad = BadKeyPair(test_env.create_key(KeyRole::Packages));
-        assert_verify_fail(&test_env, &[&bad]);
+        let bad = BadKeyPair(test_env.create_key(KeyRole::Packages).await);
+        assert_verify_fail(&test_env, &[&bad]).await;
     }
 
-    #[test]
-    fn test_verify_with_bad_and_good_signature() {
-        let mut test_env = TestEnvironment::prepare();
+    #[tokio::test]
+    async fn test_verify_with_bad_and_good_signature() {
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let bad = BadKeyPair(test_env.create_key(KeyRole::Packages));
-        let good = test_env.create_key(KeyRole::Packages);
-        assert_verify_pass(&test_env, &[&bad, &good]);
-        assert_verify_pass(&test_env, &[&good, &bad]);
+        let bad = BadKeyPair(test_env.create_key(KeyRole::Packages).await);
+        let good = test_env.create_key(KeyRole::Packages).await;
+        assert_verify_pass(&test_env, &[&bad.0, &good]).await;
+        assert_verify_pass(&test_env, &[&good, &bad.0]).await;
     }
 
     // Caching
 
     #[tokio::test]
     async fn test_caching() {
-        let mut test_env = TestEnvironment::prepare();
+        let mut test_env = TestEnvironment::prepare().await;
 
-        let key = test_env.create_key(KeyRole::Packages);
+        let key = test_env.create_key(KeyRole::Packages).await;
         let payload = prepare_payload(&[&key], SAMPLE_DATA).await;
 
         assert_eq!(
@@ -304,7 +305,7 @@ mod tests {
         assert_eq!(
             42,
             payload
-                .get_verified(TestEnvironment::prepare().keychain())
+                .get_verified(TestEnvironment::prepare().await.keychain())
                 .unwrap()
                 .answer
         );
@@ -314,8 +315,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_deserialization_failed() {
-        let mut test_env = TestEnvironment::prepare();
-        let key = test_env.create_key(KeyRole::Packages);
+        let mut test_env = TestEnvironment::prepare().await;
+        let key = test_env.create_key(KeyRole::Packages).await;
 
         let payload = prepare_payload(&[&key], r#"{"answer": 42"#).await;
         assert!(matches!(
@@ -373,8 +374,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_revocation_info() {
-        let mut test_env = TestEnvironment::prepare();
-        let key_revocation = test_env.create_key(KeyRole::Revocation);
+        let mut test_env = TestEnvironment::prepare().await;
+        let key_revocation = test_env.create_key(KeyRole::Revocation).await;
         let revoked_content = RevocationInfo::new(
             vec![vec![1, 2, 3]],
             OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
@@ -398,8 +399,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_revocation_info_incorrect_keyrole() {
-        let mut test_env = TestEnvironment::prepare();
-        let key_not_revocation_role = test_env.create_key(KeyRole::Packages);
+        let mut test_env = TestEnvironment::prepare().await;
+        let key_not_revocation_role = test_env.create_key(KeyRole::Packages).await;
         let revoked_content = RevocationInfo::new(
             vec![vec![1, 2, 3]],
             OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
@@ -599,7 +600,6 @@ mod tests {
 
     // Utilities
 
-    #[track_caller]
     async fn assert_verify_pass<K: KeyPair>(test_env: &TestEnvironment, keys: &[&K]) {
         let get_payload = prepare_payload(keys, SAMPLE_DATA).await;
         assert_eq!(
@@ -621,7 +621,6 @@ mod tests {
         );
     }
 
-    #[track_caller]
     async fn assert_verify_fail<K: KeyPair>(test_env: &TestEnvironment, keys: &[&K]) {
         let get_payload = prepare_payload(keys, SAMPLE_DATA).await;
         assert!(matches!(
@@ -638,18 +637,19 @@ mod tests {
     }
 
     async fn prepare_payload<K: KeyPair>(keys: &[&K], data: &str) -> SignedPayload<TestData> {
+        let mut signatures = vec![];
+        for key in keys {
+            let signature = serde_json::json!({
+                "key_sha256": key.public().calculate_id(),
+                "signature": base64_encode(key.sign(
+                    &PayloadBytes::borrowed(data.as_bytes())
+                ).await.unwrap().as_bytes()),
+            });
+            signatures.push(signature)
+        }
+
         serde_json::from_value(serde_json::json!({
-            "signatures": keys
-                .iter()
-                .map(|key| {
-                    serde_json::json!({
-                        "key_sha256": key.public().calculate_id(),
-                        "signature": base64_encode(key.sign(
-                            &PayloadBytes::borrowed(data.as_bytes())
-                        ).await.unwrap().as_bytes()),
-                    })
-                })
-                .collect::<Vec<_>>(),
+            "signatures": signatures,
             "signed": data
         }))
         .unwrap()
@@ -664,7 +664,7 @@ mod tests {
         const SIGNED_BY_ROLE: KeyRole = KeyRole::Packages;
     }
 
-    struct BadKeyPair(EphemeralKeyPair);
+    struct BadKeyPair(pub EphemeralKeyPair);
 
     impl KeyPair for BadKeyPair {
         fn public(&self) -> &PublicKey {

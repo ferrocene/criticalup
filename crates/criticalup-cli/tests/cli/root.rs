@@ -4,15 +4,15 @@
 use crate::assert_output;
 use crate::utils::TestEnvironment;
 
-#[test]
-fn no_args() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn no_args() {
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env.cmd());
 }
 
-#[test]
-fn help_flags() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_flags() {
+    let test_env = TestEnvironment::prepare().await;
 
     let no_args = test_env.cmd().output().unwrap();
     let help_short = test_env.cmd().arg("-h").output().unwrap();
@@ -28,9 +28,9 @@ fn help_flags() {
     assert!(help_long.status.success());
 }
 
-#[test]
-fn version_flags() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn version_flags() {
+    let test_env = TestEnvironment::prepare().await;
 
     let version_short = test_env.cmd().arg("-V").output().unwrap();
     let version_long = test_env.cmd().arg("--version").output().unwrap();

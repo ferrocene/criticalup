@@ -18,18 +18,18 @@ pub(crate) struct TestEnvironment {
 }
 
 impl TestEnvironment {
-    pub(crate) fn prepare() -> Self {
+    pub(crate) async fn prepare() -> Self {
         let root = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
 
         let revocation_key =
             EphemeralKeyPair::generate(ALGORITHM, KeyRole::Revocation, None).unwrap();
         let mut signed_revocation_key = SignedPayload::new(revocation_key.public()).unwrap();
-        signed_revocation_key.add_signature(&root).unwrap();
+        signed_revocation_key.add_signature(&root).await.unwrap();
 
         let expiration_datetime = OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS;
         let mut revoked_signatures =
             SignedPayload::new(&RevocationInfo::new(vec![], expiration_datetime)).unwrap();
-        revoked_signatures.add_signature(&revocation_key).unwrap();
+        revoked_signatures.add_signature(&revocation_key).await.unwrap();
 
         let keys_manifest = KeysManifest {
             version: ManifestVersion,
@@ -49,26 +49,26 @@ impl TestEnvironment {
         EphemeralKeyPair::generate(ALGORITHM, role, None).unwrap()
     }
 
-    pub(crate) fn create_key(&mut self, role: KeyRole) -> EphemeralKeyPair {
+    pub(crate) async fn create_key(&mut self, role: KeyRole) -> EphemeralKeyPair {
         let key = self.create_untrusted_key(role);
-        self.sign_and_add_key(key.public());
+        self.sign_and_add_key(key.public()).await;
         key
     }
 
-    pub(crate) fn create_key_with_expiry(
+    pub(crate) async fn create_key_with_expiry(
         &mut self,
         role: KeyRole,
         expiry_diff_hours: i64,
     ) -> EphemeralKeyPair {
         let expiry = OffsetDateTime::now_utc() + Duration::hours(expiry_diff_hours);
         let key = EphemeralKeyPair::generate(ALGORITHM, role, Some(expiry)).unwrap();
-        self.sign_and_add_key(key.public());
+        self.sign_and_add_key(key.public()).await;
         key
     }
 
-    fn sign_and_add_key(&mut self, key: &PublicKey) {
+    async fn sign_and_add_key(&mut self, key: &PublicKey) {
         let mut payload = SignedPayload::new(key).unwrap();
-        payload.add_signature(&self.root).unwrap();
+        payload.add_signature(&self.root).await.unwrap();
 
         self.keychain.load(&payload).unwrap();
     }

@@ -6,15 +6,15 @@ use crate::utils::{construct_toolchains_product_path, TestEnvironment};
 use criticalup_core::project_manifest::ProjectManifest;
 use std::fs::File;
 
-#[test]
-fn help_message() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_message() {
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env.cmd().args(["which", "--help"]));
 }
 
-#[test]
-fn which_run_binary_exists() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn which_run_binary_exists() {
+    let test_env = TestEnvironment::prepare().await;
 
     let mut current_dir =
         std::env::current_dir().expect("could not read current directory in the test.");
@@ -41,9 +41,9 @@ fn which_run_binary_exists() {
         .args(["which", "rustc", "--project", manifest_path]));
 }
 
-#[test]
-fn which_run_binary_does_not_exists() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn which_run_binary_does_not_exists() {
+    let test_env = TestEnvironment::prepare().await;
 
     let mut current_dir =
         std::env::current_dir().expect("could not read current directory in the test.");

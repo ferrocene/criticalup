@@ -98,7 +98,6 @@ mod tests {
     use rand_core::{OsRng, RngCore};
     use std::process::Command;
     use std::sync::Once;
-    use tokio::runtime::Runtime;
     // We want to have tests for all of criticaltrust, which makes testing the integration with AWS
     // KMS quite tricky. To make it work, the tests for this module spawn a Docker container for
     // "localstack", a local replica of AWS services meant for testing.
@@ -106,7 +105,7 @@ mod tests {
     #[tokio::test]
     async fn test_roundtrip() {
         let localstack = Localstack::init().await;
-        let key = localstack.create_key(KeySpec::EccNistP256);
+        let key = localstack.create_key(KeySpec::EccNistP256).await;
 
         let keypair = AwsKmsKeyPair::new(
             &key,
@@ -116,7 +115,7 @@ mod tests {
         .expect("failed to create key pair");
 
         let payload = PayloadBytes::borrowed(b"Hello world");
-        let signature = keypair.sign(&payload).expect("failed to sign");
+        let signature = keypair.sign(&payload).await.expect("failed to sign");
         keypair
             .public()
             .verify(KeyRole::Root, &payload, &signature)
@@ -126,7 +125,7 @@ mod tests {
     #[tokio::test]
     async fn test_key_pair_with_unsupported_algorithm() {
         let localstack = Localstack::init().await;
-        let key = localstack.create_key(KeySpec::Rsa2048);
+        let key = localstack.create_key(KeySpec::Rsa2048).await;
 
         let keypair = AwsKmsKeyPair::new(
             &key,

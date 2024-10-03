@@ -100,14 +100,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_signatures_are_valid() {
+    #[tokio::test]
+    async fn test_signatures_are_valid() {
         let key = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
         let data = PayloadBytes::borrowed(b"Hello world");
 
         // We can't verify the exact signature is what we expect, as each signature includes random
         // data in it. Instead, we ensure it's correct.
-        let signature = key.sign(&data).unwrap();
+        let signature = key.sign(&data).await.unwrap();
 
         assert!(ALGORITHM
             .methods()
@@ -115,13 +115,13 @@ mod tests {
             .is_ok());
     }
 
-    #[test]
-    fn test_sign_with_unknown_algorithm_fails() {
+    #[tokio::test]
+    async fn test_sign_with_unknown_algorithm_fails() {
         let mut key = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
         key.public.algorithm = KeyAlgorithm::Unknown;
 
         assert!(matches!(
-            key.sign(&PayloadBytes::borrowed(b"Hello world")),
+            key.sign(&PayloadBytes::borrowed(b"Hello world")).await,
             Err(Error::UnsupportedKey)
         ));
     }
