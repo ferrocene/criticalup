@@ -53,7 +53,7 @@ impl KeyPair for EphemeralKeyPair {
         &self.public
     }
 
-    fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
+    async fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
         self.public.algorithm.methods().sign(&self.private, data)
     }
 }

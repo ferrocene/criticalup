@@ -43,10 +43,10 @@ impl<T: Signable> SignedPayload<T> {
     }
 
     /// Add a new signature to this signed payload, generated using the provided [`KeyPair`].
-    pub fn add_signature(&mut self, keypair: &dyn KeyPair) -> Result<(), Error> {
+    pub async fn add_signature<K: KeyPair>(&mut self, keypair: &K) -> Result<(), Error> {
         self.signatures.push(Signature {
             key_sha256: keypair.public().calculate_id(),
-            signature: keypair.sign(&PayloadBytes::borrowed(self.signed.as_bytes()))?,
+            signature: keypair.sign(&PayloadBytes::borrowed(self.signed.as_bytes())).await?,
         });
         Ok(())
     }
@@ -286,12 +286,12 @@ mod tests {
 
     // Caching
 
-    #[test]
-    fn test_caching() {
+    #[tokio::test]
+    async fn test_caching() {
         let mut test_env = TestEnvironment::prepare();
 
         let key = test_env.create_key(KeyRole::Packages);
-        let payload = prepare_payload(&[&key], SAMPLE_DATA);
+        let payload = prepare_payload(&[&key], SAMPLE_DATA).await;
 
         assert_eq!(
             42,
@@ -312,18 +312,18 @@ mod tests {
 
     // Misc tests
 
-    #[test]
-    fn test_deserialization_failed() {
+    #[tokio::test]
+    async fn test_deserialization_failed() {
         let mut test_env = TestEnvironment::prepare();
         let key = test_env.create_key(KeyRole::Packages);
 
-        let payload = prepare_payload(&[&key], r#"{"answer": 42"#);
+        let payload = prepare_payload(&[&key], r#"{"answer": 42"#).await;
         assert!(matches!(
             payload.get_verified(test_env.keychain()),
             Err(Error::DeserializationFailed(_))
         ));
 
-        let payload = prepare_payload(&[&key], r#"{"answer": 42"#);
+        let payload = prepare_payload(&[&key], r#"{"answer": 42"#).await;
         assert!(matches!(
             payload.into_verified(test_env.keychain()),
             Err(Error::DeserializationFailed(_))
@@ -371,8 +371,8 @@ mod tests {
 
     // Revocation.
 
-    #[test]
-    fn test_verify_revocation_info() {
+    #[tokio::test]
+    async fn test_verify_revocation_info() {
         let mut test_env = TestEnvironment::prepare();
         let key_revocation = test_env.create_key(KeyRole::Revocation);
         let revoked_content = RevocationInfo::new(
@@ -382,6 +382,7 @@ mod tests {
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&key_revocation)
+            .await
             .unwrap();
 
         let revovation_info = signed_revoked_content
@@ -395,8 +396,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_verify_revocation_info_incorrect_keyrole() {
+    #[tokio::test]
+    async fn test_verify_revocation_info_incorrect_keyrole() {
         let mut test_env = TestEnvironment::prepare();
         let key_not_revocation_role = test_env.create_key(KeyRole::Packages);
         let revoked_content = RevocationInfo::new(
@@ -406,6 +407,7 @@ mod tests {
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&key_not_revocation_role)
+            .await
             .unwrap();
 
         let revocation_info = signed_revoked_content.get_verified(&key_not_revocation_role);
@@ -598,8 +600,8 @@ mod tests {
     // Utilities
 
     #[track_caller]
-    fn assert_verify_pass(test_env: &TestEnvironment, keys: &[&dyn KeyPair]) {
-        let get_payload = prepare_payload(keys, SAMPLE_DATA);
+    async fn assert_verify_pass<K: KeyPair>(test_env: &TestEnvironment, keys: &[&K]) {
+        let get_payload = prepare_payload(keys, SAMPLE_DATA).await;
         assert_eq!(
             42,
             get_payload
@@ -609,7 +611,7 @@ mod tests {
         );
 
         // Two separate payloads are used to avoid caching.
-        let into_payload = prepare_payload(keys, SAMPLE_DATA);
+        let into_payload = prepare_payload(keys, SAMPLE_DATA).await;
         assert_eq!(
             42,
             into_payload
@@ -620,22 +622,22 @@ mod tests {
     }
 
     #[track_caller]
-    fn assert_verify_fail(test_env: &TestEnvironment, keys: &[&dyn KeyPair]) {
-        let get_payload = prepare_payload(keys, SAMPLE_DATA);
+    async fn assert_verify_fail<K: KeyPair>(test_env: &TestEnvironment, keys: &[&K]) {
+        let get_payload = prepare_payload(keys, SAMPLE_DATA).await;
         assert!(matches!(
             get_payload.get_verified(test_env.keychain()).unwrap_err(),
             Error::VerificationFailed
         ));
 
         // Two separate payloads are used to avoid caching.
-        let into_payload = prepare_payload(keys, SAMPLE_DATA);
+        let into_payload = prepare_payload(keys, SAMPLE_DATA).await;
         assert!(matches!(
             into_payload.into_verified(test_env.keychain()).unwrap_err(),
             Error::VerificationFailed
         ));
     }
 
-    fn prepare_payload(keys: &[&dyn KeyPair], data: &str) -> SignedPayload<TestData> {
+    async fn prepare_payload<K: KeyPair>(keys: &[&K], data: &str) -> SignedPayload<TestData> {
         serde_json::from_value(serde_json::json!({
             "signatures": keys
                 .iter()
@@ -644,7 +646,7 @@ mod tests {
                         "key_sha256": key.public().calculate_id(),
                         "signature": base64_encode(key.sign(
                             &PayloadBytes::borrowed(data.as_bytes())
-                        ).unwrap().as_bytes()),
+                        ).await.unwrap().as_bytes()),
                     })
                 })
                 .collect::<Vec<_>>(),
@@ -669,8 +671,8 @@ mod tests {
             self.0.public()
         }
 
-        fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
-            let signature = self.0.sign(data)?;
+        async fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
+            let signature = self.0.sign(data).await?;
             let mut broken_signature = signature.as_bytes().to_vec();
             for byte in &mut broken_signature {
                 *byte = byte.wrapping_add(1);

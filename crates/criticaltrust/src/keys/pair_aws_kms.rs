@@ -10,7 +10,6 @@ use crate::Error;
 use aws_sdk_kms::primitives::Blob;
 use aws_sdk_kms::types::{KeySpec, MessageType, SigningAlgorithmSpec};
 use aws_sdk_kms::Client;
-use tokio::runtime::Handle;
 
 /// Pair of public and private keys stored in [AWS KMS](https://aws.amazon.com/kms/).
 ///
@@ -18,7 +17,6 @@ use tokio::runtime::Handle;
 /// kMS for every signature request. The public key is downloaded locally when the struct is
 /// instantiated, and signatures are verified without making network calls.
 pub struct AwsKmsKeyPair {
-    handle: Handle,
     kms: Client,
     key_id: String,
     public_key: PublicKey,
@@ -27,14 +25,12 @@ pub struct AwsKmsKeyPair {
 impl AwsKmsKeyPair {
     /// Load an AWS KMS asymmetric key. The key must exist, and must use one of the algorithms
     /// supported by criticaltrust.
-    pub fn new(
+    pub async fn new(
         key_id: &str,
-        tokio_handle: Handle,
         kms_client: Client,
         role: KeyRole,
     ) -> Result<Self, Error> {
-        let public_key_response =
-            tokio_handle.block_on(kms_client.get_public_key().key_id(key_id).send())?;
+        let public_key_response = kms_client.get_public_key().key_id(key_id).send().await?;
 
         let public_key = match public_key_response.key_spec() {
             Some(KeySpec::EccNistP256)
@@ -59,7 +55,6 @@ impl AwsKmsKeyPair {
         };
 
         Ok(Self {
-            handle: tokio_handle,
             kms: kms_client,
             key_id: key_id.into(),
             public_key,
@@ -72,7 +67,7 @@ impl KeyPair for AwsKmsKeyPair {
         &self.public_key
     }
 
-    fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
+    async fn sign(&self, data: &PayloadBytes<'_>) -> Result<SignatureBytes<'static>, Error> {
         let (digest, algorithm) = match self.public_key.algorithm {
             KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer => (
                 hash_sha256(data.as_bytes()),
@@ -81,15 +76,13 @@ impl KeyPair for AwsKmsKeyPair {
             KeyAlgorithm::Unknown => return Err(Error::UnsupportedKey),
         };
 
-        let response = self.handle.block_on(
-            self.kms
+        let response = self.kms
                 .sign()
                 .key_id(&self.key_id)
                 .message(Blob::new(digest))
                 .message_type(MessageType::Digest)
                 .signing_algorithm(algorithm)
-                .send(),
-        )?;
+                .send().await?;
 
         Ok(SignatureBytes::owned(
             response.signature().unwrap().clone().into_inner(),
@@ -110,17 +103,16 @@ mod tests {
     // KMS quite tricky. To make it work, the tests for this module spawn a Docker container for
     // "localstack", a local replica of AWS services meant for testing.
 
-    #[test]
-    fn test_roundtrip() {
-        let localstack = Localstack::init();
+    #[tokio::test]
+    async fn test_roundtrip() {
+        let localstack = Localstack::init().await;
         let key = localstack.create_key(KeySpec::EccNistP256);
 
         let keypair = AwsKmsKeyPair::new(
             &key,
-            localstack.runtime.handle().clone(),
             localstack.client.clone(),
             KeyRole::Root,
-        )
+        ).await
         .expect("failed to create key pair");
 
         let payload = PayloadBytes::borrowed(b"Hello world");
@@ -131,28 +123,26 @@ mod tests {
             .expect("failed to verify");
     }
 
-    #[test]
-    fn test_key_pair_with_unsupported_algorithm() {
-        let localstack = Localstack::init();
+    #[tokio::test]
+    async fn test_key_pair_with_unsupported_algorithm() {
+        let localstack = Localstack::init().await;
         let key = localstack.create_key(KeySpec::Rsa2048);
 
         let keypair = AwsKmsKeyPair::new(
             &key,
-            localstack.runtime.handle().clone(),
             localstack.client.clone(),
             KeyRole::Root,
-        );
+        ).await;
         assert!(matches!(keypair, Err(Error::UnsupportedKey)));
     }
 
     struct Localstack {
-        runtime: Runtime,
         client: Client,
         container_name: String,
     }
 
     impl Localstack {
-        fn init() -> Self {
+        async fn init() -> Self {
             let image = pull_localstack_docker_image();
             let container_name = format!("criticaltrust-localstack-{}", OsRng.next_u64());
 
@@ -175,9 +165,7 @@ mod tests {
                 .expect("invalid output of docker port")
                 .1;
 
-            let runtime = Runtime::new().expect("failed to create tokio runtime");
-            let aws_config = runtime.block_on(
-                aws_config::from_env()
+            let aws_config = aws_config::from_env()
                     // localstack doesn't validate IAM credentials, so we can configure a dummy
                     // secret key and region.
                     .credentials_provider(Credentials::new(
@@ -188,8 +176,8 @@ mod tests {
                         "hardcoded",
                     ))
                     .region("us-east-1")
-                    .load(),
-            );
+                    .load()
+                    .await;
 
             let kms_config = aws_sdk_kms::config::Builder::from(&aws_config)
                 .endpoint_url(format!("http://localhost:{port}"))
@@ -197,21 +185,18 @@ mod tests {
             let client = aws_sdk_kms::Client::from_conf(kms_config);
 
             Self {
-                runtime,
                 client,
                 container_name,
             }
         }
 
-        fn create_key(&self, spec: KeySpec) -> String {
-            self.runtime
-                .block_on(
-                    self.client
+        async fn create_key(&self, spec: KeySpec) -> String {
+            self.client
                         .create_key()
                         .key_usage(KeyUsageType::SignVerify)
                         .key_spec(spec)
-                        .send(),
-                )
+                        .send()
+                .await
                 .expect("failed to create kms key")
                 .key_metadata()
                 .unwrap()
