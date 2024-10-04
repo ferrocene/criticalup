@@ -39,7 +39,7 @@ cargo build -p criticalup --release
 To test CriticalUp:
 
 ```bash
-cargo test
+cargo test --workspace --features aws-kms -- --test-threads=1
 ```
 
 [criticalup-docs]: https://criticalup.ferrocene.dev/
