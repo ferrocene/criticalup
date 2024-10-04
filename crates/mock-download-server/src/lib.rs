@@ -65,7 +65,8 @@ impl Builder {
     pub async fn add_revocation_info(mut self, revocation_key: &EphemeralKeyPair) -> Self {
         self.data
             .revoked_signatures
-            .add_signature(revocation_key).await
+            .add_signature(revocation_key)
+            .await
             .unwrap();
         self
     }

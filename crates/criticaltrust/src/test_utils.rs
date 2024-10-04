@@ -29,7 +29,10 @@ impl TestEnvironment {
         let expiration_datetime = OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS;
         let mut revoked_signatures =
             SignedPayload::new(&RevocationInfo::new(vec![], expiration_datetime)).unwrap();
-        revoked_signatures.add_signature(&revocation_key).await.unwrap();
+        revoked_signatures
+            .add_signature(&revocation_key)
+            .await
+            .unwrap();
 
         let keys_manifest = KeysManifest {
             version: ManifestVersion,

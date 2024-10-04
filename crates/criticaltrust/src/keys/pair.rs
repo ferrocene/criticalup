@@ -16,5 +16,8 @@ pub trait KeyPair {
     fn public(&self) -> &PublicKey;
 
     /// Sign the provided data with this key pair, returning the bytes of the signature.
-    fn sign(&self, data: &PayloadBytes<'_>) -> impl std::future::Future<Output = Result<SignatureBytes<'static>, Error>> + Send;
+    fn sign(
+        &self,
+        data: &PayloadBytes<'_>,
+    ) -> impl std::future::Future<Output = Result<SignatureBytes<'static>, Error>> + Send;
 }

@@ -25,11 +25,7 @@ pub struct AwsKmsKeyPair {
 impl AwsKmsKeyPair {
     /// Load an AWS KMS asymmetric key. The key must exist, and must use one of the algorithms
     /// supported by criticaltrust.
-    pub async fn new(
-        key_id: &str,
-        kms_client: Client,
-        role: KeyRole,
-    ) -> Result<Self, Error> {
+    pub async fn new(key_id: &str, kms_client: Client, role: KeyRole) -> Result<Self, Error> {
         let public_key_response = kms_client.get_public_key().key_id(key_id).send().await?;
 
         let public_key = match public_key_response.key_spec() {
@@ -76,13 +72,15 @@ impl KeyPair for AwsKmsKeyPair {
             KeyAlgorithm::Unknown => return Err(Error::UnsupportedKey),
         };
 
-        let response = self.kms
-                .sign()
-                .key_id(&self.key_id)
-                .message(Blob::new(digest))
-                .message_type(MessageType::Digest)
-                .signing_algorithm(algorithm)
-                .send().await?;
+        let response = self
+            .kms
+            .sign()
+            .key_id(&self.key_id)
+            .message(Blob::new(digest))
+            .message_type(MessageType::Digest)
+            .signing_algorithm(algorithm)
+            .send()
+            .await?;
 
         Ok(SignatureBytes::owned(
             response.signature().unwrap().clone().into_inner(),
@@ -107,12 +105,9 @@ mod tests {
         let localstack = Localstack::init().await;
         let key = localstack.create_key(KeySpec::EccNistP256).await;
 
-        let keypair = AwsKmsKeyPair::new(
-            &key,
-            localstack.client.clone(),
-            KeyRole::Root,
-        ).await
-        .expect("failed to create key pair");
+        let keypair = AwsKmsKeyPair::new(&key, localstack.client.clone(), KeyRole::Root)
+            .await
+            .expect("failed to create key pair");
 
         let payload = PayloadBytes::borrowed(b"Hello world");
         let signature = keypair.sign(&payload).await.expect("failed to sign");
@@ -127,11 +122,7 @@ mod tests {
         let localstack = Localstack::init().await;
         let key = localstack.create_key(KeySpec::Rsa2048).await;
 
-        let keypair = AwsKmsKeyPair::new(
-            &key,
-            localstack.client.clone(),
-            KeyRole::Root,
-        ).await;
+        let keypair = AwsKmsKeyPair::new(&key, localstack.client.clone(), KeyRole::Root).await;
         assert!(matches!(keypair, Err(Error::UnsupportedKey)));
     }
 
@@ -165,18 +156,18 @@ mod tests {
                 .1;
 
             let aws_config = aws_config::from_env()
-                    // localstack doesn't validate IAM credentials, so we can configure a dummy
-                    // secret key and region.
-                    .credentials_provider(Credentials::new(
-                        "aws_access_key_id",
-                        "aws_secret_access_key",
-                        None,
-                        None,
-                        "hardcoded",
-                    ))
-                    .region("us-east-1")
-                    .load()
-                    .await;
+                // localstack doesn't validate IAM credentials, so we can configure a dummy
+                // secret key and region.
+                .credentials_provider(Credentials::new(
+                    "aws_access_key_id",
+                    "aws_secret_access_key",
+                    None,
+                    None,
+                    "hardcoded",
+                ))
+                .region("us-east-1")
+                .load()
+                .await;
 
             let kms_config = aws_sdk_kms::config::Builder::from(&aws_config)
                 .endpoint_url(format!("http://localhost:{port}"))
@@ -191,10 +182,10 @@ mod tests {
 
         async fn create_key(&self, spec: KeySpec) -> String {
             self.client
-                        .create_key()
-                        .key_usage(KeyUsageType::SignVerify)
-                        .key_spec(spec)
-                        .send()
+                .create_key()
+                .key_usage(KeyUsageType::SignVerify)
+                .key_spec(spec)
+                .send()
                 .await
                 .expect("failed to create kms key")
                 .key_metadata()

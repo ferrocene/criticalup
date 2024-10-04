@@ -202,7 +202,10 @@ impl TestKeys {
     async fn signed_public_keys(&self) -> Vec<SignedPayload<PublicKey>> {
         let mut result = Vec::new();
 
-        async fn sign(key: &EphemeralKeyPair, keys: &[&EphemeralKeyPair]) -> SignedPayload<PublicKey> {
+        async fn sign(
+            key: &EphemeralKeyPair,
+            keys: &[&EphemeralKeyPair],
+        ) -> SignedPayload<PublicKey> {
             let mut payload = SignedPayload::new(key.public()).unwrap();
             for key in keys {
                 payload.add_signature(*key).await.unwrap();

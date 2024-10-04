@@ -46,7 +46,9 @@ impl<T: Signable> SignedPayload<T> {
     pub async fn add_signature<K: KeyPair>(&mut self, keypair: &K) -> Result<(), Error> {
         self.signatures.push(Signature {
             key_sha256: keypair.public().calculate_id(),
-            signature: keypair.sign(&PayloadBytes::borrowed(self.signed.as_bytes())).await?,
+            signature: keypair
+                .sign(&PayloadBytes::borrowed(self.signed.as_bytes()))
+                .await?,
         });
         Ok(())
     }
@@ -197,7 +199,7 @@ mod tests {
     }
 
     #[tokio::test]
-   async fn test_verify_with_invalid_and_valid_key_roles() {
+    async fn test_verify_with_invalid_and_valid_key_roles() {
         let mut test_env = TestEnvironment::prepare().await;
 
         let valid = test_env.create_key(KeyRole::Packages).await;
