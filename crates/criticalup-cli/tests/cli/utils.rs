@@ -64,7 +64,7 @@ pub(crate) struct TestEnvironment {
 }
 
 impl TestEnvironment {
-    pub(crate) fn prepare() -> Self {
+    pub(crate) async fn prepare() -> Self {
         let keypair = EphemeralKeyPair::generate(
             KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
             KeyRole::Root,
@@ -77,7 +77,7 @@ impl TestEnvironment {
         TestEnvironment {
             root,
             trust_root: keypair.public().clone(),
-            server: setup_mock_server(&keypair),
+            server: setup_mock_server(&keypair).await,
             customer_portal_url: "https://customers-test.ferrocene.dev".into(),
         }
     }
@@ -127,13 +127,13 @@ pub(crate) fn stdin(content: &str) -> Stdio {
     file.into()
 }
 
-fn setup_mock_server(keypair: &dyn KeyPair) -> MockServer {
+async fn setup_mock_server<K: KeyPair>(keypair: &K) -> MockServer {
     let mut server = mock_download_server::new();
     for (token, data) in MOCK_AUTH_TOKENS {
         server = server.add_token(token, data.clone());
     }
     for (product, release, mut manifest) in mock_release_manifests() {
-        manifest.signed.add_signature(keypair).unwrap();
+        manifest.signed.add_signature(keypair).await.unwrap();
         server =
             server.add_release_manifest(product.to_string(), release.to_string(), manifest.clone());
     }

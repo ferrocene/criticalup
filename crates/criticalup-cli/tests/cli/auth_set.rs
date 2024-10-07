@@ -11,15 +11,15 @@ const TOKEN_A: &str = MOCK_AUTH_TOKENS[0].0;
 const TOKEN_B: &str = MOCK_AUTH_TOKENS[1].0;
 const TOKEN_INVALID: &str = "criticalup_token_invalid";
 
-#[test]
-fn help_message() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_message() {
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env.cmd().args(["auth", "set", "--help"]));
 }
 
-#[test]
-fn byte_zero_via_stdin() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn byte_zero_via_stdin() {
+    let test_env = TestEnvironment::prepare().await;
 
     // Byte zero is not allowed in HTTP headers: we should get a proper error message instead of a
     // panic, and no requests should be made to the server.
@@ -62,11 +62,11 @@ macro_rules! test_matrix {
             use std::process::Output;
             use super::*;
 
-            #[test]
-            fn set_valid_token() {
+            #[tokio::test]
+            async fn set_valid_token() {
                 let mut expected: Option<Output> = None;
                 for variant in [$($variant,)*] {
-                    let test_env = TestEnvironment::prepare();
+                    let test_env = TestEnvironment::prepare().await;
 
                     assert_token(&test_env, None);
                     run_cmd!(expected, test_env, variant, TOKEN_A);
@@ -77,11 +77,11 @@ macro_rules! test_matrix {
                 }
             }
 
-            #[test]
-            fn set_valid_token_with_existing_token() {
+            #[tokio::test]
+            async fn set_valid_token_with_existing_token() {
                 let mut expected: Option<Output>  = None;
                 for variant in [$($variant,)*] {
-                    let test_env = TestEnvironment::prepare();
+                    let test_env = TestEnvironment::prepare().await;
                     set_token(&test_env, TOKEN_A);
 
                     run_cmd!(expected, test_env, variant, TOKEN_B);
@@ -93,11 +93,11 @@ macro_rules! test_matrix {
                 }
             }
 
-            #[test]
-            fn set_invalid_token() {
+            #[tokio::test]
+            async fn set_invalid_token() {
                 let mut expected: Option<Output>  = None;
                 for variant in [$($variant,)*] {
-                    let test_env = TestEnvironment::prepare();
+                    let test_env = TestEnvironment::prepare().await;
 
                     assert_token(&test_env, None);
                     run_cmd!(expected, test_env, variant, TOKEN_INVALID);
@@ -108,11 +108,11 @@ macro_rules! test_matrix {
                 }
             }
 
-            #[test]
-            fn set_invalid_token_with_existing_token() {
+            #[tokio::test]
+            async fn set_invalid_token_with_existing_token() {
                 let mut expected: Option<Output>  = None;
                 for variant in [$($variant,)*] {
-                    let test_env = TestEnvironment::prepare();
+                    let test_env = TestEnvironment::prepare().await;
 
                     set_token(&test_env, TOKEN_A);
                     run_cmd!(expected, test_env, variant, TOKEN_INVALID);

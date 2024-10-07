@@ -6,15 +6,15 @@ use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path,
 use serde_json::json;
 use std::io::Write;
 
-#[test]
-fn help_message() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_message() {
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env.cmd().args(["install", "--help"]));
 }
 
-#[test]
-fn empty_packages_list() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn empty_packages_list() {
+    let test_env = TestEnvironment::prepare().await;
     let mut current_dir = std::env::current_dir().unwrap();
     current_dir.push("tests/resources/criticalup-empty-packages.toml");
     let manifest_path = current_dir.to_str().unwrap();
@@ -22,9 +22,9 @@ fn empty_packages_list() {
     assert_output!(test_env.cmd().args(["install", "--project", manifest_path]));
 }
 
-#[test]
-fn already_installed_toolchain_should_not_throw_error() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn already_installed_toolchain_should_not_throw_error() {
+    let test_env = TestEnvironment::prepare().await;
 
     let mut current_dir = std::env::current_dir().unwrap();
     current_dir.push("tests/resources/criticalup.toml");
@@ -78,10 +78,10 @@ fn already_installed_toolchain_should_not_throw_error() {
 }
 
 /// Sample test to run the command in test environment without any other computation
-#[test]
+#[tokio::test]
 #[ignore = "Testing `install` subcommand will be enabled at a later date"]
-fn run_install() {
-    let test_env = TestEnvironment::prepare();
+async fn run_install() {
+    let test_env = TestEnvironment::prepare().await;
 
     let mut current_dir = std::env::current_dir().unwrap();
     current_dir.push("tests/resources/criticalup.toml");
@@ -90,10 +90,10 @@ fn run_install() {
     run_install_cmd(&test_env, manifest_path);
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "Testing `install` subcommand will be enabled at a later date"]
-fn product_dirs_are_created() {
-    let test_env = TestEnvironment::prepare();
+async fn product_dirs_are_created() {
+    let test_env = TestEnvironment::prepare().await;
 
     let mut current_dir =
         std::env::current_dir().expect("Could not read current directory in the test.");

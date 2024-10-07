@@ -7,25 +7,25 @@ use criticalup_core::project_manifest::ProjectManifest;
 use std::io::Write;
 use tempfile::tempdir;
 
-#[test]
-fn help_message() {
-    let env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_message() {
+    let env = TestEnvironment::prepare().await;
     assert_output!(env.cmd().args(["run", "--help"]));
 }
 
-#[test]
-fn simple_run_command_manifest_not_found() {
+#[tokio::test]
+async fn simple_run_command_manifest_not_found() {
     // Manifest does not exist.
-    let test_env = TestEnvironment::prepare();
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env
         .cmd()
         .args(["run", "--project", "/path/to/criticalup.toml", "rustc"]));
 }
 
-#[test]
-fn simple_run_command_missing_package() {
+#[tokio::test]
+async fn simple_run_command_missing_package() {
     // Make sure the project manifest exists, but the package 'rustc' does not.
-    let test_env = TestEnvironment::prepare();
+    let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
     let manifest = current_dir.path().join("criticalup.toml");
 
@@ -41,10 +41,10 @@ fn simple_run_command_missing_package() {
         .args(["run", "--project", manifest.to_str().unwrap(), "rustc"]));
 }
 
-#[test]
+#[tokio::test]
 #[ignore = "This test will be improved upon at a later date"]
-fn simple_run_command_existing_package() {
-    let test_env = TestEnvironment::prepare();
+async fn simple_run_command_existing_package() {
+    let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
     std::fs::create_dir_all(test_env.root().join("bin")).unwrap();
 

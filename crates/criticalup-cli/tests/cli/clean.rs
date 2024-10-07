@@ -8,15 +8,15 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufReader, Write};
 
-#[test]
-fn help_message() {
-    let env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_message() {
+    let env = TestEnvironment::prepare().await;
     assert_output!(env.cmd().args(["clean", "--help"]));
 }
 
-#[test]
-fn clean_deletes_only_unused_installations() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn clean_deletes_only_unused_installations() {
+    let test_env = TestEnvironment::prepare().await;
 
     let installation_id_1 = "installation_id_1";
     let installation_id_2 = "installation_id_2";
@@ -85,9 +85,9 @@ fn clean_deletes_only_unused_installations() {
     );
 }
 
-#[test]
-fn clean_deletes_only_unused_installations_also_from_disk() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn clean_deletes_only_unused_installations_also_from_disk() {
+    let test_env = TestEnvironment::prepare().await;
     let root = test_env.root();
     let toolchains_dir = root.join("toolchains");
     fs::create_dir_all(&toolchains_dir).unwrap();
@@ -176,9 +176,9 @@ fn clean_deletes_only_unused_installations_also_from_disk() {
     assert!(!toolchains_dir.join(installation_id_3).exists()); // Does not exist.
 }
 
-#[test]
-fn removes_unused_installations_from_disk_that_do_not_have_state() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn removes_unused_installations_from_disk_that_do_not_have_state() {
+    let test_env = TestEnvironment::prepare().await;
     let root = test_env.root();
     let toolchains_dir = root.join("toolchains");
     fs::create_dir_all(&toolchains_dir).unwrap();

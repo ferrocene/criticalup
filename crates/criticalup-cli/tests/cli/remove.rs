@@ -7,15 +7,15 @@ use serde_json::{json, Value};
 use std::fs::File;
 use std::io::{BufReader, Write};
 
-#[test]
-fn help_message() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn help_message() {
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env.cmd().args(["remove", "--help"]));
 }
 
-#[test]
-fn remove_deletes_only_manifest_from_list_and_dir() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn remove_deletes_only_manifest_from_list_and_dir() {
+    let test_env = TestEnvironment::prepare().await;
     let mut current_dir = std::env::current_dir().unwrap();
     current_dir.push("tests/resources/criticalup.toml");
     let manifest_path = current_dir.canonicalize().unwrap();

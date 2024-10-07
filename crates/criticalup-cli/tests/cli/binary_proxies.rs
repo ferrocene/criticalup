@@ -18,15 +18,15 @@ packages = [\"rustc\"]
 // This is specific to the ferrocene product defined in the manifest above.
 const INSTALLATION_ID: &str = "1f67f84fa2c0e3d1b99bf72f971b7a10eef29d91b50d9d9f82371c659eff2f0a";
 
-#[test]
-fn invoking_outside_of_project() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn invoking_outside_of_project() {
+    let test_env = TestEnvironment::prepare().await;
     assert_output!(test_env.binary_proxy("rustc"));
 }
 
-#[test]
-fn invoking_inside_of_project_with_no_installed_proxy() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn invoking_inside_of_project_with_no_installed_proxy() {
+    let test_env = TestEnvironment::prepare().await;
 
     let current_dir = tempdir().unwrap();
     std::fs::write(
@@ -40,9 +40,9 @@ fn invoking_inside_of_project_with_no_installed_proxy() {
         .current_dir(current_dir.path()));
 }
 
-#[test]
-fn invoking_inside_of_installed_project() {
-    let test_env = TestEnvironment::prepare();
+#[tokio::test]
+async fn invoking_inside_of_installed_project() {
+    let test_env = TestEnvironment::prepare().await;
 
     let current_dir = tempdir().unwrap();
     std::fs::write(

@@ -125,12 +125,12 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_add_key_trusted_by_root() {
+    #[tokio::test]
+    async fn test_add_key_trusted_by_root() {
         let root = generate_key(KeyRole::Root);
         let mut keychain = Keychain::new(root.public()).unwrap();
 
-        let (key, public) = generate_trusted_key(KeyRole::Packages, &root);
+        let (key, public) = generate_trusted_key(KeyRole::Packages, &root).await;
         keychain.load(&public).unwrap();
 
         assert_eq!(
@@ -139,15 +139,15 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_add_key_trusted_by_root_key_trusted_by_root() {
+    #[tokio::test]
+    async fn test_add_key_trusted_by_root_key_trusted_by_root() {
         let root = generate_key(KeyRole::Root);
         let mut keychain = Keychain::new(root.public()).unwrap();
 
-        let (key1, public1) = generate_trusted_key(KeyRole::Root, &root);
+        let (key1, public1) = generate_trusted_key(KeyRole::Root, &root).await;
         keychain.load(&public1).unwrap();
 
-        let (key2, public2) = generate_trusted_key(KeyRole::Packages, &key1);
+        let (key2, public2) = generate_trusted_key(KeyRole::Packages, &key1).await;
         keychain.load(&public2).unwrap();
 
         assert_eq!(
@@ -156,35 +156,35 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_add_key_trusted_by_non_root_key_trusted_by_root() {
+    #[tokio::test]
+    async fn test_add_key_trusted_by_non_root_key_trusted_by_root() {
         let root = generate_key(KeyRole::Root);
         let mut keychain = Keychain::new(root.public()).unwrap();
 
-        let (key1, public1) = generate_trusted_key(KeyRole::Packages, &root);
+        let (key1, public1) = generate_trusted_key(KeyRole::Packages, &root).await;
         keychain.load(&public1).unwrap();
 
-        let (_, public2) = generate_trusted_key(KeyRole::Packages, &key1);
+        let (_, public2) = generate_trusted_key(KeyRole::Packages, &key1).await;
         assert!(matches!(
             keychain.load(&public2),
             Err(Error::VerificationFailed)
         ));
     }
 
-    #[test]
-    fn test_add_key_trusted_by_nothing_else() {
+    #[tokio::test]
+    async fn test_add_key_trusted_by_nothing_else() {
         let mut keychain = Keychain::new(generate_key(KeyRole::Root).public()).unwrap();
 
         let another_root = generate_key(KeyRole::Root);
-        let (_, public) = generate_trusted_key(KeyRole::Packages, &another_root);
+        let (_, public) = generate_trusted_key(KeyRole::Packages, &another_root).await;
         assert!(matches!(
             keychain.load(&public),
             Err(Error::VerificationFailed)
         ));
     }
 
-    #[test]
-    fn test_add_key_with_unsupported_algorithm() {
+    #[tokio::test]
+    async fn test_add_key_with_unsupported_algorithm() {
         let root = generate_key(KeyRole::Root);
         let mut keychain = Keychain::new(root.public()).unwrap();
 
@@ -195,7 +195,7 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-        other.add_signature(&root).unwrap();
+        other.add_signature(&root).await.unwrap();
 
         assert!(matches!(keychain.load(&other), Err(Error::UnsupportedKey)));
     }
@@ -209,16 +209,17 @@ mod tests {
     }
 
     // Test `load_all` method with RevocationInfo being an empty list.
-    #[test]
-    fn test_load_all_revoked_content_empty() {
+    #[tokio::test]
+    async fn test_load_all_revoked_content_empty() {
         let root = generate_key(KeyRole::Root);
         let (revocation_keypair, signed_public_revocation_key) =
-            generate_trusted_key(KeyRole::Revocation, &root);
+            generate_trusted_key(KeyRole::Revocation, &root).await;
 
         let revoked_content = RevocationInfo::new(vec![], datetime!(2400-10-10 00:00 UTC));
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&revocation_keypair)
+            .await
             .unwrap();
 
         let mut keychain = Keychain::new(root.public()).unwrap();
@@ -238,11 +239,11 @@ mod tests {
 
     // Test `load_all` method with RevocationInfo but with one item in the list. The call
     // to `load_all` should not fail in verifying the revocation key.
-    #[test]
-    fn test_load_all_revoked_content_one_item() {
+    #[tokio::test]
+    async fn test_load_all_revoked_content_one_item() {
         let root = generate_key(KeyRole::Root);
         let (revocation_keypair, signed_public_revocation_key) =
-            generate_trusted_key(KeyRole::Revocation, &root);
+            generate_trusted_key(KeyRole::Revocation, &root).await;
         let revoked_content = RevocationInfo::new(
             vec![vec![1, 2, 3]],
             OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
@@ -250,6 +251,7 @@ mod tests {
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&revocation_keypair)
+            .await
             .unwrap();
 
         let mut keychain = Keychain::new(root.public()).unwrap();
@@ -267,11 +269,11 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[test]
-    fn test_error_on_load_all_when_revocation_info_is_some() {
+    #[tokio::test]
+    async fn test_error_on_load_all_when_revocation_info_is_some() {
         let root = generate_key(KeyRole::Root);
         let (revocation_keypair, signed_public_revocation_key) =
-            generate_trusted_key(KeyRole::Revocation, &root);
+            generate_trusted_key(KeyRole::Revocation, &root).await;
         let revoked_content = RevocationInfo::new(
             vec![vec![1, 2, 3]],
             OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
@@ -279,6 +281,7 @@ mod tests {
         let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
         signed_revoked_content
             .add_signature(&revocation_keypair)
+            .await
             .unwrap();
         let mut keychain = Keychain::new(root.public()).unwrap();
         let keys_manifest = KeysManifest {
@@ -300,13 +303,13 @@ mod tests {
         EphemeralKeyPair::generate(KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer, role, None).unwrap()
     }
 
-    fn generate_trusted_key(
+    async fn generate_trusted_key<K: KeyPair>(
         role: KeyRole,
-        trusted_by: &dyn KeyPair,
+        trusted_by: &K,
     ) -> (EphemeralKeyPair, SignedPayload<PublicKey>) {
         let key = generate_key(role);
         let mut payload = SignedPayload::new(key.public()).unwrap();
-        payload.add_signature(trusted_by).unwrap();
+        payload.add_signature(trusted_by).await.unwrap();
         (key, payload)
     }
 }
