@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Standardized error messages as close to English rules as possible.
+- Changed several CriticalTrust APIs to be async.
 
 ## [1.1.0] - 2024-08-28
 
