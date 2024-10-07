@@ -16,8 +16,6 @@ A command line tool similar to `rustup` to manage installations of Ferrocene too
 Installation
 ============
 
-> [!NOTE]
-> This repository is currently private, you need to use an SSO-authenticated SSH key or token along with the `--git` parameter.
 
 ```bash
 cargo install --git ssh://git@github.com/ferrocene/criticalup.git criticalup
