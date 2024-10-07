@@ -61,7 +61,7 @@ jobs:
       - name: Run the test suite (With AWS KMS)
         if: ${{ runner.os == 'Linux' }}
         shell: bash
-        run: cargo test --timings --workspace --locked --features aws-kms
+        run: cargo test --timings --workspace --locked --features aws-kms -- --test-threads=1
 
       # Incompatible with Windows, insta snapshots output Windows paths
       # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
