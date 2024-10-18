@@ -18,6 +18,8 @@ pub(crate) enum Error {
     Trust(#[from] TrustError),
     #[error(transparent)]
     Utf8(#[from] Utf8Error),
+    #[error(transparent)]
+    WalkDir(#[from] walkdir::Error),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -41,6 +43,13 @@ pub(crate) enum Error {
       .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
     )]
     IntegrityErrorsWhileInstallation(Vec<IntegrityError>),
+
+    #[error("Some files did not pass the integrity checks during verification.\n \
+        Please clean your installation directory and re-install the project again.\n \
+        The following errors were found:\n\n{}",
+        .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
+    )]
+    IntegrityErrorsWhileVerifying(Vec<IntegrityError>),
 
     #[error(transparent)]
     MissingRevocationInfo(#[from] IntegrityError),

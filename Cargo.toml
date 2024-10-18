@@ -25,6 +25,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "env-filter",
   "json",
 ] }
+walkdir = "2"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]

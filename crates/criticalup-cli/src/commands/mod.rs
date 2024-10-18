@@ -9,3 +9,4 @@ pub(crate) mod install;
 pub(crate) mod remove;
 pub(crate) mod run;
 pub(crate) mod which;
+pub(crate) mod verify;
