@@ -1,10 +1,19 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use std::{env::current_dir, os::unix::fs::MetadataExt, path::{Path, PathBuf}};
+use std::{
+    env::current_dir,
+    os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
+};
 
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
-use criticalup_core::{download_server_cache::DownloadServerCache, download_server_client::DownloadServerClient, project_manifest::{ProjectManifest, ProjectManifestProduct}, state::State};
+use criticalup_core::{
+    download_server_cache::DownloadServerCache,
+    download_server_client::DownloadServerClient,
+    project_manifest::{ProjectManifest, ProjectManifestProduct},
+    state::State,
+};
 use tracing::Span;
 use walkdir::WalkDir;
 
@@ -22,7 +31,10 @@ pub(crate) async fn run(
     } else {
         ProjectManifest::discover(&current_dir()?)?
     };
-    span.record("manifest_path", tracing::field::display(manifest_path.display()));
+    span.record(
+        "manifest_path",
+        tracing::field::display(manifest_path.display()),
+    );
 
     let state = State::load(&ctx.config).await?;
     let maybe_client = if !offline {
@@ -34,7 +46,7 @@ pub(crate) async fn run(
     let keys = cache.keys().await?;
 
     let project_manifest = ProjectManifest::load(&manifest_path)?;
-    
+
     let installation_dir = &ctx.config.paths.installation_dir;
 
     for product in project_manifest.products() {
@@ -52,21 +64,24 @@ async fn verify_product(
 ) -> Result<(), Error> {
     let span = Span::current();
 
-    let mut integrity_verifier = IntegrityVerifier::new(&keys);
+    let mut integrity_verifier = IntegrityVerifier::new(keys);
 
     let product_name = product.name();
     let product_path = installation_dir.join(product.installation_id());
-    span.record("product_path", tracing::field::display(product_path.display()));
+    span.record(
+        "product_path",
+        tracing::field::display(product_path.display()),
+    );
 
     tracing::info!("Verifying project `{product_name}`");
 
     for entry in WalkDir::new(product_path) {
         let entry = entry?;
-        
+
         if entry.file_type().is_file() {
             tracing::trace!("Adding {}", tracing::field::display(entry.path().display()));
             integrity_verifier.add(
-                &entry.path(),
+                entry.path(),
                 entry.metadata()?.mode(),
                 &tokio::fs::read(&entry.path()).await?,
             );
