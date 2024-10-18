@@ -63,10 +63,9 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
         Commands::Clean => commands::clean::run(&ctx).await?,
         Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
         Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
-        Commands::Verify {
-            project,
-            offline,
-        } => commands::verify::run(&ctx, project, offline).await?,
+        Commands::Verify { project, offline } => {
+            commands::verify::run(&ctx, project, offline).await?
+        }
         Commands::Which {
             binary: tool,
             project,
@@ -173,7 +172,7 @@ enum Commands {
         /// Don't download from the server, only use previously cached artifacts
         #[arg(long)]
         offline: bool,
-        
+
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
