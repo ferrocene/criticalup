@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+#[cfg(not(windows))]
+use std::os::unix::fs::MetadataExt;
 use std::{
     env::current_dir,
-    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
 
@@ -80,11 +81,14 @@ async fn verify_product(
 
         if entry.file_type().is_file() {
             tracing::trace!("Adding {}", tracing::field::display(entry.path().display()));
-            integrity_verifier.add(
-                entry.path(),
-                entry.metadata()?.mode(),
-                &tokio::fs::read(&entry.path()).await?,
-            );
+
+            #[cfg(not(windows))]
+            let mode = entry.metadata()?.mode();
+            // Windows does not have the same concept of permissions, we just no-op mode.
+            #[cfg(windows)]
+            let mode = 0;
+
+            integrity_verifier.add(entry.path(), mode, &tokio::fs::read(&entry.path()).await?);
         }
     }
 
