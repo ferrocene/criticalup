@@ -50,9 +50,22 @@ pub(crate) async fn run(
 
     let installation_dir = &ctx.config.paths.installation_dir;
 
+    verify(&keys, &installation_dir, &project_manifest).await
+}
+
+async fn verify(
+    keys: &Keychain,
+    installation_dir: &Path,
+    project_manifest: &ProjectManifest,
+) -> Result<(), Error> {
+    let products = project_manifest.products();
+
+    // We don't actually care the order of verification of products, simply that they are verified.
+    let mut working_set = Vec::with_capacity(products.len());
     for product in project_manifest.products() {
-        verify_product(&keys, installation_dir, product).await?;
+        working_set.push(verify_product(keys, installation_dir, product));
     }
+    futures::future::join_all(working_set).await.into_iter().collect::<Result<(), Error>>()?;
 
     Ok(())
 }
