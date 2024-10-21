@@ -27,6 +27,7 @@ serde_json = "1.0.117"
 tar = "0.4.40"
 thiserror = "1.0.61"
 xz2 = "0.1.7"
+tempfile.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -37,7 +38,7 @@ walkdir.workspace = true
 insta = { version = "1.39.0", features = ["filters"] }
 mock-download-server = { path = "../mock-download-server" }
 serde = { version = "1.0.203", features = ["derive"] }
-tempfile = "3.10.1"
+tempfile.workspace = true
 regex = "1.10.4"
 
 [target.x86_64-pc-windows-msvc.dependencies]

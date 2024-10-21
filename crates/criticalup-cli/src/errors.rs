@@ -5,6 +5,7 @@ use criticaltrust::integrity::IntegrityError;
 pub(crate) use criticaltrust::Error as TrustError;
 pub(crate) use criticalup_core::errors::BinaryProxyUpdateError;
 pub(crate) use criticalup_core::errors::Error as LibError;
+use tokio::task::JoinError;
 use std::path::PathBuf;
 use std::string::FromUtf8Error as Utf8Error;
 use tokio::task::JoinError;
@@ -53,6 +54,11 @@ pub(crate) enum Error {
         .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
     )]
     IntegrityErrorsWhileVerifying(Vec<IntegrityError>),
+    #[error("Some files did not pass the integrity checks during tarballing.\n \
+        The following errors were found:\n\n{}",
+        .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
+    )]
+    IntegrityErrorsWhileTarballing(Vec<IntegrityError>),
 
     #[error(transparent)]
     MissingRevocationInfo(#[from] IntegrityError),

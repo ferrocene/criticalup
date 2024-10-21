@@ -54,6 +54,8 @@ impl<'a> DownloadServerCache<'a> {
         self.root.join("keys.json")
     }
 
+    /// Return the path to a package which either already existed in the cache, or is freshly
+    /// downloaded.
     #[tracing::instrument(level = "debug", skip_all, fields(
         %product,
         %release,

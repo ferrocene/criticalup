@@ -10,3 +10,4 @@ pub(crate) mod remove;
 pub(crate) mod run;
 pub(crate) mod verify;
 pub(crate) mod which;
+pub(crate) mod tarball;
