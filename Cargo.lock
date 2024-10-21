@@ -702,6 +702,7 @@ dependencies = [
  "clap",
  "criticaltrust",
  "criticalup-core",
+ "futures",
  "insta",
  "mock-download-server",
  "owo-colors",
