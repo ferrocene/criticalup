@@ -20,7 +20,7 @@ use walkdir::WalkDir;
 
 use crate::{errors::Error, Context};
 
-#[tracing::instrument(level = "debug", skip_all, fields(project))]
+#[tracing::instrument(level = "debug", skip_all, fields(manifest_path))]
 pub(crate) async fn run(
     ctx: &Context,
     manifest_path: Option<PathBuf>,
