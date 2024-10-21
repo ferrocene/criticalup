@@ -1,18 +1,17 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use core::arch;
 #[cfg(not(windows))]
 use std::os::unix::fs::MetadataExt;
 use std::{
-    env::current_dir, fs::OpenOptions, io::Write, path::{Path, PathBuf}
+    env::current_dir, fs::OpenOptions, io::{stdout, Write}, path::PathBuf
 };
 
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
     download_server_cache::DownloadServerCache,
     download_server_client::DownloadServerClient,
-    project_manifest::{ProjectManifest, ProjectManifestProduct},
+    project_manifest::ProjectManifest,
     state::State,
 };
 use tempfile::TempDir;
@@ -29,7 +28,7 @@ pub(crate) async fn run(
     ctx: &Context,
     manifest_path: Option<&PathBuf>,
     offline: bool,
-    out: &Path,
+    out: Option<&PathBuf>,
 ) -> Result<(), Error> {
     let span = Span::current();
     let manifest_path = if let Some(manifest_path) = manifest_path {
@@ -64,7 +63,7 @@ async fn tarball(
     cache: DownloadServerCache<'_>,
     keys: &Keychain,
     project_manifest: &ProjectManifest,
-    output: &Path,
+    out: Option<&PathBuf>,
 ) -> Result<(), Error> {
 
     // Path to installables we will include in the tarball
@@ -123,22 +122,31 @@ async fn tarball(
     tracing::info!("Verified toolchain");
 
     // Wrap it up.
-    tracing::info!(path = %output.display(), "Creating archive...");
+    let out_cloned = out.map(|v| v.to_path_buf());
     let working_dir_owned = working_dir.path().to_path_buf();
-    let output_owned = output.to_path_buf();
     spawn_blocking(move || {
+        let mut destination: Box<dyn Write> = if let Some(out) = out_cloned {
+            let destination = std::env::current_dir()?.join(&out);
+            tracing::info!(path = %out.display(), "Creating archive...");
+            Box::new(OpenOptions::new().create_new(true).write(true).open(destination)?)
+        } else {
+            Box::new(stdout())
+        };
+
         // Tarballs kinda suck, we can't create them with absolute paths,
         // so, we're forced to change directory.
         let old_current_dir = std::env::current_dir()?;
-        let destination = old_current_dir.join(output_owned);
         std::env::set_current_dir(working_dir_owned)?;
-        let out_file = OpenOptions::new().create_new(true).write(true).open(destination)?;
-        let mut archive = tar::Builder::new(&out_file);
+        let mut archive = tar::Builder::new(&mut destination);
         archive.append_dir_all(".", ".")?;
         archive.finish()?;
         std::env::set_current_dir(old_current_dir)
     }).await??;
-    tracing::info!(path = %output.display(), "Archive created successfully");
+    if let Some(out) = out {
+        tracing::info!(path = %out.display(), "Archive created successfully");
+    } else {
+        tracing::info!("Archive created successfully");
+    }
 
     Ok(())
 }

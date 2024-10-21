@@ -200,9 +200,9 @@ enum Commands {
         /// Don't download from the server, only use previously cached artifacts
         #[arg(long)]
         offline: bool,
-        /// Path to output the tarball to
+        /// Path to output the tarball to (else use stdout)
         #[arg()]
-        out: PathBuf,
+        out: Option<PathBuf>,
     }
 }
 
