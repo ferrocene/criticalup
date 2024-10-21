@@ -4,15 +4,16 @@
 #[cfg(not(windows))]
 use std::os::unix::fs::MetadataExt;
 use std::{
-    env::current_dir, fs::OpenOptions, io::{stdout, Write}, path::PathBuf
+    env::current_dir,
+    fs::OpenOptions,
+    io::{stdout, Write},
+    path::PathBuf,
 };
 
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
-    download_server_cache::DownloadServerCache,
-    download_server_client::DownloadServerClient,
-    project_manifest::ProjectManifest,
-    state::State,
+    download_server_cache::DownloadServerCache, download_server_client::DownloadServerClient,
+    project_manifest::ProjectManifest, state::State,
 };
 use tempfile::TempDir;
 use tokio::task::spawn_blocking;
@@ -57,7 +58,6 @@ pub(crate) async fn run(
     Ok(())
 }
 
-
 #[tracing::instrument(level = "debug", skip_all, fields(product_path))]
 async fn tarball(
     cache: DownloadServerCache<'_>,
@@ -65,19 +65,25 @@ async fn tarball(
     project_manifest: &ProjectManifest,
     out: Option<&PathBuf>,
 ) -> Result<(), Error> {
-
     // Path to installables we will include in the tarball
     // Note: Do not try to get clever and parallize the building of this, download
     //       bandwidth is not generous for many people.
     let mut installables = vec![];
-    
+
     // Collect a list of installables
     for product in project_manifest.products() {
         let product_name = product.name();
         let release = product.release();
 
         for package in product.packages() {
-            let package_path = cache.package(product_name, release, package, DEFAULT_RELEASE_ARTIFACT_FORMAT).await?;
+            let package_path = cache
+                .package(
+                    product_name,
+                    release,
+                    package,
+                    DEFAULT_RELEASE_ARTIFACT_FORMAT,
+                )
+                .await?;
             installables.push(package_path);
         }
     }
@@ -93,9 +99,10 @@ async fn tarball(
             archive.set_preserve_permissions(true);
             archive.set_preserve_mtime(true);
             archive.set_unpack_xattrs(true);
-    
+
             archive.unpack(working_path)
-        }).await??;
+        })
+        .await??;
     }
 
     // Run the verifier over the tempdir.
@@ -128,7 +135,12 @@ async fn tarball(
         let mut destination: Box<dyn Write> = if let Some(out) = out_cloned {
             let destination = std::env::current_dir()?.join(&out);
             tracing::info!(path = %out.display(), "Creating archive...");
-            Box::new(OpenOptions::new().create_new(true).write(true).open(destination)?)
+            Box::new(
+                OpenOptions::new()
+                    .create_new(true)
+                    .write(true)
+                    .open(destination)?,
+            )
         } else {
             Box::new(stdout())
         };
@@ -141,7 +153,8 @@ async fn tarball(
         archive.append_dir_all(".", ".")?;
         archive.finish()?;
         std::env::set_current_dir(old_current_dir)
-    }).await??;
+    })
+    .await??;
     if let Some(out) = out {
         tracing::info!(path = %out.display(), "Archive created successfully");
     } else {

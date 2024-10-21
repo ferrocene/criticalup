@@ -203,7 +203,7 @@ enum Commands {
         /// Path to output the tarball to (else use stdout)
         #[arg()]
         out: Option<PathBuf>,
-    }
+    },
 }
 
 #[derive(Debug, Subcommand, Clone)]
