@@ -73,7 +73,7 @@ async fn verify_product(
         tracing::field::display(product_path.display()),
     );
 
-    tracing::info!("Verifying project `{product_name}`");
+    tracing::info!("Verifying product '{product_name}'");
 
     for entry in WalkDir::new(product_path) {
         let entry = entry?;
