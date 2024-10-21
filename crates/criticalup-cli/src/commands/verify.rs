@@ -50,7 +50,7 @@ pub(crate) async fn run(
 
     let installation_dir = &ctx.config.paths.installation_dir;
 
-    verify(&keys, &installation_dir, &project_manifest).await
+    verify(&keys, installation_dir, &project_manifest).await
 }
 
 async fn verify(
@@ -65,7 +65,10 @@ async fn verify(
     for product in project_manifest.products() {
         working_set.push(verify_product(keys, installation_dir, product));
     }
-    futures::future::join_all(working_set).await.into_iter().collect::<Result<(), Error>>()?;
+    futures::future::join_all(working_set)
+        .await
+        .into_iter()
+        .collect::<Result<(), Error>>()?;
 
     Ok(())
 }

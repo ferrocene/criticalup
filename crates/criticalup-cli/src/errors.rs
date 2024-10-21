@@ -5,9 +5,9 @@ use criticaltrust::integrity::IntegrityError;
 pub(crate) use criticaltrust::Error as TrustError;
 pub(crate) use criticalup_core::errors::BinaryProxyUpdateError;
 pub(crate) use criticalup_core::errors::Error as LibError;
-use tokio::task::JoinError;
 use std::path::PathBuf;
 use std::string::FromUtf8Error as Utf8Error;
+use tokio::task::JoinError;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
