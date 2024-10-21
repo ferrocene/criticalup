@@ -92,7 +92,7 @@ async fn verify_product(
         .verify()
         .map_err(Error::IntegrityErrorsWhileVerifying)?;
 
-    tracing::info!("Successfully verified `{product_name}`");
+    tracing::info!("Successfully verified '{product_name}'");
 
     Ok(())
 }
