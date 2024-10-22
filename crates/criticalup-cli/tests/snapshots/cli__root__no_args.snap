@@ -19,6 +19,7 @@ Commands:
   clean    Delete all unused and untracked installations
   run      Run a command for a given toolchain
   remove   Delete all the products specified in the manifest `criticalup.toml`
+  verify   Verify a given toolchain
   which    Display which binary will be run for a given command
 
 Options:
