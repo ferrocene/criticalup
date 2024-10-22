@@ -155,6 +155,32 @@ mod tests {
                 .expect("invalid output of docker port")
                 .1;
 
+            let mut alive = false;
+            let mut tries = 0;
+            const RETRIES: u8 = 5;
+            const RETRY_DELAY_MILLIS: u64 = 1000;
+            while tries <= RETRIES {
+                match reqwest::get(format!("http://0.0.0.0:{port}/health")).await {
+                    Ok(res) if res.status() == 200 => {
+                        let body = res.json::<serde_json::Value>().await.unwrap();
+                        let kms_status = body
+                            .pointer("/services/kms")
+                            .and_then(serde_json::Value::as_str);
+
+                        if let Some("available") = kms_status {
+                            alive = true;
+                            break;
+                        }
+                    }
+                    _ => (),
+                }
+                tries += 1;
+                tokio::time::sleep(tokio::time::Duration::from_millis(RETRY_DELAY_MILLIS)).await;
+            }
+            if !alive {
+                panic!("LocalStack did not come alive after {RETRIES} tries.");
+            }
+
             let aws_config = aws_config::from_env()
                 // localstack doesn't validate IAM credentials, so we can configure a dummy
                 // secret key and region.
