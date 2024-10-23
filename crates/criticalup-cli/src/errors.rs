@@ -53,11 +53,11 @@ pub(crate) enum Error {
         .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
     )]
     IntegrityErrorsWhileVerifying(Vec<IntegrityError>),
-    #[error("Some files did not pass the integrity checks during tarballing.\n \
+    #[error("Some files did not pass the integrity checks during archiving.\n \
         The following errors were found:\n\n{}",
         .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
     )]
-    IntegrityErrorsWhileTarballing(Vec<IntegrityError>),
+    IntegrityErrorsWhileArchiving(Vec<IntegrityError>),
 
     #[error(transparent)]
     MissingRevocationInfo(#[from] IntegrityError),

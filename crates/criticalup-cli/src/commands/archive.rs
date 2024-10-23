@@ -125,7 +125,7 @@ async fn archive(
     }
     integrity_verifier
         .verify()
-        .map_err(Error::IntegrityErrorsWhileTarballing)?;
+        .map_err(Error::IntegrityErrorsWhileArchiving)?;
     tracing::info!("Verified toolchain");
 
     // Wrap it up.
