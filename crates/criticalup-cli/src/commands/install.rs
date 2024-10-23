@@ -50,7 +50,7 @@ pub(crate) async fn run(
         let abs_installation_dir_path = installation_dir.join(product.installation_id());
 
         if !abs_installation_dir_path.exists() {
-            install_product_afresh(ctx, &state, &cache, &manifest_path, product).await?;
+            install_product_afresh(ctx, &state, &cache, &manifest_path, product, offline).await?;
         } else {
             // Check if the state file has no mention of this installation.
             let does_this_installation_exist_in_state = state
@@ -59,7 +59,8 @@ pub(crate) async fn run(
             if !does_this_installation_exist_in_state || reinstall {
                 // If the installation directory exists, but the State has no installation of that
                 // InstallationId, then re-run the install command and go through installation.
-                install_product_afresh(ctx, &state, &cache, &manifest_path, product).await?;
+                install_product_afresh(ctx, &state, &cache, &manifest_path, product, offline)
+                    .await?;
             } else {
                 // If the installation directory exists AND there is an existing installation with
                 // that InstallationId, then merely update the installation in the State file to
@@ -92,6 +93,7 @@ async fn install_product_afresh(
     cache: &DownloadServerCache<'_>,
     manifest_path: &Path,
     product: &ProjectManifestProduct,
+    offline: bool,
 ) -> Result<(), Error> {
     let product_name = product.name();
     let release = product.release();
@@ -113,7 +115,7 @@ async fn install_product_afresh(
     let revocation_info = &keys
         .revocation_info()
         .ok_or_else(|| Error::MissingRevocationInfo(IntegrityError::MissingRevocationInfo))?;
-    check_for_revocation(revocation_info, &verified_release_manifest)?;
+    check_for_revocation(revocation_info, &verified_release_manifest, offline)?;
 
     // criticalup 0.1, return error if any of package.dependencies is not empty.
     // We have to use manifest's Release because the information about dependencies
@@ -179,8 +181,9 @@ async fn install_product_afresh(
 fn check_for_revocation(
     revocation_info: &RevocationInfo,
     verified_release_manifest: &Release,
+    offline: bool,
 ) -> Result<(), Error> {
-    if time::OffsetDateTime::now_utc() >= revocation_info.expires_at {
+    if !offline && time::OffsetDateTime::now_utc() >= revocation_info.expires_at {
         return Err(RevocationSignatureExpired(
             criticaltrust::Error::RevocationSignatureExpired(revocation_info.expires_at),
         ));
@@ -269,12 +272,36 @@ mod tests {
 
     // Check if there is a revoked content Sha256 in the package.
     #[test]
-    fn revocation_check() {
+    fn revocation_check_normal() {
         let revocation_info =
             RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2400-10-10 00:00 UTC));
         let release = generate_release();
         assert!(matches!(
-            check_for_revocation(&revocation_info, &release),
+            check_for_revocation(&revocation_info, &release, false),
+            Err(RevocationCheckFailed(..))
+        ))
+    }
+
+    // Offline mode but valid expiration date.
+    #[test]
+    fn revocation_check_offline() {
+        let revocation_info =
+            RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2400-10-10 00:00 UTC));
+        let release = generate_release();
+        assert!(matches!(
+            check_for_revocation(&revocation_info, &release, true),
+            Err(RevocationCheckFailed(..))
+        ))
+    }
+
+    // The expired datetime must be ignored in Offline mode.
+    #[test]
+    fn revocation_check_offline_mode_expired_datetime() {
+        let revocation_info =
+            RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2012-10-10 00:00 UTC));
+        let release = generate_release();
+        assert!(matches!(
+            check_for_revocation(&revocation_info, &release, true),
             Err(RevocationCheckFailed(..))
         ))
     }
@@ -286,7 +313,7 @@ mod tests {
             RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2000-10-10 00:00 UTC));
         let release = generate_release();
         assert!(matches!(
-            check_for_revocation(&revocation_info, &release),
+            check_for_revocation(&revocation_info, &release, false),
             Err(RevocationSignatureExpired(..))
         ))
     }
