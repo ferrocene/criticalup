@@ -1,13 +1,14 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use std::io;
+use std::io::Write;
+
 use crate::errors::{Error, LibError};
 use crate::Context;
-use atty::Stream;
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::errors::DownloadServerError;
 use criticalup_core::state::{AuthenticationToken, State};
-use std::io::Write;
 
 pub(crate) async fn run(ctx: &Context, token: Option<String>) -> Result<(), Error> {
     let state = State::load(&ctx.config).await?;
@@ -15,7 +16,7 @@ pub(crate) async fn run(ctx: &Context, token: Option<String>) -> Result<(), Erro
 
     let token = if let Some(token) = token {
         token
-    } else if is_tty(ctx, Stream::Stdin) && is_tty(ctx, Stream::Stderr) {
+    } else if is_tty(ctx, &io::stdin()) && is_tty(ctx, &io::stderr()) {
         token_from_stdin_interactive(ctx).map_err(Error::CantReadTokenFromStdin)?
     } else {
         token_from_stdin_programmatic().map_err(Error::CantReadTokenFromStdin)?
@@ -77,7 +78,7 @@ fn token_from_stdin_programmatic() -> Result<String, std::io::Error> {
     Ok(token)
 }
 
-fn is_tty(ctx: &Context, stream: Stream) -> bool {
+fn is_tty(ctx: &Context, stream: &dyn std::io::IsTerminal) -> bool {
     if ctx.config.whitelabel.test_mode {
         // If the environment variable is set, pay attention to it
         if let Some(var) = std::env::var_os("CRITICALUP_TEST_MOCK_TTY") {
@@ -90,6 +91,5 @@ fn is_tty(ctx: &Context, stream: Stream) -> bool {
             }
         }
     }
-    // Ask libc if this stream is a TTY
-    atty::is(stream)
+    stream.is_terminal()
 }
