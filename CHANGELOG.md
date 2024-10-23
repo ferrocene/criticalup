@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
 - Changed several CriticalTrust APIs to be async.
 - Added a `criticalup verify` command that can be used to verify that a locally installed toolchain
   is not corrupted or tampered with.
-- Added `criticalup tarball` which creates an archive of the toolchain for cold storage or backup.
+- Added `criticalup archive` which creates an archive of the toolchain for cold storage or backup.
 
 ## [1.1.0] - 2024-08-28
 
