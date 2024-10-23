@@ -9,5 +9,5 @@ pub(crate) mod install;
 pub(crate) mod remove;
 pub(crate) mod run;
 pub(crate) mod verify;
-pub(crate) mod tarball;
+pub(crate) mod archive;
 pub(crate) mod which;

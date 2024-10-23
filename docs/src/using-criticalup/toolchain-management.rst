@@ -128,9 +128,9 @@ placed in backups.
 
 .. code-block::
 
-   criticalup tarball out.tar
+   criticalup archive out.tar
 
-If an output path is omitted, ``criticalup tarball`` emits the archive to
+If an output path is omitted, ``criticalup archive`` emits the archive to
 stdout.
 
 When an internet connection is not available, a previously fetched package

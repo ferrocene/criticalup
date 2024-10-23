@@ -53,13 +53,13 @@ pub(crate) async fn run(
 
     let project_manifest = ProjectManifest::load(&manifest_path)?;
 
-    tarball(cache, &keys, &project_manifest, out).await?;
+    archive(cache, &keys, &project_manifest, out).await?;
 
     Ok(())
 }
 
 #[tracing::instrument(level = "debug", skip_all, fields(product_path))]
-async fn tarball(
+async fn archive(
     cache: DownloadServerCache<'_>,
     keys: &Keychain,
     project_manifest: &ProjectManifest,
