@@ -83,8 +83,8 @@ Then run the install command again:
 
    criticalup install
 
-When an internet connection is not available, a previously installed package
-can be reinstalled without using the network by passing the ``--offline`` flag.
+When an internet connection is not available, a previously fetched package
+can be installed without using the network by passing the ``--offline`` flag.
 
 Removing Toolchains
 ^^^^^^^^^^^^^^^^^^^
@@ -94,7 +94,6 @@ from the directory containing the ``criticalup.toml``:
 
 .. code-block::
 
-   cd project
    criticalup remove
 
 Cleaning Unused Toolchains
@@ -120,3 +119,19 @@ From the direcory containing the relevant ``criticalup.toml``:
 .. code-block::
 
    criticalup verify
+
+Creating Archives of Toolchains
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+CriticalUp can produce uncompressed tarballs of toolchains which can then be
+placed in backups.
+
+.. code-block::
+
+   criticalup tarball out.tar
+
+If an output path is omitted, ``criticalup tarball`` emits the archive to
+stdout.
+
+When an internet connection is not available, a previously fetched package
+can be tarballed without using the network by passing the ``--offline`` flag.
