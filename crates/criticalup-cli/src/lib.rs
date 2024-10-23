@@ -70,6 +70,11 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
             binary: tool,
             project,
         } => commands::which::run(&ctx, tool, project).await?,
+        Commands::Archive {
+            offline,
+            project,
+            out,
+        } => commands::archive::run(&ctx, project.as_ref(), offline, out.as_ref()).await?,
     }
 
     Ok(())
@@ -185,6 +190,19 @@ enum Commands {
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
+    },
+
+    /// Create a tar archive of the toolchain based on the manifest `criticalup.toml`
+    Archive {
+        /// Path to the manifest `criticalup.toml`
+        #[arg(long)]
+        project: Option<PathBuf>,
+        /// Don't download from the server, only use previously cached artifacts
+        #[arg(long)]
+        offline: bool,
+        /// Path to output the archive to (else use stdout)
+        #[arg()]
+        out: Option<PathBuf>,
     },
 }
 
