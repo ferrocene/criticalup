@@ -108,3 +108,15 @@ much disk space the ``clean`` command can help by deleting unused toolchains.
 .. code-block::
 
    criticalup clean
+
+Verifying Toolchains
+^^^^^^^^^^^^^^^^^^^^
+
+If a toolchain is suspected to be corrupted or tampered with, the verification
+step performed during installation can be repeated.
+
+From the direcory containing the relevant ``criticalup.toml``:
+
+.. code-block::
+
+   criticalup verify

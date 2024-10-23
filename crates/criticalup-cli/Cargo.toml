@@ -21,6 +21,7 @@ path = "tests/cli/main.rs"
 clap = { version = "4.5.4", features = ["std", "derive", "help", "usage"] }
 criticaltrust = { path = "../criticaltrust" }
 criticalup-core = { path = "../criticalup-core" }
+futures.workspace = true
 owo-colors = { version = "4.0.0", default-features = false, features = ["supports-colors"] }
 serde_json = "1.0.117"
 tar = "0.4.40"
@@ -30,6 +31,7 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 time = { version = "0.3.36", features = ["std", "serde", "serde-well-known", "macros"] }
+walkdir.workspace = true
 
 [dev-dependencies]
 insta = { version = "1.39.0", features = ["filters"] }

@@ -7,6 +7,7 @@ pub(crate) use criticalup_core::errors::BinaryProxyUpdateError;
 pub(crate) use criticalup_core::errors::Error as LibError;
 use std::path::PathBuf;
 use std::string::FromUtf8Error as Utf8Error;
+use tokio::task::JoinError;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
@@ -18,6 +19,10 @@ pub(crate) enum Error {
     Trust(#[from] TrustError),
     #[error(transparent)]
     Utf8(#[from] Utf8Error),
+    #[error(transparent)]
+    WalkDir(#[from] walkdir::Error),
+    #[error(transparent)]
+    Join(#[from] JoinError),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
@@ -41,6 +46,13 @@ pub(crate) enum Error {
       .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
     )]
     IntegrityErrorsWhileInstallation(Vec<IntegrityError>),
+
+    #[error("Some files did not pass the integrity checks during verification.\n \
+        Please clean your installation directory and re-install the project again.\n \
+        The following errors were found:\n\n{}",
+        .0.iter().map(|err| { err.to_string() }).collect::<Vec<_>>().join("\n")
+    )]
+    IntegrityErrorsWhileVerifying(Vec<IntegrityError>),
 
     #[error(transparent)]
     MissingRevocationInfo(#[from] IntegrityError),
