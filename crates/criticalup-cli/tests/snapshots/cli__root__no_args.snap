@@ -21,7 +21,7 @@ Commands:
   remove   Delete all the products specified in the manifest `criticalup.toml`
   verify   Verify a given toolchain
   which    Display which binary will be run for a given command
-  tarball  Create a tarball of the toolchain based on the manifest `criticalup.toml`
+  archive  Create a tar archive of the toolchain based on the manifest `criticalup.toml`
 
 Options:
   -v, --verbose...                  Enable debug logs, -vv for trace
