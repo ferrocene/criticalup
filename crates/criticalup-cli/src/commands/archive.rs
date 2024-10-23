@@ -65,7 +65,7 @@ async fn archive(
     project_manifest: &ProjectManifest,
     out: Option<&PathBuf>,
 ) -> Result<(), Error> {
-    // Path to installables we will include in the tarball
+    // Path to installables we will include in the archive
     // Note: Do not try to get clever and parallize the building of this, download
     //       bandwidth is not generous for many people.
     let mut installables = vec![];
