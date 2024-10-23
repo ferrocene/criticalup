@@ -200,7 +200,7 @@ enum Commands {
         /// Don't download from the server, only use previously cached artifacts
         #[arg(long)]
         offline: bool,
-        /// Path to output the tarball to (else use stdout)
+        /// Path to output the archive to (else use stdout)
         #[arg()]
         out: Option<PathBuf>,
     },
