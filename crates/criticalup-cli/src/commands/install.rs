@@ -233,6 +233,12 @@ mod tests {
         48, 48, 57, 51, 97, 98, 98, 57, 102, 49, 100, 48, 56, 53, 101, 49, 48, 50, 51, 99, 55, 49,
     ];
 
+    const PACKAGE_SHA256_NOT_PRESENT: &[u8] = &[
+        57, 55, 54, 101, 99, 97, 99, 53, 53, 99, 101, 102, 102, 50, 49, 53, 53, 48, 99, 55, 100,
+        52, 97, 57, 100, 52, 97, 101, 100, 101, 52, 101, 48, 49, 102, 48, 57, 100, 99, 57, 53, 51,
+        48, 48, 57, 51, 99, 98, 98, 57, 102, 49, 100, 48, 56, 53, 101, 49, 48, 50, 51, 99, 55, 49,
+    ];
+
     #[test]
     fn dependencies_check() {
         use criticaltrust::manifests::ReleasePackage;
@@ -294,15 +300,42 @@ mod tests {
         ))
     }
 
-    // The expired datetime must be ignored in Offline mode.
+    // The expired datetime ignored in Offline mode but the package expired hash still catches the
+    // error.
     #[test]
-    fn revocation_check_offline_mode_expired_datetime() {
+    fn revocation_check_offline_mode_expired_datetime_correct_expired_package_hash() {
         let revocation_info =
             RevocationInfo::new(vec![PACKAGE_SHA256.into()], datetime!(2012-10-10 00:00 UTC));
         let release = generate_release();
         assert!(matches!(
             check_for_revocation(&revocation_info, &release, true),
             Err(RevocationCheckFailed(..))
+        ))
+    }
+
+    // The expired datetime must be ignored in Offline mode with a package expired hash not of the
+    // package being checked.
+    #[test]
+    fn revocation_check_offline_mode_expired_datetime_incorrect_expired_package_hash() {
+        let revocation_info = RevocationInfo::new(
+            vec![PACKAGE_SHA256_NOT_PRESENT.into()],
+            datetime!(2012-10-10 00:00 UTC),
+        );
+        let release = generate_release();
+        assert!(matches!(
+            check_for_revocation(&revocation_info, &release, true),
+            Ok(())
+        ))
+    }
+
+    // The expired datetime must be ignored in Offline mode with no package expired hash.
+    #[test]
+    fn revocation_check_offline_mode_expired_datetime_no_expired_package_hash() {
+        let revocation_info = RevocationInfo::new(vec![], datetime!(2012-10-10 00:00 UTC));
+        let release = generate_release();
+        assert!(matches!(
+            check_for_revocation(&revocation_info, &release, true),
+            Ok(())
         ))
     }
 
