@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::config::Config;
+use crate::errors::Error::MalformedReleaseNameRedirect;
 use crate::errors::{DownloadServerError, Error};
 use crate::state::State;
 use criticaltrust::keys::PublicKey;
@@ -71,9 +72,23 @@ impl DownloadServerClient {
         product: &str,
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
-        let p = format!("/v1/releases/{product}/{release}");
+        // TODO: tests
+
+        let mut url = format!("/v1/releases/{product}/{release}");
+
+        if let Some(stripped) = release.strip_prefix('@') {
+            let collected_values = stripped.split('/').collect::<Vec<&str>>();
+            if collected_values.len() != 2 || collected_values[1] != "latest" {
+                return Err(MalformedReleaseNameRedirect {
+                    release: release.into(),
+                });
+            }
+            let (channel, position) = (collected_values[0], collected_values[1]);
+            url = format!("/v1/redirects/{product}/{channel}/{position}");
+        }
+
         self.json(
-            self.send_with_auth(self.client.get(self.url(p.as_str())))
+            self.send_with_auth(self.client.get(self.url(url.as_str())))
                 .await?,
         )
         .await

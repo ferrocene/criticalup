@@ -95,6 +95,14 @@ pub enum Error {
 
     #[error("Failed to load keys into keychain.")]
     KeychainLoadingFailed(#[source] criticaltrust::Error),
+
+    #[error(
+        "The `release` in your project manifest does not seem to be correct.\n  \
+    If you want to specify latest release from a channel, please use '@' symbol as the first \
+    character, then the channel name, then the symbol '/', and then the word 'latest'.\n  \
+    Your `release`: .release"
+    )]
+    MalformedReleaseNameRedirect { release: String },
 }
 
 #[derive(Debug, thiserror::Error)]

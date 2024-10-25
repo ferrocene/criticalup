@@ -96,7 +96,7 @@ async fn install_product_afresh(
     offline: bool,
 ) -> Result<(), Error> {
     let product_name = product.name();
-    let release = product.release();
+    let mut release = product.release();
     let installation_dir = &ctx.config.paths.installation_dir;
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let keys = cache.keys().await?;
@@ -110,6 +110,12 @@ async fn install_product_afresh(
         .product_release_manifest(product_name, product.release())
         .await?;
     let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
+
+    if release.starts_with('@') {
+        let resolved_release = &verified_release_manifest.release;
+        tracing::info!("Resolved '{release}' to release '{resolved_release}'",);
+        release = resolved_release;
+    }
 
     // Checks for making sure that there is no revoked content in the incoming packages.
     let revocation_info = &keys
