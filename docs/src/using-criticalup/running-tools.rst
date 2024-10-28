@@ -52,7 +52,7 @@ command:
 Using the Binary Proxies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-CriticalUp creates a number of 'binary proxies' which can be used to run the appropriate Ferocene
+CriticalUp creates a number of 'binary proxies' which can be used to run the appropriate Ferrocene
 binaries for a given workspace. These can be added to your shell path on any OS.
 
 It's important to note that these binaries share the same binary names as any Rust toolchain that
