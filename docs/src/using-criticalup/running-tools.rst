@@ -21,9 +21,8 @@ After :ref:`installing CriticalUp <install>`,
 <install_toolchain>`, CriticalUp can be used to run the specified tools
 from the installed toolchain.
 
-CriticalUp creates a set of *binary proxies* for tools which it has installed.
-Which discover the relevant ``criticalup.toml`` and executes the correct
-version of the tool.
+CriticalUp will scan the working directory, then any parents, to discover the relevant
+``criticalup.toml`` and determine which version of the tool to execute.
 
 .. note::
 
@@ -75,7 +74,7 @@ your ``PATH``:
    export PATH="$PATH:$HOME/.local/share/criticalup/bin"
 
 If you're using a different shell, such as
-`nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`, you may need to
+`nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
 consult the shell's documentation on how to add to the path.
 
 macOS
@@ -90,7 +89,7 @@ You can add the following line to your ``~/.zshrc`` to add the binary proxies to
    export PATH="$PATH:$HOME/Library/Application Support/criticalup/bin"
 
 If you're using a different shell, such as
-`nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`, you may need to
+`nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
 consult the shell's documentation on how to add to the path.
 
 Windows
@@ -115,5 +114,5 @@ Once there, edit the ``PATH`` variable to include the following entry:
 You'll then need to sign out, and back in for changes to take effect.
 
 If you're using a different shell, such as
-`nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`, you may need to
+`nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
 consult the shell's documentation on how to add to the path.
