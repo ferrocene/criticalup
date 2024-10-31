@@ -87,11 +87,14 @@ channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
     release = "stable-24.05.0"
     # ...
 
+**Getting the latest release in a channel**
+
 Sometimes you may want the latest release for a given channel. You can use
 the following pattern to achieve that. Here you will get latest release in
 the nightly channel.
 
 .. code-block::
+
     [products.ferrocene]
     release = "@nightly/latest"
     # ...

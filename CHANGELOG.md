@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## Added
+
+- Client-side handling of release redirects in `criticalup.toml` where users can specify release as
+  `@nightly/latest` to get the latest release from the `nightly` channel.
+
 ### Changed
 
 - Standardized error messages as close to English rules as possible.
