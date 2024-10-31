@@ -714,6 +714,7 @@ dependencies = [
 name = "criticalup-core"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "criticaltrust",
  "dirs",
  "log",

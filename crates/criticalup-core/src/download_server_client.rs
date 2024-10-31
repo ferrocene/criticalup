@@ -220,8 +220,8 @@ mod tests {
     use super::*;
     use crate::state::AuthenticationToken;
     use crate::test_utils::{
-        TestEnvironment, SAMPLE_AUTH_TOKEN_CUSTOMER, SAMPLE_AUTH_TOKEN_EXPIRY,
-        SAMPLE_AUTH_TOKEN_NAME,
+        sample_release_manifest, TestEnvironment, SAMPLE_AUTH_TOKEN_CUSTOMER,
+        SAMPLE_AUTH_TOKEN_EXPIRY, SAMPLE_AUTH_TOKEN_NAME,
     };
     use criticaltrust::keys::KeyPair;
     use criticaltrust::signatures::PublicKeysRepository;
@@ -313,6 +313,26 @@ mod tests {
                 .get(&expected_missing.public().calculate_id())
                 .is_none());
         }
+    }
+
+    /// Get the release via the redirects API endpoint.
+    ///
+    /// The following TODOs are to be done post-merge of test utils which are currently spread
+    /// out into multiple crates.
+    /// TODO: Add tests for actual release endpoint.
+    /// TODO: Add multiple releases to be able to return the latest.
+    #[tokio::test]
+    async fn test_get_release_redirect() -> anyhow::Result<()> {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+        let actual_manifest = test_env
+            .download_server()
+            .get_product_release_manifest("ferrocene", "@stable-24.08/latest")
+            .await?;
+        let expected_manifest = sample_release_manifest();
+
+        assert_eq!(actual_manifest, expected_manifest);
+
+        Ok(())
     }
 
     async fn assert_auth_failed(test_env: &TestEnvironment) {

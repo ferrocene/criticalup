@@ -26,3 +26,4 @@ tracing.workspace = true
 [dev-dependencies]
 mock-download-server = { path = "../mock-download-server" }
 tempfile.workspace = true
+anyhow = "1.0"
