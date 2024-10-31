@@ -5,6 +5,7 @@ use crate::config::Config;
 use crate::download_server_client::DownloadServerClient;
 use crate::state::{AuthenticationToken, State};
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
+use criticaltrust::manifests::{ManifestVersion, Release, ReleaseManifest};
 use criticaltrust::signatures::SignedPayload;
 use mock_download_server::MockServer;
 use std::path::Path;
@@ -248,5 +249,22 @@ async fn start_mock_server(
 
     builder = builder.add_revocation_info(revocation_key).await;
 
+    // Add a sample release manifest.
+    let rm = sample_release_manifest();
+    builder = builder.add_release_manifest("ferrocene".to_string(), "stable-24.08".to_string(), rm);
+
     builder.start()
+}
+
+pub(crate) fn sample_release_manifest() -> ReleaseManifest {
+    ReleaseManifest {
+        version: ManifestVersion,
+        signed: SignedPayload::new(&Release {
+            product: "ferrocene".into(),
+            release: "stable-24.08".into(),
+            commit: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".into(),
+            packages: vec![],
+        })
+        .unwrap(),
+    }
 }

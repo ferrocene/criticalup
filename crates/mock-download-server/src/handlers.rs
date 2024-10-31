@@ -19,6 +19,9 @@ pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
         (Method::Get, ["v1", "releases", product, release]) => {
             handle_v1_release(data, product, release)
         }
+        (Method::Get, ["v1", "redirects", product, release, "latest"]) => {
+            handle_v1_redirects(data, product, release)
+        }
         _ => handle_404(),
     };
 
@@ -44,6 +47,14 @@ fn handle_v1_keys(data: &Data) -> Result<Resp, Resp> {
 }
 
 fn handle_v1_release(data: &Data, product: &str, release: &str) -> Result<Resp, Resp> {
+    let rm = data
+        .release_manifests
+        .get(&(product.to_string(), release.to_string()));
+    let resp = Resp::json(rm.expect("Did not get a release manifest"));
+    Ok(resp)
+}
+
+fn handle_v1_redirects(data: &Data, product: &str, release: &str) -> Result<Resp, Resp> {
     let rm = data
         .release_manifests
         .get(&(product.to_string(), release.to_string()));
