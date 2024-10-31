@@ -42,12 +42,12 @@ pub(crate) const MOCK_AUTH_TOKENS: &[(&str, AuthenticationToken)] = &[
 pub(crate) fn mock_release_manifests() -> Vec<(&'static str, &'static str, ReleaseManifest)> {
     vec![(
         "ferrocene",
-        "dev",
+        "stable-24.08",
         ReleaseManifest {
             version: criticaltrust::manifests::ManifestVersion,
             signed: SignedPayload::new(&Release {
                 product: "ferrocene".into(),
-                release: "dev".into(),
+                release: "stable-24.08".into(),
                 commit: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad".into(),
                 packages: vec![],
             })
