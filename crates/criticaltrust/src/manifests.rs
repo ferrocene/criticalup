@@ -68,14 +68,14 @@ impl Signable for Redirect {
 
 // Releases
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ReleaseManifest {
     pub version: ManifestVersion<1>,
     #[serde(flatten)]
     pub signed: SignedPayload<Release>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Release {
     pub product: String,
     pub release: String,
@@ -87,14 +87,14 @@ impl Signable for Release {
     const SIGNED_BY_ROLE: KeyRole = KeyRole::Releases;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ReleasePackage {
     pub package: String,
     pub artifacts: Vec<ReleaseArtifact>,
     pub dependencies: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ReleaseArtifact {
     pub format: ReleaseArtifactFormat,
     pub size: usize,
@@ -102,7 +102,7 @@ pub struct ReleaseArtifact {
     pub sha256: Vec<u8>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Copy)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Copy, Eq)]
 pub enum ReleaseArtifactFormat {
     #[serde(rename = "tar.zst")]
     TarZst,

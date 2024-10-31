@@ -17,7 +17,7 @@ use time::{Duration, OffsetDateTime};
 // Make sure there is enough number of days for expiration so tests don't need constant updates.
 const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct AuthenticationToken {
     pub name: Cow<'static, str>,
@@ -25,6 +25,7 @@ pub struct AuthenticationToken {
     pub expires_at: Option<Cow<'static, str>>,
 }
 
+#[derive(Debug)]
 pub struct Data {
     pub tokens: HashMap<String, AuthenticationToken>,
     pub keys: Vec<SignedPayload<PublicKey>>,

@@ -11,7 +11,7 @@ use std::cell::{Ref, RefCell};
 ///
 /// To prevent misuses, there is no way to access the data inside the payload unless signatures are
 /// verified. The signed payload can be freely serialized and deserialized.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq)]
 #[serde(bound = "T: Signable")]
 pub struct SignedPayload<T: Signable> {
     signatures: Vec<Signature>,
@@ -125,7 +125,7 @@ fn verify_signature<T: Signable>(
     Err(Error::VerificationFailed)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 struct Signature {
     key_sha256: KeyId,
     #[serde(with = "crate::serde_base64")]
