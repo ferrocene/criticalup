@@ -4,3 +4,7 @@ Files: *.snap
        Cargo.lock
 Copyright: The Ferrocene Developers
 License: MIT OR Apache-2.0
+
+Files: docs/uv.lock
+Copyright: The Ferrocene Developers
+License: MIT OR Apache-2.0
