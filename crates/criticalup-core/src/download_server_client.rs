@@ -72,8 +72,6 @@ impl DownloadServerClient {
         product: &str,
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
-        // TODO: tests
-
         let mut url = format!("/v1/releases/{product}/{release}");
 
         if let Some(stripped) = release.strip_prefix('@') {
