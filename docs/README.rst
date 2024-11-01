@@ -21,8 +21,8 @@ licenses text is present in the ``LICENSES/`` directory.
 Building the specification
 ==========================
 
-First, ``install <https://docs.astral.sh/uv/getting-started/installation/>``_
-``uv`` if you haven't. ``uv`` is to Python what ``cargo`` is to Rust.
+First, you'll need ``uv``. ``Install <https://docs.astral.sh/uv/getting-started/installation/>``_
+it if you haven't. ``uv`` is to Python what ``cargo`` is to Rust.
 
 CUD uses `Sphinx`_ to build a rendered version of the specification. To
 simplify building the rendered version, we created a script called ``make.py``
