@@ -26,6 +26,7 @@ extensions = [
     "ferrocene_intersphinx_support",
     "ferrocene_qualification",
     "ferrocene_domain_cli",
+    "myst_parser",
 ]
 
 # autosectionlabel unique names settings

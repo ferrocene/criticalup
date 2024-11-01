@@ -15,14 +15,14 @@ All notable changes to this project will be documented in this file.
   is not corrupted or tampered with.
 - Added `criticalup archive` which creates an archive of the toolchain for cold storage or backup.
 
-## Fixed
+### Fixed
 
 - Bug when using `--offline` mode to install with expired revocation info ends in installation failure. To
   support proper `--offline` mode, the expiration date on revocation info hash must be ignored.
 
 ## [1.1.0] - 2024-08-28
 
-## Added
+### Added
 
 - Support for package revocation added, `criticalup install` will verify packages have not been
   revoked (due to, for example, a security event) before installation.
