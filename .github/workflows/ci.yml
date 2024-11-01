@@ -98,11 +98,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install REUSE
-        run: pipx install reuse
+      - name: Install `uv`
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Check compliance with REUSE
-        run: reuse lint
+        run: uvx reuse lint
 
   docs:
     name: Build documentation
@@ -111,21 +111,20 @@ jobs:
       - name: Checkout the source code
         uses: actions/checkout@v4
 
+      - name: Install `uv`
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
       - name: Build documentation and check links
         working-directory: ./docs
-        run: ./make.py --check-links
-
-      - name: Install Python dependencies
-        working-directory: ./docs
-        run: python3 -m pip install reuse black flake8
+        run: uv run ./make.py --check-links
 
       - name: Verify Python code formatting
         working-directory: ./docs
-        run: black . --check --diff --color
+        run: uvx black . --check --diff --color
 
       - name: Lint Python code with flake8
         working-directory: ./docs
-        run: flake8 . --exclude .venv
+        run: uvx flake8 . --exclude .venv
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
