@@ -87,11 +87,8 @@ channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
     release = "stable-24.05.0"
     # ...
 
-**Getting the latest release in a channel**
-
-Sometimes you may want the latest release for a given channel. You can use
-the following pattern to achieve that. In the following example, you will
-get latest release in the stable-24.05 channel.
+The latest release in a given channel can be installed using ``@channel/latest``. The
+following example will install the latest release in ``stable-24.05`` channel.
 
 .. code-block::
 
