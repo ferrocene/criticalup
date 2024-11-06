@@ -12,4 +12,9 @@ dependencies = [
   "pyyaml",
   "semver",
   "importlib-metadata",
+  "sphinx_shared_resources",
 ]
+
+[tool.uv.sources]
+# sphinx-shared-resources = { git = "https://github.com/ferrocene/sphinx-shared-resources", branch = "hoverbear/use-uv" }
+sphinx_shared_resources = { path = "../../sphinx-shared-resources"}
