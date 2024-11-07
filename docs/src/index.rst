@@ -36,6 +36,7 @@ CriticalUp User Documentation
 
    criticalup_toml
    changelog
+   cli
 
 Indices and tables
 ------------------
