@@ -7,24 +7,47 @@ CriticalUp Command-Line Interface
 .. cli:program:: criticalup
 
     .. code-block::
+        :caption: Example: Basic
 
         $ criticalup [OPTIONS] <COMMAND>
 
     **GLOBAL OPTIONS**
 
-    .. cli:option:: -V --version
+    .. cli:option:: --version
+
+        Short option: ``-V``.
 
         Prints the version of CriticalUp.
 
-        Example:
-
         .. code-block::
+            :caption: Example: Option ``version``
 
             $ criticalup -V
 
-    .. cli:option:: -h --help
+    .. cli:option:: --help
+
+        Short option: ``-h``.
 
         Prints the help messages for commands and options to stdout.
+
+    .. cli:option:: --verbose
+
+        Short option: ``-v``.
+
+        Enables debug logs. For trace level logs use ``-vv``. Also, available is the
+        option ``--log-level`` to set the log level.
+
+        .. code-block::
+            :caption: Example: Options for debug log level
+
+            $ riticalup -v <COMMAND>
+            $ criticalup --log-level=debug <COMMAND>
+
+        .. code-block::
+            :caption: Example: Options for trace log level
+
+            $ criticalup -vv <COMMAND>
+            $ criticalup --log-level=trace <COMMAND>
 
     **COMMANDS**
 
@@ -37,6 +60,7 @@ CriticalUp Command-Line Interface
             Sets the authentication token used to interact with the download server.
 
             .. code-block::
+                :caption: Example: Subcommand ``auth set``
 
                 $ criticalup auth set <TOKEN>
 
@@ -45,6 +69,7 @@ CriticalUp Command-Line Interface
             Removes the authentication token used to interact with the download server.
 
             .. code-block::
+                :caption: Example: Subcommand ``auth remove``
 
                 $ criticalup auth remove
 
@@ -63,15 +88,13 @@ CriticalUp Command-Line Interface
             An error is shown to the user if it fails to find the project manifest in any of the
             directories.
 
-            Without ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``install``
 
                 $ criticalup install
 
-            With ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``install`` with option ``--project``
 
                 $ criticalup install \
                     --project /path/to/manifest/criticalup.toml
@@ -84,6 +107,7 @@ CriticalUp Command-Line Interface
             already installed. This option overrides that behavior and installs the toolchain again.
 
             .. code-block::
+                :caption: Example: Subcommand ``install`` with option ``--reinstall``
 
                 $ criticalup install --reinstall
 
@@ -100,6 +124,7 @@ CriticalUp Command-Line Interface
             If the local cache does not have the artifacts, an error is shown to the user.
 
             .. code-block::
+                :caption: Example: Subcommand ``install`` with option ``--offline``
 
                 $ criticalup install --reinstall --offline
 
@@ -121,15 +146,13 @@ CriticalUp Command-Line Interface
             An error is shown to the user if it fails to find the project manifest in any of the
             directories.
 
-            Without ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``remove``
 
                 $ criticalup remove
 
-            With ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``remove`` with option ``--project``
 
                 $ criticalup remove \
                     --project /path/to/manifest/criticalup.toml
@@ -144,6 +167,11 @@ CriticalUp Command-Line Interface
         If a set of artifacts are not used by any project, this command then deletes it from the state and
         disk.
 
+        .. code-block::
+            :caption: Example: Subcommand ``clean``
+
+            $ criticalup clean
+
     .. cli:subcommand:: which [OPTIONS] <BINARY>
 
         Displays which binary will be run for a given command.
@@ -157,15 +185,13 @@ CriticalUp Command-Line Interface
             An error is shown to the user if it fails to find the project manifest in any of the
             directories.
 
-            Without ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``which``
 
                 $ criticalup which rustc
 
-            With ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``which`` with option ``--project``
 
                 $ criticalup which rustc \
                     --project /path/to/manifest/criticalup.toml
@@ -193,15 +219,13 @@ CriticalUp Command-Line Interface
             An error is shown to the user if it fails to find the project manifest in any of the
             directories.
 
-            Without ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``run``
 
                 $ criticalup run rustc --version
 
-            With ``--project``:
-
             .. code-block::
+                :caption: Example: Subcommand ``run`` with option ``--project``
 
                 $ criticalup run \
                     --project /path/to/manifest/criticalup.toml \
