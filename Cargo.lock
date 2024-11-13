@@ -715,7 +715,6 @@ version = "0.0.0"
 dependencies = [
  "criticaltrust",
  "dirs",
- "log",
  "mock-download-server",
  "reqwest",
  "reqwest-middleware",
