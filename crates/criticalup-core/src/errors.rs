@@ -40,7 +40,7 @@ pub enum Error {
     #[error("JSON Serialization error")]
     JsonSerialization(#[from] serde_json::Error),
 
-    #[error("State file at {} is not supported by this release (state format version {1}).", .0.display())]
+    #[error("State file at {0} is not supported by this release (state format version {1}).")]
     UnsupportedStateFileVersion(PathBuf, u32),
     #[error("Failed to read the criticalup state file at {}.", .0.display())]
     CantReadStateFile(PathBuf, #[source] std::io::Error),
