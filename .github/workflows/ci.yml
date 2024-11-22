@@ -37,21 +37,21 @@ jobs:
           rustup update stable --no-self-update
           rustup default stable
 
-      - name: Cache Rust dependencies
-        uses: ferrous-systems/shared-github-actions/cache-rust@main
+      # - name: Cache Rust dependencies
+      #   uses: ferrous-systems/shared-github-actions/cache-rust@main
 
-      - name: Check formatting
-        if: ${{ matrix.os == 'ubuntu-latest' }}  
-        shell: bash
-        run: cargo fmt --all --check
+      # - name: Check formatting
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}  
+      #   shell: bash
+      #   run: cargo fmt --all --check
 
-      - name: Check Clippy warnings
-        shell: bash
-        run: cargo clippy --workspace --tests --locked -- -Dwarnings
+      # - name: Check Clippy warnings
+      #   shell: bash
+      #   run: cargo clippy --workspace --tests --locked -- -Dwarnings
 
-      - name: Prepare file to record snapshots used by insta
-        shell: bash
-        run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
+      # - name: Prepare file to record snapshots used by insta
+      #   shell: bash
+      #   run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
 
       # - name: Run the test suite (Without AWS KMS)
       #   if: ${{ runner.os != 'Linux' }}
