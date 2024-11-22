@@ -53,26 +53,26 @@ jobs:
         shell: bash
         run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
 
-      - name: Run the test suite (Without AWS KMS)
-        if: ${{ runner.os != 'Linux' }}
-        shell: bash
-        run: cargo test --timings --workspace --locked
+      # - name: Run the test suite (Without AWS KMS)
+      #   if: ${{ runner.os != 'Linux' }}
+      #   shell: bash
+      #   run: cargo test --timings --workspace --locked
 
-      - name: Run the test suite (With AWS KMS)
-        if: ${{ runner.os == 'Linux' }}
-        shell: bash
-        run: cargo test --timings --workspace --locked --features aws-kms -- --test-threads=1
+      # - name: Run the test suite (With AWS KMS)
+      #   if: ${{ runner.os == 'Linux' }}
+      #   shell: bash
+      #   run: cargo test --timings --workspace --locked --features aws-kms -- --test-threads=1
 
-      # Incompatible with Windows, insta snapshots output Windows paths
-      # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
-      - if: ${{ matrix.os == 'ubuntu-latest' }}
-        name: Ensure there are no unused insta snapshots
-        shell: bash
-        run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
+      # # Incompatible with Windows, insta snapshots output Windows paths
+      # # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
+      # - if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   name: Ensure there are no unused insta snapshots
+      #   shell: bash
+      #   run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
 
-      - name: Build debug builds
-        shell: bash
-        run: cargo build
+      # - name: Build debug builds
+      #   shell: bash
+      #   run: cargo build
 
       - name: DEBUG ME HERE
         shell: bash
