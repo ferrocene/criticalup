@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +73,13 @@ jobs:
       - name: Build debug builds
         shell: bash
         run: cargo build
+
+      - name: DEBUG ME HERE
+        shell: bash
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          cargo tree -i openssl-sys --target aarch64-unknown-linux-gnu
+          CARGO_BUILD_JOBS=1 cargo build --target aarch64-unknown-linux-gnu
 
       - name: Upload criticalup debug build
         uses: actions/upload-artifact@v4
