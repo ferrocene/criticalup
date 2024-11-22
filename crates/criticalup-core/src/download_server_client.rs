@@ -27,8 +27,7 @@ impl DownloadServerClient {
             .user_agent(config.whitelabel.http_user_agent)
             .build()
             .expect("failed to configure http client");
-        let client = ClientBuilder::new(client)
-            .build();
+        let client = ClientBuilder::new(client).build();
 
         DownloadServerClient {
             base_url: config.whitelabel.download_server_url.clone(),
