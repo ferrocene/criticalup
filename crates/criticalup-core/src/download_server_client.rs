@@ -12,11 +12,7 @@ use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
 use reqwest::{Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
-use reqwest_retry::policies::ExponentialBackoff;
-use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
-
-const CLIENT_MAX_RETRIES: u32 = 5;
 
 pub struct DownloadServerClient {
     base_url: String,
@@ -27,13 +23,11 @@ pub struct DownloadServerClient {
 
 impl DownloadServerClient {
     pub fn new(config: &Config, state: &State) -> Self {
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(CLIENT_MAX_RETRIES);
         let client = reqwest::ClientBuilder::new()
             .user_agent(config.whitelabel.http_user_agent)
             .build()
             .expect("failed to configure http client");
         let client = ClientBuilder::new(client)
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .build();
 
         DownloadServerClient {
