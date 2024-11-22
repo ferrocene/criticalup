@@ -9,14 +9,14 @@ use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
 use criticaltrust::signatures::Keychain;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
-use reqwest::StatusCode;
+use reqwest::Client;
+use reqwest::{RequestBuilder, StatusCode};
 use reqwest::{Response, Url};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use serde::Deserialize;
 
 pub struct DownloadServerClient {
     base_url: String,
-    client: ClientWithMiddleware,
+    client: Client,
     state: State,
     trust_root: PublicKey,
 }
@@ -27,7 +27,6 @@ impl DownloadServerClient {
             .user_agent(config.whitelabel.http_user_agent)
             .build()
             .expect("failed to configure http client");
-        let client = ClientBuilder::new(client).build();
 
         DownloadServerClient {
             base_url: config.whitelabel.download_server_url.clone(),
@@ -137,7 +136,7 @@ impl DownloadServerClient {
         let response_result = self.client.execute(req).await;
 
         let response = response_result.map_err(|e| Error::DownloadServerError {
-            kind: DownloadServerError::NetworkWithMiddleware(e),
+            kind: DownloadServerError::Network(e),
             url,
         })?;
 
