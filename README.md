@@ -61,8 +61,6 @@ To cut a release:
 - Create and checkout a new release branch from `main`, use the naming convention -  `release/vX.Y.Z`.
   Where, `X.Y.Z` is the release version you are trying to release.
 - Update the following on the release branch
-    - [dist-workspace.toml](./dist-workspace.toml): Change `pr-run-mode = "plan"` to `pr-run-mode = "upload"`.
-      **Commit this change separately!** (We will need to drop this commit once the PR passes)
     - [crates/criticalup/Cargo.toml](./crates/criticalup/Cargo.toml): Change `version` to `X.Y.Z`.
     - [crates/criticalup-cli/Cargo.toml](./crates/criticalup-cli/Cargo.toml): Change `version` to `X.Y.Z`.
     - [crates/criticalup-dev/Cargo.toml](./crates/criticalup-dev/Cargo.toml): Change `version` to `X.Y.Z`.
@@ -70,6 +68,8 @@ To cut a release:
       Update this test to match the correct version (`X.Y.Z`).
     - [CHANGELOG.md](./CHANGELOG.md): Make `[Unreleased]` the correct version (`[X.Y.Z]`). Add correct links metadata at
       the bottom.
+    - [dist-workspace.toml](./dist-workspace.toml): Change `pr-run-mode = "plan"` to `pr-run-mode = "upload"`.
+    **Commit this change separately!** (We will need to drop this commit once the PR passes)
 - Run `cargo test --workspace` and `cargo clippy --workspace --tests --locked -- -Dwarnings` to make sure there no
   failures.
 - Commit and push this branch and open a PR against `main`, on GitHub.
