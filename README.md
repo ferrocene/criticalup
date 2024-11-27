@@ -57,7 +57,7 @@ We use [`cargo-dist`](https://opensource.axo.dev/cargo-dist/book/quickstart/rust
 
 To cut a release:
 
-- Update the `main` branch with latest changes.
+- `git pull` on the `main` branch for latest changes.
 - Create and checkout a new release branch from `main`, use the naming convention -  `release/vX.Y.Z`.
   Where, `X.Y.Z` is the release version you are trying to release.
 - Update the following on the release branch
