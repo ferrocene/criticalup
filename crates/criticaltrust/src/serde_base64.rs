@@ -28,7 +28,7 @@ where
 {
     struct Base64Visitor<T: SerdeBase64>(PhantomData<T>);
 
-    impl<'de, T: SerdeBase64> Visitor<'de> for Base64Visitor<T> {
+    impl<T: SerdeBase64> Visitor<'_> for Base64Visitor<T> {
         type Value = T;
 
         fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
