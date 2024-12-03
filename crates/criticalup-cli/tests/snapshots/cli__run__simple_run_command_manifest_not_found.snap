@@ -8,6 +8,7 @@ empty stdout
 
 stderr
 ------
-error: Failed to find canonical path for /path/to/criticalup.toml.
+error: Failed to load the project manifest at /path/to/criticalup.toml.
+  caused by: Failed to read the file.
   caused by: No such file or directory (os error 2)
 ------
