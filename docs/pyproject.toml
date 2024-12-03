@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+[project]
+name = "criticalup-documentation"
+version = "0.0.1"
+requires-python = ">=3.12"
+dependencies = [
+  "sphinx",
+  "sphinx-autobuild",
+  "tomli",
+  "myst_parser",
+  "pyyaml",
+  "semver",
+  "importlib-metadata",
+  "sphinx_shared_resources",
+]
+
+[tool.uv.sources]
+# sphinx-shared-resources = { git = "https://github.com/ferrocene/sphinx-shared-resources", branch = "hoverbear/use-uv" }
+sphinx_shared_resources = { path = "../../sphinx-shared-resources"}
