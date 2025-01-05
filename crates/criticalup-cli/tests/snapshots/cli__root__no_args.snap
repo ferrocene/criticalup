@@ -1,6 +1,7 @@
 ---
 source: crates/criticalup-cli/tests/cli/root.rs
 expression: repr
+snapshot_kind: text
 ---
 exit: exit status: 1
 
@@ -16,7 +17,7 @@ Usage:
 Commands:
   auth     Show and change authentication with the download server
   install  Install the toolchain for the given project based on the manifest `criticalup.toml`
-  clean    Delete all unused and untracked installations
+  clean    Delete cache and unused installations
   run      Run a command for a given toolchain
   remove   Delete all the products specified in the manifest `criticalup.toml`
   verify   Verify a given toolchain

@@ -151,7 +151,7 @@ enum Commands {
         offline: bool,
     },
 
-    /// Delete all unused and untracked installations
+    /// Delete cache and unused installations
     Clean,
 
     /// Run a command for a given toolchain

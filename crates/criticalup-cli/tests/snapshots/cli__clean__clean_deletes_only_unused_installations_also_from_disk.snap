@@ -1,6 +1,7 @@
 ---
 source: crates/criticalup-cli/tests/cli/clean.rs
 expression: repr
+snapshot_kind: text
 ---
 exit: exit status: 0
 
