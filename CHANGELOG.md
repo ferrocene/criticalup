@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 - Release instructions to README.
 
+### Fixed
+
+- Running Clean command now also updates the binary proxies automatically.
+
 ## [1.2.0] - 2024-11-25
 
 ### Changed
