@@ -18,7 +18,7 @@ pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
     delete_cache_directory(&ctx.config.paths.cache_dir).await?;
     delete_unused_installations(installations_dir, &state).await?;
     // Deletes unused binary proxies after state cleanup.
-    binary_proxies::update(&ctx.config, &state, &ctx.config.paths.proxies_dir).await?;
+    binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
     delete_untracked_installation_dirs(installations_dir, state).await?;
 
     Ok(())
