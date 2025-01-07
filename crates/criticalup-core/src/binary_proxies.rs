@@ -27,6 +27,12 @@ pub async fn update(
     state: &State,
     proxy_binary: &Path,
 ) -> Result<(), BinaryProxyUpdateError> {
+    if proxy_binary.is_dir() {
+        return Err(BinaryProxyUpdateError::ProxyBinaryShouldNotBeDir(
+            proxy_binary.into(),
+        ));
+    }
+
     let mut expected_proxies = state
         .all_binary_proxy_names()
         .into_iter()
@@ -351,5 +357,27 @@ mod tests {
                 source.display()
             );
         }
+    }
+
+    #[tokio::test]
+    async fn update_should_not_accept_dir_for_proxy_binary_arg() {
+        let test_env = TestEnvironment::with().state().prepare().await;
+        let state = test_env.state();
+
+        // If the directory does not exist, the `.is_dir()` method fails to recognize it's a dir.
+        tokio::fs::create_dir_all(&test_env.config().paths.proxies_dir)
+            .await
+            .unwrap();
+        assert!(test_env.config().paths.proxies_dir.exists());
+
+        assert!(matches!(
+            update(
+                test_env.config(),
+                state,
+                &test_env.config().paths.proxies_dir
+            )
+            .await,
+            Err(BinaryProxyUpdateError::ProxyBinaryShouldNotBeDir(_))
+        ))
     }
 }
