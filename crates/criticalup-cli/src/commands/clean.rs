@@ -35,10 +35,23 @@ async fn delete_cache_directory(cache_dir: &Path) -> Result<(), Error> {
 /// Deletes installation from `State` with `InstallationId`s that have empty manifest section, and
 /// deletes the installation directory from the disk if present.
 async fn delete_unused_installations(installations_dir: &Path, state: &State) -> Result<(), Error> {
+    // We need to list all the available installations on the disk first, so we can check which
+    // installations in state file are absent from the disk.
+    let mut all_installations_on_disk: Vec<InstallationId> = Vec::new();
+    let mut entries = fs::read_dir(installations_dir).await?;
+    while let Some(item) = entries.next_entry().await? {
+        if item.file_type().await?.is_dir() {
+            let installation_dir_name = item.file_name();
+            if let Some(name) = installation_dir_name.to_str() {
+                all_installations_on_disk.push(InstallationId(name.into()));
+            }
+        }
+    }
+
     let unused_installations: Vec<InstallationId> = state
         .installations()
         .iter()
-        .filter(|item| item.1.manifests().is_empty())
+        .filter(|item| item.1.manifests().is_empty() || !all_installations_on_disk.contains(item.0))
         .map(|item| item.0.to_owned())
         .collect();
 
