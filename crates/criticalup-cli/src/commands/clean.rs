@@ -4,6 +4,7 @@
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
+use criticalup_core::binary_proxies;
 use criticalup_core::project_manifest::InstallationId;
 use criticalup_core::state::State;
 
@@ -16,6 +17,8 @@ pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
 
     delete_cache_directory(&ctx.config.paths.cache_dir).await?;
     delete_unused_installations(installations_dir, &state).await?;
+    // Deletes unused binary proxies after state cleanup.
+    binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
     delete_untracked_installation_dirs(installations_dir, state).await?;
 
     Ok(())

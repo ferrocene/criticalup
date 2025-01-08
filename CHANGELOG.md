@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 - Release instructions to README.
 
+### Fixed
+
+- Running Clean command now ensures that there are no leftover unused binary proxies.
+
 ## [1.2.0] - 2024-11-25
 
 ### Changed

@@ -1,6 +1,7 @@
 ---
 source: crates/criticalup-cli/tests/cli/clean.rs
 expression: repr
+snapshot_kind: text
 ---
 exit: exit status: 0
 
@@ -8,7 +9,7 @@ empty stdout
 
 stderr
 ------
-Delete all unused and untracked installations
+Delete cache and unused installations
 
 Usage:
   criticalup-test clean [OPTIONS]
