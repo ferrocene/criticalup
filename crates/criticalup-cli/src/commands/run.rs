@@ -47,8 +47,8 @@ pub(crate) async fn run(
         let Some(binary_name) = components.next() else {
             // This should never happen, the user somehow passed an empty string which clap somehow did not detect.
             panic!("Unexpected error: In strict mode an empty string was found as a binary name, this code should have never been reached. Please report this.");
-        }; // `Components` has no `len`
-        if components.next().is_none() {
+        };
+        if components.next().is_some() {
             // In strict mode, the specified binary cannot be anything other than a single path component,
             // since it must be present in one of the bin dirs of the installations.
             return Err(Error::StrictModeDoesNotAcceptPaths);
