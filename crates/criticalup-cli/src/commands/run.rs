@@ -15,6 +15,7 @@ pub(crate) async fn run(
     ctx: &Context,
     user_command: Vec<String>,
     project: Option<PathBuf>,
+    strict: bool,
 ) -> Result<(), Error> {
     let installations = locate_installations(ctx, project).await?;
     let mut bin_paths = vec![];
@@ -30,12 +31,51 @@ pub(crate) async fn run(
         }
     }
 
-    let binary = user_command
+    let mut binary = PathBuf::from(user_command
         .first()
-        .ok_or(Error::BinaryNotInstalled(String::new()))?;
+        .ok_or(Error::BinaryNotInstalled(String::new()))?);
     let args = user_command.get(1..).unwrap_or(&[]);
-    let mut command = Command::new(binary);
 
+    // If `strict` is passed, the user wants to be absolutely sure they only run a binary from
+    // within the installation. To support this, several additional checks are present.
+    //
+    // If all of those checks pass, we replace `binary` with the absolute path to the installation binary.
+    if strict {
+        let mut components = binary.components();
+        let Some(binary_name) = components.next() else {
+            // This should never happen, the user somehow passed an empty string which clap somehow did not detect. 
+            panic!("Unexpected error: In strict mode an empty string was found as a binary name, this code should have never been reached. Please report this.");
+        }; // `Components` has no `len`
+        if components.next() != None {
+            // In strict mode, the specified binary cannot be anything other than a single path component,
+            // since it must be present in one of the bin dirs of the installations.
+            return Err(Error::StrictModeDoesNotAcceptPaths)
+        }
+        let mut found_binary = None;
+        // In strict mode, the binary must exist on one of the bin paths
+        for bin_path in &bin_paths {
+            let candidate_binary = bin_path.join(binary_name);
+            if candidate_binary.exists() {
+                if let Some(duplicated_binary) = found_binary {
+                    // Somehow the user has an installations with duplicated binary names
+                    // that are ambiguous (we do not distribute such things).
+                    // Invite them to specify which one using an absolute path.
+                    let candidates = vec![duplicated_binary, candidate_binary];
+                    return Err(Error::BinaryAmbiguous(candidates))
+                } else {
+                    found_binary = Some(candidate_binary)
+                }
+            }
+        }
+        if let Some(found_binary) = found_binary {
+            binary = found_binary;
+        } else {
+            // Did not find a binary to strictly run
+            return Err(Error::BinaryNotInstalled(binary.to_string_lossy().to_string()))
+        }
+    }
+
+    let mut command = Command::new(binary);
     command
         .args(args)
         .stdout(Stdio::inherit())

@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `criticalup run` now behaves more similar to `rustup run` and `uv run`, allowing you to run
+  `criticalup run $WHATEVER` and have the respective tool see the appropriate CriticalUp-managed tools
+  within the `$PATH` (or equivalent).
+
 ### Added
 
 - Release instructions to README.

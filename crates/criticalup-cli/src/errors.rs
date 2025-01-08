@@ -73,6 +73,21 @@ pub(crate) enum Error {
     )]
     BinaryNotInstalled(String),
 
+    #[error(
+        "Ambiguous binary specified while in strict mode. This is an unexpected error as no \
+        valid products have duplicated binaries. Please report this. \n
+        \n
+        Ambiguous binaries: {}\n
+        \n
+        To work around this, pass one of the absolute paths to the command and disable strict mode.
+    ", .0.iter().map(|v| format!("{}", v.display())).collect::<Vec<_>>().join(", "))]
+    BinaryAmbiguous(Vec<PathBuf>),
+
+    #[error(
+        "Strict mode does not handle multi-component paths. Pass just a binary name, eg `rustc`."
+    )]
+    StrictModeDoesNotAcceptPaths,
+
     // This is not *technically* needed, but it provides useful insights when an error happens when
     // invoking a binary proxy. Otherwise people could think the error comes from rustc/cargo/etc.
     #[error("criticalup could not invoke the binary you requested")]
