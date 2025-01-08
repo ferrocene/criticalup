@@ -11,7 +11,8 @@ All notable changes to this project will be documented in this file.
 
 - `criticalup run` now behaves more similar to `rustup run` and `uv run`, allowing you to run
   `criticalup run $WHATEVER` and have the respective tool see the appropriate CriticalUp-managed tools
-  within the `$PATH` (or equivalent).
+  within the `$PATH` (or equivalent). A `--strict` flag was added to make it possible to ensure only
+  tools within the installation are run.
 
 ### Added
 
