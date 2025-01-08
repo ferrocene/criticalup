@@ -31,9 +31,11 @@ pub(crate) async fn run(
         }
     }
 
-    let mut binary = PathBuf::from(user_command
-        .first()
-        .ok_or(Error::BinaryNotInstalled(String::new()))?);
+    let mut binary = PathBuf::from(
+        user_command
+            .first()
+            .ok_or(Error::BinaryNotInstalled(String::new()))?,
+    );
     let args = user_command.get(1..).unwrap_or(&[]);
 
     // If `strict` is passed, the user wants to be absolutely sure they only run a binary from
@@ -43,13 +45,13 @@ pub(crate) async fn run(
     if strict {
         let mut components = binary.components();
         let Some(binary_name) = components.next() else {
-            // This should never happen, the user somehow passed an empty string which clap somehow did not detect. 
+            // This should never happen, the user somehow passed an empty string which clap somehow did not detect.
             panic!("Unexpected error: In strict mode an empty string was found as a binary name, this code should have never been reached. Please report this.");
         }; // `Components` has no `len`
         if components.next() != None {
             // In strict mode, the specified binary cannot be anything other than a single path component,
             // since it must be present in one of the bin dirs of the installations.
-            return Err(Error::StrictModeDoesNotAcceptPaths)
+            return Err(Error::StrictModeDoesNotAcceptPaths);
         }
         let mut found_binary = None;
         // In strict mode, the binary must exist on one of the bin paths
@@ -61,7 +63,7 @@ pub(crate) async fn run(
                     // that are ambiguous (we do not distribute such things).
                     // Invite them to specify which one using an absolute path.
                     let candidates = vec![duplicated_binary, candidate_binary];
-                    return Err(Error::BinaryAmbiguous(candidates))
+                    return Err(Error::BinaryAmbiguous(candidates));
                 } else {
                     found_binary = Some(candidate_binary)
                 }
@@ -71,7 +73,9 @@ pub(crate) async fn run(
             binary = found_binary;
         } else {
             // Did not find a binary to strictly run
-            return Err(Error::BinaryNotInstalled(binary.to_string_lossy().to_string()))
+            return Err(Error::BinaryNotInstalled(
+                binary.to_string_lossy().to_string(),
+            ));
         }
     }
 

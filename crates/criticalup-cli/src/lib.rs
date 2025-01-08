@@ -62,7 +62,11 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
         } => commands::install::run(&ctx, reinstall, offline, project).await?,
         Commands::Clean => commands::clean::run(&ctx).await?,
         Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
-        Commands::Run { command, project, strict } => commands::run::run(&ctx, command, project, strict).await?,
+        Commands::Run {
+            command,
+            project,
+            strict,
+        } => commands::run::run(&ctx, command, project, strict).await?,
         Commands::Verify { project, offline } => {
             commands::verify::run(&ctx, project, offline).await?
         }
