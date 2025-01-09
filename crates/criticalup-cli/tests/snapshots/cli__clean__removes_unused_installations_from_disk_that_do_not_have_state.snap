@@ -9,6 +9,5 @@ empty stdout
 stderr
 ------
  INFO Deleting unused installation installation_id_2
- INFO Deleting unused installation directory /path/to/toolchain/installation/installation_id_2/
  INFO Deleting untracked installation directory /path/to/toolchain/installation/installation_id_3/
 ------

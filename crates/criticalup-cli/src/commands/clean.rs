@@ -72,7 +72,7 @@ async fn delete_unused_installations(installations_dir: &Path, state: &State) ->
         // Remove installation directory from physical location.
         let installation_dir_to_delete = installations_dir.join(&installation.0);
         if installation_dir_to_delete.exists() {
-            tracing::info!(
+            tracing::debug!(
                 "Deleting unused installation directory {}",
                 &installation_dir_to_delete.display()
             );
