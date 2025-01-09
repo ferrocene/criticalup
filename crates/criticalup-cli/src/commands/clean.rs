@@ -73,7 +73,7 @@ async fn delete_unused_installations(installations_dir: &Path, state: &State) ->
         let installation_dir_to_delete = installations_dir.join(&installation.0);
         if installation_dir_to_delete.exists() {
             tracing::info!(
-                "deleting unused installation directory {}",
+                "Deleting unused installation directory {}",
                 &installation_dir_to_delete.display()
             );
             fs::remove_dir_all(&installation_dir_to_delete)
@@ -103,7 +103,7 @@ async fn delete_untracked_installation_dirs(
                 if !installations_in_state.contains_key(&InstallationId(name.into())) {
                     are_untracked_installation_dirs_present = true;
                     tracing::info!(
-                        "deleting untracked installation directory {}",
+                        "Deleting untracked installation directory {}",
                         item.path().to_path_buf().display()
                     );
 
