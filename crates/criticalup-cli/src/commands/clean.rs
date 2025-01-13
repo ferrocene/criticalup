@@ -119,7 +119,7 @@ async fn delete_untracked_installation_dirs(
     }
 
     if !are_untracked_installation_dirs_present {
-        tracing::info!("no untracked installation directories found",);
+        tracing::info!("No untracked installation directories found",);
     }
 
     Ok(())

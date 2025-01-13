@@ -10,5 +10,5 @@ stderr
 ------
  INFO Deleting unused installation installation_id_2
  INFO Deleting unused installation installation_id_3
- INFO no untracked installation directories found
+ INFO No untracked installation directories found
 ------
