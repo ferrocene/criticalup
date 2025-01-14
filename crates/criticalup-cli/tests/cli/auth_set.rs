@@ -36,9 +36,12 @@ macro_rules! run_cmd {
             .expect("failed to execute command");
         match &$expected {
             Some(expected) => {
-                // this regex replacement dance is required because this nested macro tests
+                // Since 1.84, stable Rust Clippy will complain about Regex inside a for loop.
+                // Unblocking ourselves by ignoring this warning in tests.
+                #[allow(clippy::regex_creation_in_loops)]
+                // This regex replacement dance is required because this nested macro tests
                 // set is instantiating the test server twice which means each run gives
-                // a different local port. we replace with a stable port just for this test.
+                // a different local port. We replace with a stable port just for this test.
                 let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
                 let left_str = String::from_utf8(out.stderr.clone())
                     .expect("string creation from bytes failed.");

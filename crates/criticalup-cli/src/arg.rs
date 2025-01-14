@@ -24,7 +24,7 @@ pub(crate) struct Instrumentation {
     pub(crate) log_level: Vec<Directive>,
 }
 
-impl<'a> Instrumentation {
+impl Instrumentation {
     pub(crate) fn log_level(&self) -> String {
         match self.verbose {
             0 => "info",
@@ -34,7 +34,7 @@ impl<'a> Instrumentation {
         .to_string()
     }
 
-    pub(crate) async fn setup<'b: 'a>(&'b self, binary_name: &str) -> Result<(), crate::Error> {
+    pub(crate) async fn setup(&self, binary_name: &str) -> Result<(), crate::Error> {
         let filter_layer = self.filter_layer(binary_name)?;
 
         if self.verbose != 0 {
