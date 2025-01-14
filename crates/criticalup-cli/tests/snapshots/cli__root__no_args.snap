@@ -1,7 +1,6 @@
 ---
 source: crates/criticalup-cli/tests/cli/root.rs
 expression: repr
-snapshot_kind: text
 ---
 exit: exit status: 1
 
@@ -23,6 +22,7 @@ Commands:
   verify   Verify a given toolchain
   which    Display which binary will be run for a given command
   archive  Create a tar archive of the toolchain based on the manifest `criticalup.toml`
+  doc      Open the documentation for the current toolchain
 
 Options:
   -v, --verbose...                  Enable debug logs, -vv for trace

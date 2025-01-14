@@ -32,6 +32,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 time = { version = "0.3.36", features = ["std", "serde", "serde-well-known", "macros"] }
 walkdir.workspace = true
+opener = "0.7.2"
 
 [dev-dependencies]
 insta = { version = "1.41.1", features = ["filters"] }

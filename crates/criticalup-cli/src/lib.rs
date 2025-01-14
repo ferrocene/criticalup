@@ -79,6 +79,7 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
             project,
             out,
         } => commands::archive::run(&ctx, project.as_ref(), offline, out.as_ref()).await?,
+        Commands::Doc { project, path } => commands::doc::run(&ctx, project, path).await?,
     }
 
     Ok(())
@@ -211,6 +212,16 @@ enum Commands {
         /// Path to output the archive to (else use stdout)
         #[arg()]
         out: Option<PathBuf>,
+    },
+
+    ///  Open the documentation for the current toolchain
+    Doc {
+        /// Path to the manifest `criticalup.toml`
+        #[arg(long)]
+        project: Option<PathBuf>,
+        /// Only print the path to the documentation location
+        #[arg(long)]
+        path: bool,
     },
 }
 

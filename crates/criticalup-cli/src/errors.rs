@@ -135,6 +135,19 @@ pub(crate) enum Error {
         tracing_subscriber::util::TryInitError,
     ),
 
+    #[error("Failed to open document in browser at {}", path.display())]
+    DocPathOpenError {
+        path: PathBuf,
+        #[source]
+        kind: opener::OpenError,
+    },
+
+    #[error(
+        "Package 'ferrocene-docs' is not installed for this project. Please add the package \
+    'ferrocene-docs' to the project manifest and run 'criticalup install' again."
+    )]
+    MissingDocPackage(),
+
     #[error("Failed to run install command.")]
     RevocationSignatureExpired(#[source] criticaltrust::Error),
     #[error("Failed to install package '{}'.", .0)]
