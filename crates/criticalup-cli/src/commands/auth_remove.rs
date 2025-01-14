@@ -3,12 +3,14 @@
 
 use crate::errors::Error;
 use crate::Context;
-use criticalup_core::state::State;
+use criticalup_core::state::{EnvVars, State};
 
 pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
     let state = State::load(&ctx.config).await?;
 
-    if state.authentication_token(None).await.is_some() {
+    let env_vars = EnvVars::default();
+
+    if state.authentication_token(None, &env_vars).await.is_some() {
         state.set_authentication_token(None);
         state.persist().await?;
     }

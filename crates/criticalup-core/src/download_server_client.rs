@@ -3,6 +3,7 @@
 
 use crate::config::Config;
 use crate::errors::{DownloadServerError, Error};
+use crate::state;
 use crate::state::State;
 use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseManifest;
@@ -124,9 +125,11 @@ impl DownloadServerClient {
             None
         };
 
+        let env_vars = state::EnvVars::default();
+
         let header = self
             .state
-            .authentication_token(path_to_token_file)
+            .authentication_token(path_to_token_file, &env_vars)
             .await
             .as_ref()
             .and_then(|token| HeaderValue::from_str(&format!("Bearer {}", token.unseal())).ok());
