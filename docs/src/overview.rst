@@ -20,6 +20,7 @@ This guide contains the following chapters:
   CriticalUp.
 * *Using CriticalUp* describes how to use CriticalUp to manage Ferrocene
   installations.
+* *Ferrocene Subscription* describes how to manage your subscription.
 * *References* provides further support and information about other
   documentation.
 
