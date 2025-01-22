@@ -72,19 +72,19 @@ jobs:
 
       - name: Build debug builds
         shell: bash
-        run: cargo build
+        run: cargo build --workspace
 
       - name: Upload criticalup debug build
         uses: actions/upload-artifact@v4
         with:
           name: criticalup-${{ matrix.os }}
-          path: target/debug/criticalup
+          path: target/debug/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
 
       - name: Upload upload criticalup-dev debug build
         uses: actions/upload-artifact@v4
         with:
           name: criticalup-dev-${{ matrix.os }}
-          path: target/debug/criticalup-dev
+          path: target/debug/criticalup-dev${{ (runner.os == 'Windows' && '.exe') || '' }}
 
       - name: Upload cargo timings
         uses: actions/upload-artifact@v4
