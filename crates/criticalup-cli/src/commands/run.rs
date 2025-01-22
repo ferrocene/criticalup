@@ -68,6 +68,8 @@ pub(crate) async fn run(
                     binary_name
                 }
             };
+            #[cfg(not(windows))]
+            let binary_name = binary_name.clone();
 
             let candidate_binary = bin_path.join(binary_name);
             if candidate_binary.exists() {
