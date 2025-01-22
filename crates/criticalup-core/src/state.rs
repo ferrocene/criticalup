@@ -3,6 +3,7 @@
 
 use std::cell::{Ref, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
+use std::env::VarError;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -85,7 +86,7 @@ impl State {
     ///  2. The state
     fn authentication_token_inner(&self, env_vars: &EnvVars) -> Option<AuthenticationToken> {
         match &env_vars.criticalup_token {
-            Some(e) => Some(AuthenticationToken(e.to_string())),
+            Some(token) => Some(AuthenticationToken(token.to_string())),
             None => {
                 let borrowed = self.inner.borrow();
                 borrowed.repr.authentication_token.clone()
@@ -375,15 +376,31 @@ impl StateInstallation {
     }
 }
 
+#[derive(Default)]
 pub struct EnvVars {
     criticalup_token: Option<String>,
 }
 
-impl Default for EnvVars {
-    fn default() -> Self {
-        EnvVars {
-            criticalup_token: std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME).ok(),
+impl EnvVars {
+    pub async fn read() -> Result<Self, Error> {
+        let mut env_vars = EnvVars::default();
+        match std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME) {
+            Ok(value) => {
+                if !value.is_empty() {
+                    env_vars.criticalup_token = Some(value);
+                }
+            }
+            Err(var_err) => {
+                if let VarError::NotUnicode(err) = var_err {
+                    return Err(Error::EnvVarNotUtf8 {
+                        name: CRITICALUP_TOKEN_ENV_VAR_NAME.to_string(),
+                        kind: VarError::NotUnicode(err),
+                    });
+                }
+            }
         }
+
+        Ok(env_vars)
     }
 }
 
@@ -1055,5 +1072,19 @@ mod tests {
             criticalup_token: None,
         };
         assert_eq!(None, state.authentication_token(None, &env_vars).await);
+    }
+
+    #[tokio::test]
+    async fn test_read_env_var() {
+        std::env::set_var(CRITICALUP_TOKEN_ENV_VAR_NAME, "HoustonWeHaveAToken!");
+        let ev = EnvVars::read().await.unwrap();
+        assert_eq!(
+            ev.criticalup_token,
+            Some("HoustonWeHaveAToken!".to_string())
+        );
+
+        std::env::remove_var(CRITICALUP_TOKEN_ENV_VAR_NAME);
+        let ev = EnvVars::read().await.unwrap();
+        assert_eq!(ev.criticalup_token, None);
     }
 }
