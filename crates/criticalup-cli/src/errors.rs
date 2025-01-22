@@ -135,7 +135,7 @@ pub(crate) enum Error {
         tracing_subscriber::util::TryInitError,
     ),
 
-    #[error("Failed to open document in browser at {}", path.display())]
+    #[error("Failed to open document in the browser at {}", path.display())]
     DocPathOpenError {
         path: PathBuf,
         #[source]
