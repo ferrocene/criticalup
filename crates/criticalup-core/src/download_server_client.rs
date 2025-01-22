@@ -125,7 +125,7 @@ impl DownloadServerClient {
             None
         };
 
-        let env_vars = state::EnvVars::default();
+        let env_vars = state::EnvVars::read().await?;
 
         let header = self
             .state
