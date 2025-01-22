@@ -8,6 +8,7 @@ mod auth_remove;
 mod auth_set;
 mod binary_proxies;
 mod clean;
+mod doc;
 mod install;
 mod remove;
 mod root;

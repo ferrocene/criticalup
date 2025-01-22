@@ -1,0 +1,13 @@
+---
+source: crates/criticalup-cli/tests/cli/doc.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+ INFO Opening docs in your browser for product 'ferrocene'.
+ /path/to/toolchain/installation/96e6f26dbe3633b09bca5969805ee049655ef23f0a95fe9d0139fc9c1cc488fd/share/doc/ferrocene/html/index.html
+------

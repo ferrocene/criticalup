@@ -36,6 +36,11 @@ pub(crate) async fn run(
             );
         } else {
             // Open in the default browser.
+            tracing::info!(
+                "Opening docs in your browser for product '{}'.\n {}",
+                product.name(),
+                abs_ferrocene_html_doc_path.display()
+            );
             opener::open_browser(abs_ferrocene_html_doc_path.clone()).map_err(|err| {
                 Error::DocPathOpenError {
                     path: abs_ferrocene_html_doc_path,

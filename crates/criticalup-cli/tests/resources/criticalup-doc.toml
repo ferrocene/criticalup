@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Manifest for test
+manifest-version = 1
+
+[products.ferrocene]
+release = "stable-2024.11.0"
+packages = [
+    "rustc-x86_64-unknown-linux-gnu",
+    "ferrocene-docs",
+]
