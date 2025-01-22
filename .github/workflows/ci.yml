@@ -111,7 +111,7 @@ jobs:
           name: criticalup-${{ matrix.os }}
 
       - name: Auth Criticalup
-        run: criticalup auth set $CRITICALUP_TOKEN
+        run: ./criticalup auth set $CRITICALUP_TOKEN
 
       - name: "Define toolchain"
         run: |
@@ -137,20 +137,20 @@ jobs:
       - name: Run test workflow
         working-directory: crab-boil
         run:
-          criticalup run -- cargo init
+          ./criticalup run -- cargo init
 
-          ${{ (runner.os == 'Windows' && 'criticalup.exe run -- cargo --version') || '' }}
-          ${{ (runner.os == 'Windows' && 'criticalup run -- cargo.exe --version') || '' }}
+          ${{ (runner.os == 'Windows' && './criticalup.exe run -- cargo --version') || '' }}
+          ${{ (runner.os == 'Windows' && './criticalup run -- cargo.exe --version') || '' }}
           
-          criticalup run -- cargo build
+          ./criticalup run -- cargo build
           
-          criticalup run -- cargo run
+          ./criticalup run -- cargo run
 
-          criticalup which rustc
+          ./criticalup which rustc
 
-          criticalup remove
+          ./criticalup remove
 
-          criticalup clean
+          ./criticalup clean
   license:
     name: Check licenses
     runs-on: ubuntu-latest
@@ -214,6 +214,7 @@ jobs:
     if: success()
     needs:
       - build-test
+      - runner-test
       - docs
       - deploy-docs
     steps:
