@@ -44,7 +44,7 @@ pub(crate) async fn run(
     // If all of those checks pass, we replace `binary` with the absolute path to the installation binary.
     if strict {
         let mut components = binary.components();
-        let Some(binary_name) = components.next() else {
+        let Some(binary_name) = components.next().map(|v| PathBuf::from(v.as_os_str())) else {
             // This should never happen, the user somehow passed an empty string which clap somehow did not detect.
             panic!("Unexpected error: In strict mode an empty string was found as a binary name, this code should have never been reached. Please report this.");
         };
@@ -56,6 +56,19 @@ pub(crate) async fn run(
         let mut found_binary = None;
         // In strict mode, the binary must exist on one of the bin paths
         for bin_path in &bin_paths {
+            // On Windows, binaries have an `.exe` extension which users don't necessarily need to type
+            #[cfg(windows)]
+            let binary_name = {
+                // If they specified an extension, leave it alone
+                if binary.extension().is_some() {
+                    binary_name.clone()
+                } else {
+                    let mut binary_name = binary_name.clone();
+                    binary_name.set_extension("exe");
+                    binary_name
+                }
+            };
+
             let candidate_binary = bin_path.join(binary_name);
             if candidate_binary.exists() {
                 if let Some(duplicated_binary) = found_binary {
@@ -69,6 +82,7 @@ pub(crate) async fn run(
                 }
             }
         }
+
         if let Some(found_binary) = found_binary {
             binary = found_binary;
         } else {
