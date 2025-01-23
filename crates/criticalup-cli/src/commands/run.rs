@@ -1,62 +1,141 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use criticalup_core::project_manifest::ProjectManifest;
+
+use crate::binary_proxies::prepend_path_to_var_for_command;
 use crate::errors::Error;
-use crate::errors::Error::BinaryNotInstalled;
 use crate::spawn::spawn_command;
 use crate::Context;
-use criticalup_core::project_manifest::ProjectManifest;
 use std::path::PathBuf;
 // We *deliberately* use a sync Command here, since we are spawning a process to replace the current one.
 use std::process::{Command, Stdio};
 
 pub(crate) async fn run(
     ctx: &Context,
-    command: Vec<String>,
+    user_command: Vec<String>,
     project: Option<PathBuf>,
+    strict: bool,
 ) -> Result<(), Error> {
-    // We try to fetch the manifest early on because it makes failing fast easy. Given that we need
-    // this variable to set the env var later for child process, it is important to try to get the
-    // canonical path first.
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
-
-    // This dir has all the binaries that are proxied.
-    let proxies_dir = &ctx.config.paths.proxies_dir;
-
-    if let Some(binary_command) = command.first() {
-        let mut binary_executable = PathBuf::new();
-        binary_executable.set_file_name(binary_command);
-        // On Windows, the user can pass (for example) `cargo` or `cargo.exe`
-        #[cfg(windows)]
-        binary_executable.set_extension("exe");
-
-        let binary_path = proxies_dir.join(binary_executable);
-
-        if binary_path.exists() {
-            let args = command.get(1..).unwrap_or(&[]);
-            let mut cmd = Command::new(binary_path);
-            cmd.args(args)
-                .stdout(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit());
-
-            // Set the manifest path env CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH var which is used
-            // by the function `crates::criticalup-cli::binary_proxies::proxy` to find the correct project
-            // manifest.
-            //
-            // Important: This env var is strictly for internal use!
-            if manifest_path.exists() {
-                cmd.env(
-                    "CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH",
-                    manifest_path.as_os_str(),
-                );
-            }
-
-            spawn_command(cmd)?;
-        } else {
-            return Err(BinaryNotInstalled(binary_command.into()));
+    let installations = locate_installations(ctx, project).await?;
+    let mut bin_paths = vec![];
+    let mut lib_paths = vec![];
+    for installation in installations {
+        let bin_dir = installation.join("bin");
+        if bin_dir.exists() {
+            bin_paths.push(bin_dir);
+        }
+        let lib_dir = installation.join("lib");
+        if lib_dir.exists() {
+            lib_paths.push(lib_dir)
         }
     }
 
+    let mut binary = PathBuf::from(
+        user_command
+            .first()
+            .ok_or(Error::BinaryNotInstalled(String::new()))?,
+    );
+    let args = user_command.get(1..).unwrap_or(&[]);
+
+    // If `strict` is passed, the user wants to be absolutely sure they only run a binary from
+    // within the installation. To support this, several additional checks are present.
+    //
+    // If all of those checks pass, we replace `binary` with the absolute path to the installation binary.
+    if strict {
+        let mut components = binary.components();
+        let Some(binary_name) = components.next().map(|v| PathBuf::from(v.as_os_str())) else {
+            // This should never happen, the user somehow passed an empty string which clap somehow did not detect.
+            panic!("Unexpected error: In strict mode an empty string was found as a binary name, this code should have never been reached. Please report this.");
+        };
+        if components.next().is_some() {
+            // In strict mode, the specified binary cannot be anything other than a single path component,
+            // since it must be present in one of the bin dirs of the installations.
+            return Err(Error::StrictModeDoesNotAcceptPaths);
+        }
+        let mut found_binary = None;
+        // In strict mode, the binary must exist on one of the bin paths
+        for bin_path in &bin_paths {
+            // On Windows, binaries have an `.exe` extension which users don't necessarily need to type
+            #[cfg(windows)]
+            let binary_name = {
+                // If they specified an extension, leave it alone
+                if binary.extension().is_some() {
+                    binary_name.clone()
+                } else {
+                    let mut binary_name = binary_name.clone();
+                    binary_name.set_extension("exe");
+                    binary_name
+                }
+            };
+            #[cfg(not(windows))]
+            let binary_name = binary_name.clone();
+
+            let candidate_binary = bin_path.join(binary_name);
+            if candidate_binary.exists() {
+                if let Some(duplicated_binary) = found_binary {
+                    // Somehow the user has an installations with duplicated binary names
+                    // that are ambiguous (we do not distribute such things).
+                    // Invite them to specify which one using an absolute path.
+                    let candidates = vec![duplicated_binary, candidate_binary];
+                    return Err(Error::BinaryAmbiguous(candidates));
+                } else {
+                    found_binary = Some(candidate_binary)
+                }
+            }
+        }
+
+        if let Some(found_binary) = found_binary {
+            binary = found_binary;
+        } else {
+            // Did not find a binary to strictly run
+            return Err(Error::BinaryNotInstalled(
+                binary.to_string_lossy().to_string(),
+            ));
+        }
+    }
+
+    let mut command = Command::new(binary);
+    command
+        .args(args)
+        .stdout(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    // For some particularly niche use cases, users may find themselves wanting
+    // to override the `rustc` called, and they may want to do that by setting
+    // `PATH` themselves, but they:
+    // 1) Shouldn't do that, and
+    // 2) Can set `RUSTC` which `cargo` already supports.
+
+    #[cfg(target_os = "macos")]
+    prepend_path_to_var_for_command(&mut command, "DYLD_FALLBACK_LIBRARY_PATH", lib_paths)?;
+    #[cfg(target_os = "linux")]
+    prepend_path_to_var_for_command(&mut command, "LD_LIBRARY_PATH", lib_paths)?;
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    prepend_path_to_var_for_command(&mut command, "PATH", bin_paths)?;
+    #[cfg(target_os = "windows")]
+    prepend_path_to_var_for_command(&mut command, "PATH", [lib_paths, bin_paths].concat())?;
+
+    spawn_command(command)?;
+
     Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all, fields(binary, project))]
+pub(crate) async fn locate_installations(
+    ctx: &Context,
+    project: Option<PathBuf>,
+) -> Result<Vec<PathBuf>, Error> {
+    let manifest = ProjectManifest::get(project).await?;
+
+    let installation_dir = &ctx.config.paths.installation_dir;
+
+    let mut found_installation_dirs = vec![];
+    for product in manifest.products() {
+        let abs_installation_dir_path = installation_dir.join(product.installation_id());
+        found_installation_dirs.push(abs_installation_dir_path);
+    }
+
+    Ok(found_installation_dirs)
 }

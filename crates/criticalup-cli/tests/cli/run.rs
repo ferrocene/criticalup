@@ -36,9 +36,13 @@ async fn simple_run_command_missing_package() {
         packages = [\"sample\"]
         ";
     std::fs::write(&manifest, project_manifest.as_bytes()).unwrap();
-    assert_output!(test_env
-        .cmd()
-        .args(["run", "--project", manifest.to_str().unwrap(), "rustc"]));
+    assert_output!(test_env.cmd().args([
+        "run",
+        "--strict",
+        "--project",
+        manifest.to_str().unwrap(),
+        "rustc"
+    ]));
 }
 
 #[tokio::test]

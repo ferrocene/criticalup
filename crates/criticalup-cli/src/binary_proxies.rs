@@ -143,7 +143,7 @@ pub(crate) fn arg0(whitelabel: &WhitelabelConfig) -> Result<String, Error> {
         .map(|s| s.to_string())
 }
 
-fn prepend_path_to_var_for_command(
+pub(crate) fn prepend_path_to_var_for_command(
     command: &mut Command,
     env_var: &str,
     new: Vec<PathBuf>,

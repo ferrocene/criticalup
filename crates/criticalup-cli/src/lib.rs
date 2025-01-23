@@ -62,7 +62,11 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
         } => commands::install::run(&ctx, reinstall, offline, project).await?,
         Commands::Clean => commands::clean::run(&ctx).await?,
         Commands::Remove { project } => commands::remove::run(&ctx, project).await?,
-        Commands::Run { command, project } => commands::run::run(&ctx, command, project).await?,
+        Commands::Run {
+            command,
+            project,
+            strict,
+        } => commands::run::run(&ctx, command, project, strict).await?,
         Commands::Verify { project, offline } => {
             commands::verify::run(&ctx, project, offline).await?
         }
@@ -163,6 +167,10 @@ enum Commands {
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
+
+        /// Only execute the specified binary if it is part of the installation
+        #[arg(long)]
+        strict: bool,
     },
 
     /// Delete all the products specified in the manifest `criticalup.toml`
