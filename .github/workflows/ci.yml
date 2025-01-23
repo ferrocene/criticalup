@@ -106,17 +106,6 @@ jobs:
     env:
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: criticalup-${{ matrix.os }}
-
-      - name: Make executable
-        if: ${{ runner.os != 'Windows' }}
-        run: chmod +x ./criticalup
-
-      - name: Auth Criticalup
-        run: ./criticalup auth set $CRITICALUP_TOKEN
-
       - name: "Define toolchain"
         run: |
           mkdir -p crab-boil
@@ -132,6 +121,21 @@ jobs:
                 "rust-std-${rustc-host}",
             ]
           EOF
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: criticalup-${{ matrix.os }}
+          path: crab-boil
+
+      - name: Make executable
+        if: ${{ runner.os != 'Windows' }}
+        working-directory: crab-boil
+        run: chmod +x ./criticalup
+
+      - name: Auth Criticalup
+        working-directory: crab-boil
+        run: ./criticalup auth set $CRITICALUP_TOKEN
+
 
       - name: Install toolchain
         working-directory: crab-boil
