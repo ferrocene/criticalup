@@ -116,9 +116,9 @@ jobs:
             [products.ferrocene]
             release = "stable-24.11.0"
             packages = [
-                "cargo-${rustc-host}",
-                "rustc-${rustc-host}",
-                "rust-std-${rustc-host}",
+                "cargo-\${rustc-host}",
+                "rustc-\${rustc-host}",
+                "rust-std-\${rustc-host}",
             ]
           EOF
 
