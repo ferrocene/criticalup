@@ -21,7 +21,7 @@ async fn show_path_only() {
 
     let manifest_path = current_dir.to_str().expect("conversion to str failed");
 
-    // generate the manifest object so we can get the installation id hash
+    // Generate the manifest object so we can get the installation id hash.
     let p = ProjectManifest::load(current_dir.as_path()).expect("could not load project manifest");
     let id_hash = p.products()[0].installation_id().0;
 
@@ -49,7 +49,7 @@ async fn open_browser() {
 
     let manifest_path = current_dir.to_str().expect("conversion to str failed");
 
-    // generate the manifest object so we can get the installation id hash
+    // Generate the manifest object so we can get the installation id hash.
     let p = ProjectManifest::load(current_dir.as_path()).expect("could not load project manifest");
     let id_hash = p.products()[0].installation_id().0;
 
@@ -74,7 +74,7 @@ async fn error_no_file() {
 
     let manifest_path = current_dir.to_str().expect("conversion to str failed");
 
-    // generate the manifest object so we can get the installation id hash
+    // Generate the manifest object so we can get the installation id hash.
     let p = ProjectManifest::load(current_dir.as_path()).expect("could not load project manifest");
     let id_hash = p.products()[0].installation_id().0;
 
@@ -99,7 +99,7 @@ async fn error_no_package() {
 
     let manifest_path = current_dir.to_str().expect("conversion to str failed");
 
-    // generate the manifest object so we can get the installation id hash
+    // Generate the manifest object so we can get the installation id hash.
     let p = ProjectManifest::load(current_dir.as_path()).expect("could not load project manifest");
     let id_hash = p.products()[0].installation_id().0;
 
