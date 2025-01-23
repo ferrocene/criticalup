@@ -136,7 +136,7 @@ pub(crate) enum Error {
     ),
 
     #[error("Failed to open document in the browser at {}", path.display())]
-    DocPathOpenError {
+    FailedToOpenDoc {
         path: PathBuf,
         #[source]
         kind: opener::OpenError,

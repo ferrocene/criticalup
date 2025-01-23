@@ -42,7 +42,7 @@ pub(crate) async fn run(
                 abs_ferrocene_html_doc_path.display()
             );
             opener::open_browser(abs_ferrocene_html_doc_path.clone()).map_err(|err| {
-                Error::DocPathOpenError {
+                Error::FailedToOpenDoc {
                     path: abs_ferrocene_html_doc_path,
                     kind: err,
                 }
