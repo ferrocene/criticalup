@@ -165,6 +165,12 @@ macro_rules! assert_output {
         let mut settings = insta::Settings::clone_current();
         settings.set_snapshot_path("../snapshots");
 
+        #[cfg(target_os = "windows")]
+        settings.add_filter(
+            r"[a-zA-Z]:\\.*\\toolchains\\(?<ins_id>[_a-zA-Z0-9]+)\\.*html.*",
+            "/path/to/toolchain/installation/$ins_id/share/doc/ferrocene/html/index.html",
+        );
+
         // using tempfile in tests changes the output tmp dir on every run
         // so, this is to normalize the data first
         #[cfg(target_os = "linux")]
