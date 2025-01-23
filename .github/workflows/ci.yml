@@ -136,7 +136,7 @@ jobs:
       - name: Install toolchain
         working-directory: crab-boil
         run: |
-          criticalup install
+          ./criticalup install
 
       - name: Run test workflow
         working-directory: crab-boil
