@@ -29,11 +29,7 @@ pub(crate) async fn run(
         }
 
         if path_only {
-            tracing::info!(
-                "Documentation for product '{}' is located at\n {}",
-                product.name(),
-                abs_ferrocene_html_doc_path.display()
-            );
+            println!("{}", abs_ferrocene_html_doc_path.display());
         } else {
             // Open in the default browser.
             tracing::info!(

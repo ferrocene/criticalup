@@ -4,10 +4,9 @@ expression: repr
 ---
 exit: exit status: 0
 
-empty stdout
+stdout
+------
+/path/to/toolchain/installation/96e6f26dbe3633b09bca5969805ee049655ef23f0a95fe9d0139fc9c1cc488fd/share/doc/ferrocene/html/index.html
+------
 
-stderr
-------
- INFO Documentation for product 'ferrocene' is located at
- /path/to/toolchain/installation/96e6f26dbe3633b09bca5969805ee049655ef23f0a95fe9d0139fc9c1cc488fd/share/doc/ferrocene/html/index.html
-------
+empty stderr
