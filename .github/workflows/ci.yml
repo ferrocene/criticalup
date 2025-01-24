@@ -107,6 +107,7 @@ jobs:
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
       - name: "Define toolchain"
+        shell: bash # Powershell does not do heredocs
         run: |
           mkdir -p crab-boil
           cd crab-boil
@@ -144,7 +145,7 @@ jobs:
 
       - name: Run test workflow
         working-directory: crab-boil
-        run:
+        run: |
           ./criticalup run -- cargo init
 
           ${{ (runner.os == 'Windows' && './criticalup.exe run -- cargo --version') || '' }}
