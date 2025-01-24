@@ -1,0 +1,15 @@
+---
+source: crates/criticalup-cli/tests/cli/doc.rs
+expression: repr
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+ INFO Opening docs in your browser for product 'ferrocene'.
+error: Failed to open document in the browser at file:/path/to/toolchain/installation/96e6f26dbe3633b09bca5969805ee049655ef23f0a95fe9d0139fc9c1cc488fd/share/doc/ferrocene/html/index.html
+  caused by: error spawning command(s) 'THEREISNOSUCHBROWSER'
+  caused by: No such file or directory (os error 2)
+------

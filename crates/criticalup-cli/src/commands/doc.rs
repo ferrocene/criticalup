@@ -5,6 +5,7 @@ use crate::errors::Error;
 use crate::Context;
 use criticalup_core::project_manifest::ProjectManifest;
 use std::path::PathBuf;
+use url::Url;
 
 pub(crate) async fn run(
     ctx: &Context,
@@ -28,21 +29,25 @@ pub(crate) async fn run(
             return Err(Error::MissingDocPackage());
         }
 
-        if path_only {
-            println!("{}", abs_ferrocene_html_doc_path.display());
-        } else {
-            // Open in the default browser.
-            tracing::info!(
-                "Opening docs in your browser for product '{}'.\n {}",
-                product.name(),
-                abs_ferrocene_html_doc_path.display()
-            );
-            opener::open_browser(abs_ferrocene_html_doc_path.clone()).map_err(|err| {
-                Error::FailedToOpenDoc {
-                    path: abs_ferrocene_html_doc_path,
-                    kind: err,
+        // Path to the doc root can be clickable so we try to print that.
+        match Url::from_file_path(abs_ferrocene_html_doc_path.clone()) {
+            Ok(url) => {
+                let url = url.to_string();
+                if path_only {
+                    println!("{}", url);
+                } else {
+                    // Open in the default browser.
+                    tracing::info!(
+                        "Opening docs in your browser for product '{}'.",
+                        product.name()
+                    );
+                    opener::open_browser(abs_ferrocene_html_doc_path.clone())
+                        .map_err(|err| Error::FailedToOpenDoc { url, kind: err })?
                 }
-            })?
+            }
+            Err(_) => {
+                println!("{}", abs_ferrocene_html_doc_path.display());
+            }
         }
     }
 

@@ -31,6 +31,7 @@ time = { version = "0.3.36", features = ["std", "serde", "serde-well-known", "ma
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+url = "2.5.4"
 walkdir.workspace = true
 xz2 = "0.1.7"
 
