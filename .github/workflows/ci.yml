@@ -147,9 +147,6 @@ jobs:
         working-directory: crab-boil
         run: |
           ./criticalup run -- cargo init
-
-          ${{ (runner.os == 'Windows' && './criticalup.exe run -- cargo --version') || '' }}
-          ${{ (runner.os == 'Windows' && './criticalup run -- cargo.exe --version') || '' }}
           
           ./criticalup run -- cargo build
           
@@ -160,6 +157,15 @@ jobs:
           ./criticalup remove
 
           ./criticalup clean
+
+      # Windows allows the `.exe` or not, at the users option.
+      - name: Run Windows exclusive commands
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: crab-boil
+        run: |
+            ./criticalup.exe run -- cargo --version
+            ./criticalup run -- cargo.exe --version
+            ./criticalup.exe run -- cargo.exe --version
 
   license:
     name: Check licenses
