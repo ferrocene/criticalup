@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added a `criticalup doc` command which opens the documentation of the relevant Ferrocene version.
 - Release instructions to README.
 
 ### Fixed
@@ -28,7 +29,7 @@ All notable changes to this project will be documented in this file.
 
 - Standardized error messages as close to English rules as possible.
 - Changed several CriticalTrust APIs to be async.
-- Added a `criticalup verify` command that can be used to verify that a locally installed toolchain
+- Added a `criticalup verify` command that can be used to verify that a locally installed toolchain.
   is not corrupted or tampered with.
 - Added `criticalup archive` which creates an archive of the toolchain for cold storage or backup.
 
