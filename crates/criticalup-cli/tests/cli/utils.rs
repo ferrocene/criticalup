@@ -171,6 +171,12 @@ macro_rules! assert_output {
             "/path/to/toolchain/installation/$ins_id/share/doc/ferrocene/html/index.html",
         );
 
+        #[cfg(target_os = "windows")]
+        settings.add_filter(
+            r"file:.*[a-zA-Z]:.*toolchains/(?<ins_id>[_a-zA-Z0-9]+)/share/doc/ferrocene.*",
+            "file:/path/to/toolchain/installation/$ins_id/share/doc/ferrocene/html/index.html",
+        );
+
         // using tempfile in tests changes the output tmp dir on every run
         // so, this is to normalize the data first
         #[cfg(target_os = "linux")]
@@ -193,6 +199,12 @@ macro_rules! assert_output {
         settings.add_filter(
             r"error: The system cannot find the path specified\. \(os error 3\)",
             "error: No such file or directory (os error 2)",
+        );
+
+        #[cfg(windows)]
+        settings.add_filter(
+            r"caused by: program not found",
+            "caused by: No such file or directory (os error 2)",
         );
 
         #[cfg(windows)]
