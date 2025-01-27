@@ -1,0 +1,12 @@
+---
+source: crates/criticalup-cli/tests/cli/doc.rs
+expression: repr
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+error: Package 'ferrocene-docs' is not installed for this project. Please add the package 'ferrocene-docs' to the project manifest and run 'criticalup install' again.
+------
