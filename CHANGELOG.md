@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Release instructions to README.
+- Subscription management docs.
 
 ### Fixed
 

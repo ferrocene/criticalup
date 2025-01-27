@@ -9,27 +9,24 @@ Authenticating
 This chapter describes how to authenticate CriticalUp on the
 `Ferrocene Customer Portal`_.
 
-The example assumes you have a preexisting Ferrocene account. This example
-presumes no existing directory structure.
+You need a Ferrocene subscription to authenticate CriticalUp and download Ferrocene.
 
 .. _Ferrocene Customer Portal: https://customers.ferrocene.dev/
 
-After :ref:`installing CriticalUp <install>` it's possible to authenticate
-CriticalUp via the ``auth set`` subcommand.
-
+After :ref:`installing CriticalUp <install>`, authenticate by running the ``auth set`` subcommand:
 
 .. code-block::
 
    criticalup auth set
 
 Follow the on-screen instructions to generate a new token, then paste the token
-into the prompt. CriticalUp will validate that the provided token is valid.
+into the prompt. CriticalUp will validate the token.
 
 
 Check Authentication Status
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The current authentication state and token used can be reviewed with the ``auth`` command.
+Review authentication and token state using the ``auth`` command.
 
 .. code-block::
 
@@ -39,7 +36,7 @@ The current authentication state and token used can be reviewed with the ``auth`
 Unauthenticating
 ^^^^^^^^^^^^^^^^
 
-In order to remove the authenticated token, the ``auth remove`` command can be used.
+To remove the authenticated token, run ``auth remove``.
 
 .. code-block::
 

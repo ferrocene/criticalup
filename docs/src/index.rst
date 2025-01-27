@@ -32,6 +32,13 @@ CriticalUp User Documentation
 .. toctree::
    :numbered:
    :maxdepth: 2
+   :caption: Ferrocene Subscription:
+
+   subscriptions
+
+.. toctree::
+   :numbered:
+   :maxdepth: 2
    :caption: Reference:
 
    criticalup_toml
