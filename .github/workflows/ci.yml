@@ -95,6 +95,78 @@ jobs:
           path: target/cargo-timings/cargo-timing.html
           retention-days: 7
 
+  runner-test:
+    name: Test CriticalUp on GHA Runners
+    needs: [build-test]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
+    steps:
+      - name: "Define toolchain"
+        shell: bash # Powershell does not do heredocs
+        run: |
+          mkdir -p crab-boil
+          cd crab-boil
+          cat <<- EOF > criticalup.toml
+            manifest-version = 1
+
+            [products.ferrocene]
+            release = "stable-24.11.0"
+            packages = [
+                "cargo-\${rustc-host}",
+                "rustc-\${rustc-host}",
+                "rust-std-\${rustc-host}",
+            ]
+          EOF
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: criticalup-${{ matrix.os }}
+          path: crab-boil
+
+      - name: Make executable
+        if: ${{ runner.os != 'Windows' }}
+        working-directory: crab-boil
+        run: chmod +x ./criticalup
+
+      - name: Auth Criticalup
+        working-directory: crab-boil
+        run: ./criticalup auth set $CRITICALUP_TOKEN
+
+
+      - name: Install toolchain
+        working-directory: crab-boil
+        run: |
+          ./criticalup install
+
+      - name: Run test workflow
+        working-directory: crab-boil
+        run: |
+          ./criticalup run -- cargo init
+          
+          ./criticalup run -- cargo build
+          
+          ./criticalup run -- cargo run
+
+          ./criticalup which rustc
+
+          ./criticalup remove
+
+          ./criticalup clean
+
+      # Windows allows the `.exe` or not, at the users option.
+      - name: Run Windows exclusive commands
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: crab-boil
+        run: |
+            ./criticalup.exe run -- cargo --version
+            ./criticalup run -- cargo.exe --version
+            ./criticalup.exe run -- cargo.exe --version
+
   license:
     name: Check licenses
     runs-on: ubuntu-latest
@@ -158,6 +230,7 @@ jobs:
     if: success()
     needs:
       - build-test
+      - runner-test
       - docs
       - deploy-docs
     steps:
