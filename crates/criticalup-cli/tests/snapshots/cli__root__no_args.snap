@@ -14,15 +14,16 @@ Usage:
   criticalup-test [OPTIONS] <COMMAND>
 
 Commands:
+  archive  Create a tar archive of the toolchain based on the manifest `criticalup.toml`
   auth     Show and change authentication with the download server
-  install  Install the toolchain for the given project based on the manifest `criticalup.toml`
   clean    Delete cache and unused installations
-  run      Run a command for a given toolchain
+  doc      Open the documentation for the current toolchain
+  install  Install the toolchain for the given project based on the manifest `criticalup.toml`
   remove   Delete all the products specified in the manifest `criticalup.toml`
+  run      Run a command for a given toolchain
   verify   Verify a given toolchain
   which    Display which binary will be run for a given command
-  archive  Create a tar archive of the toolchain based on the manifest `criticalup.toml`
-  doc      Open the documentation for the current toolchain
+  help     Print this message or the help of the given subcommand(s)
 
 Options:
   -v, --verbose...                  Enable debug logs, -vv for trace

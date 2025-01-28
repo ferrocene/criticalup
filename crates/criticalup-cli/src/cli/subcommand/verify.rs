@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use clap::Parser;
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
     download_server_cache::DownloadServerCache,
@@ -18,39 +19,49 @@ use criticalup_core::{
 use tracing::Span;
 use walkdir::WalkDir;
 
-use crate::{errors::Error, Context};
+use crate::{cli::CommandExecute, errors::Error, Context};
 
-#[tracing::instrument(level = "debug", skip_all, fields(manifest_path, %offline))]
-pub(crate) async fn run(
-    ctx: &Context,
-    manifest_path: Option<PathBuf>,
+/// Verify a given toolchain
+#[derive(Debug, Parser)]
+pub(crate) struct Verify {
+    /// Don't download from the server, only use previously cached artifacts
+    #[arg(long)]
     offline: bool,
-) -> Result<(), Error> {
-    let span = Span::current();
-    let manifest_path = if let Some(manifest_path) = manifest_path {
-        manifest_path
-    } else {
-        ProjectManifest::discover(&current_dir()?)?
-    };
-    span.record(
-        "manifest_path",
-        tracing::field::display(manifest_path.display()),
-    );
 
-    let state = State::load(&ctx.config).await?;
-    let maybe_client = if !offline {
-        Some(DownloadServerClient::new(&ctx.config, &state))
-    } else {
-        None
-    };
-    let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
-    let keys = cache.keys().await?;
+    /// Path to the manifest `criticalup.toml`
+    #[arg(long)]
+    project: Option<PathBuf>,
+}
 
-    let project_manifest = ProjectManifest::load(&manifest_path)?;
+impl CommandExecute for Verify {
+    #[tracing::instrument(level = "debug", skip_all, fields(
+        project,
+        %offline = self.offline
+    ))]
+    async fn execute(self, ctx: &Context) -> Result<(), Error> {
+        let span = Span::current();
+        let project = if let Some(project) = self.project {
+            project.clone()
+        } else {
+            ProjectManifest::discover(&current_dir()?)?
+        };
+        span.record("project", tracing::field::display(project.display()));
 
-    let installation_dir = &ctx.config.paths.installation_dir;
+        let state = State::load(&ctx.config).await?;
+        let maybe_client = if !self.offline {
+            Some(DownloadServerClient::new(&ctx.config, &state))
+        } else {
+            None
+        };
+        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
+        let keys = cache.keys().await?;
 
-    verify(&keys, installation_dir, &project_manifest).await
+        let project_manifest = ProjectManifest::load(&project)?;
+
+        let installation_dir = &ctx.config.paths.installation_dir;
+
+        verify(&keys, installation_dir, &project_manifest).await
+    }
 }
 
 async fn verify(

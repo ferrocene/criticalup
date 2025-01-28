@@ -4,34 +4,46 @@
 use std::io;
 use std::io::Write;
 
+use crate::cli::CommandExecute;
 use crate::errors::{Error, LibError};
 use crate::Context;
+use clap::Parser;
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::errors::DownloadServerError;
 use criticalup_core::state::{AuthenticationToken, State};
 
-pub(crate) async fn run(ctx: &Context, token: Option<String>) -> Result<(), Error> {
-    let state = State::load(&ctx.config).await?;
-    let download_server = DownloadServerClient::new(&ctx.config, &state);
+/// Set the authentication token used to interact with the download server
+#[derive(Debug, Parser)]
+pub(crate) struct AuthSet {
+    /// Authentication token to use; if not provided, it will be read from stdin
+    token: Option<String>,
+}
 
-    let token = if let Some(token) = token {
-        token
-    } else if is_tty(ctx, &io::stdin()) && is_tty(ctx, &io::stderr()) {
-        token_from_stdin_interactive(ctx).map_err(Error::CantReadTokenFromStdin)?
-    } else {
-        token_from_stdin_programmatic().map_err(Error::CantReadTokenFromStdin)?
-    };
+impl CommandExecute for AuthSet {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn execute(self, ctx: &Context) -> Result<(), Error> {
+        let state = State::load(&ctx.config).await?;
+        let download_server = DownloadServerClient::new(&ctx.config, &state);
 
-    state.set_authentication_token(Some(AuthenticationToken::seal(&token)));
+        let token = if let Some(token) = self.token {
+            token
+        } else if is_tty(ctx, &io::stdin()) && is_tty(ctx, &io::stderr()) {
+            token_from_stdin_interactive(ctx).map_err(Error::CantReadTokenFromStdin)?
+        } else {
+            token_from_stdin_programmatic().map_err(Error::CantReadTokenFromStdin)?
+        };
 
-    match download_server.get_current_token_data().await {
-        Ok(_) => Ok(state.persist().await?),
+        state.set_authentication_token(Some(AuthenticationToken::seal(&token)));
 
-        Err(LibError::DownloadServerError {
-            kind: DownloadServerError::AuthenticationFailed,
-            ..
-        }) => Err(Error::InvalidAuthenticationToken),
-        Err(err) => Err(err.into()),
+        match download_server.get_current_token_data().await {
+            Ok(_) => Ok(state.persist().await?),
+
+            Err(LibError::DownloadServerError {
+                kind: DownloadServerError::AuthenticationFailed,
+                ..
+            }) => Err(Error::InvalidAuthenticationToken),
+            Err(err) => Err(err.into()),
+        }
     }
 }
 
