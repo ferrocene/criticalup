@@ -1,13 +1,6 @@
 # SPDX-FileCopyrightText: The Ferrocene Developers
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# -- Path setup --------------------------------------------------------------
-
-import os
-import sys
-
-sys.path.append(os.path.abspath("../shared/exts"))
-
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +16,6 @@ author = "The Ferrocene Developers"
 # ones.
 extensions = [
     "ferrocene_toctrees",
-    "ferrocene_intersphinx_support",
     "ferrocene_qualification",
     "ferrocene_domain_cli",
     "myst_parser",

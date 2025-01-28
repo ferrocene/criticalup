@@ -1,19 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 # SPDX-FileCopyrightText: The Ferrocene Developers
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
+import ferrocene_standalone_make_cli
 import os
-import subprocess
-import sys
 
-root = os.path.abspath(os.path.dirname(__file__))
-subprocess.run(
-    ["git", "submodule", "update", "--init"],
-    check=True,
-    cwd=root,
-)
-
-sys.path.insert(0, "shared")
-import make_common  # noqa: E402
-
-make_common.main(root)
+ferrocene_standalone_make_cli.main(os.path.abspath(os.path.dirname(__file__)))
