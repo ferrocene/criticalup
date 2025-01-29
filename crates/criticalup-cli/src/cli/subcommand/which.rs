@@ -56,7 +56,7 @@ impl CommandExecute for Which {
                     if tools_bin_path_with_exe.exists() {
                         println!("{}\n", tools_bin_path_with_exe.display());
                     } else {
-                        return Err(BinaryNotInstalled(tool));
+                        return Err(BinaryNotInstalled(self.binary));
                     }
                 }
                 #[cfg(not(windows))]
