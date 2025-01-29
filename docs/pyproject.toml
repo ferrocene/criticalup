@@ -10,4 +10,5 @@ dependencies = [
     "sphinx ~= 8.0",
     "sphinx-autobuild >= 0", # Doesn't use semver.
     "ferrocene-sphinx-shared-resources >= 0",
+    "myst_parser ~= 4.0.0"
 ]
