@@ -71,7 +71,7 @@ async fn main_inner(whitelabel: WhitelabelConfig, args: &[OsString]) -> Result<(
             commands::verify::run(&ctx, project, offline).await?
         }
         Commands::Which {
-            binary: tool,
+            command: tool,
             project,
         } => commands::which::run(&ctx, tool, project).await?,
         Commands::Archive {
@@ -195,7 +195,7 @@ enum Commands {
     /// Display which binary will be run for a given command
     Which {
         /// Name of the binary to find the absolute path of
-        binary: String,
+        command: String,
         /// Path to the manifest `criticalup.toml`
         #[arg(long)]
         project: Option<PathBuf>,
