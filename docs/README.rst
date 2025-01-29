@@ -1,30 +1,25 @@
 .. SPDX-FileCopyrightText: The Ferrocene Developers
 .. SPDX-License-Identifier: MIT OR Apache-2.0
 
-================================
+========================
 CriticalUp Documentation
-================================
+========================
 
 .. raw:: html
 
    <p align="center"><a href="https://criticalup.ferrocene.dev">Read the
-   specification &raquo;</a></p>
+   documentation &raquo;</a></p>
 
 The CriticalUp Documentation (CUD) is a document describing the CriticalUp
 tool.
 
-The CriticalUp Documentation text is licensed under either the ``MIT``
-or ``Apache-2.0`` licenses, at your option. Individual files might have
-different licensing. Licensing metadata is present in each file, and the full
-licenses text is present in the ``LICENSES/`` directory.
-
-Building the specification
+Building the documentation
 ==========================
 
-CUD uses `Sphinx`_ to build a rendered version of the specification. To
-simplify building the rendered version, we created a script called ``make.py``
-that takes care of installing the expected Sphinx release and invoking it with
-the right flags.
+CUD uses `Sphinx`_ to build a rendered version of the specification, and `uv`_
+to install and manage Python dependencies (including Sphinx itself). To simplify
+building the rendered version, we created a script called ``make.py`` that takes
+care of invoking Sphinx with the right flags.
 
 You can build the rendered version by running::
 
@@ -56,25 +51,16 @@ This will clone the source code of the tool, build it, and execute it on the
 rendered documentation.
 
 .. _Sphinx: https://www.sphinx-doc.org
+.. _uv: https://docs.astral.sh/uv/
 
 Updating build dependencies
 ===========================
 
-The CUD uses ``pip-tools`` to manage the Python dependencies used for builds,
-as it allows pinning hashes for the dependencies. While it doesn't add any
-additional burden when installing dependencies (the format it outputs is
-understood by `pip`), you have to install it when regenerating the
-``requirements.txt`` file.
+The CUD uses ``uv`` to manage the Python dependencies used for builds. If you
+change the list of dependencies in ``pyproject.toml`` they will automatically be
+installed the next time you run ``make.py``. If you want to update the packages
+in the lockfile, run::
 
-To install `pip-tools`, we recommend first installing `pipx`_, and then
-running::
-
-   pipx install pip-tools
-
-Once that's done, you can change the list of desired dependencies in the
-``requirements.in`` file, and run this command to regenerate the
-``requirements.txt`` file::
-
-   pip-compile --generate-hashes
+   uv lock --upgrade
 
 .. _pipx: https://pypa.github.io/pipx/

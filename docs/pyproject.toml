@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MIT OR Apache-2.0
+# SPDX-FileCopyrightText: The Ferrocene Developers
+
+[project]
+name = "criticalup-docs"
+version = "0.0.0"
+
+requires-python = ">= 3.10"
+dependencies = [
+    "sphinx ~= 8.0",
+    "sphinx-autobuild >= 0", # Doesn't use semver.
+    "ferrocene-sphinx-shared-resources >= 0",
+    "myst_parser ~= 4.0.0"
+]
