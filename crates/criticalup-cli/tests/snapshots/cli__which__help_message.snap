@@ -11,10 +11,10 @@ stderr
 Display which binary will be run for a given command
 
 Usage:
-  criticalup-test which [OPTIONS] <BINARY>
+  criticalup-test which [OPTIONS] <COMMAND>
 
 Arguments:
-  <BINARY>  Name of the binary to find the absolute path of
+  <COMMAND>  Name of the binary to find the absolute path of
 
 Options:
       --project <PROJECT>           Path to the manifest `criticalup.toml`
