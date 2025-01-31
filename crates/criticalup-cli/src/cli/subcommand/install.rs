@@ -2,14 +2,17 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use std::collections::BTreeMap;
+use std::env::current_dir;
 use std::path::{Path, PathBuf};
 
+use crate::cli::CommandExecute;
 use crate::errors::Error;
 use crate::errors::Error::{
     IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported, RevocationCheckFailed,
     RevocationSignatureExpired,
 };
 use crate::Context;
+use clap::Parser;
 use criticaltrust::integrity::{IntegrityError, IntegrityVerifier};
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticaltrust::revocation_info::RevocationInfo;
@@ -18,67 +21,90 @@ use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
 use tokio::fs::read;
+use tracing::Span;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
-pub(crate) async fn run(
-    ctx: &Context,
-    reinstall: bool,
-    offline: bool,
+/// Install the toolchain for the given project based on the manifest `criticalup.toml`
+#[derive(Debug, Parser)]
+pub(crate) struct Install {
+    /// Path to the manifest `criticalup.toml`
+    #[arg(long)]
     project: Option<PathBuf>,
-) -> Result<(), Error> {
-    // TODO: If `std::io::stdout().is_terminal() == true``, provide a nice, fancy progress bar using indicatif.
-    //       Retain existing behavior to support non-TTY usage.
+    /// Reinstall products that may have already been installed
+    #[arg(long)]
+    reinstall: bool,
+    /// Don't download from the server, only use previously cached artifacts
+    #[arg(long)]
+    offline: bool,
+}
 
-    let state = State::load(&ctx.config).await?;
-    let maybe_client = if !offline {
-        Some(DownloadServerClient::new(&ctx.config, &state))
-    } else {
-        None
-    };
-    let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
+impl CommandExecute for Install {
+    #[tracing::instrument(level = "debug", skip_all, fields(
+        project,
+        %offline = self.offline
+    ))]
+    async fn execute(self, ctx: &Context) -> Result<(), Error> {
+        // TODO: If `std::io::stdout().is_terminal() == true``, provide a nice, fancy progress bar using indicatif.
+        //       Retain existing behavior to support non-TTY usage.
 
-    // Get manifest location if arg `project` is None
-    let manifest_path = ProjectManifest::discover_canonical_path(project.as_deref()).await?;
-
-    // Parse and serialize the project manifest.
-    let manifest = ProjectManifest::get(project).await?;
-
-    let installation_dir = &ctx.config.paths.installation_dir;
-
-    for product in manifest.products() {
-        let abs_installation_dir_path = installation_dir.join(product.installation_id());
-
-        if !abs_installation_dir_path.exists() {
-            install_product_afresh(ctx, &state, &cache, &manifest_path, product, offline).await?;
+        let span = Span::current();
+        let project = if let Some(project) = self.project {
+            project.clone()
         } else {
-            // Check if the state file has no mention of this installation.
-            let does_this_installation_exist_in_state = state
-                .installations()
-                .contains_key(&product.installation_id());
-            if !does_this_installation_exist_in_state || reinstall {
-                // If the installation directory exists, but the State has no installation of that
-                // InstallationId, then re-run the install command and go through installation.
-                install_product_afresh(ctx, &state, &cache, &manifest_path, product, offline)
+            ProjectManifest::discover(&current_dir()?)?
+        };
+        span.record("project", tracing::field::display(project.display()));
+
+        let state = State::load(&ctx.config).await?;
+        let maybe_client = if !self.offline {
+            Some(DownloadServerClient::new(&ctx.config, &state))
+        } else {
+            None
+        };
+        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
+
+        // Parse and serialize the project manifest.
+        let project_manifest = ProjectManifest::load(&project)?;
+
+        let installation_dir = &ctx.config.paths.installation_dir;
+
+        for product in project_manifest.products() {
+            let abs_installation_dir_path = installation_dir.join(product.installation_id());
+
+            if !abs_installation_dir_path.exists() {
+                install_product_afresh(ctx, &state, &cache, &project, product, self.offline)
                     .await?;
             } else {
-                // If the installation directory exists AND there is an existing installation with
-                // that InstallationId, then merely update the installation in the State file to
-                // reflect this manifest/project.
-                state.update_installation_manifests(&product.installation_id(), &manifest_path)?;
-                tracing::info!("Skipping installation for product '{}' because it seems to be already installed.\n\
-                    If you want to reinstall it, please run 'criticalup install --reinstall'.",
-                         product.name());
+                // Check if the state file has no mention of this installation.
+                let does_this_installation_exist_in_state = state
+                    .installations()
+                    .contains_key(&product.installation_id());
+                if !does_this_installation_exist_in_state || self.reinstall {
+                    // If the installation directory exists, but the State has no installation of that
+                    // InstallationId, then re-run the install command and go through installation.
+                    install_product_afresh(ctx, &state, &cache, &project, product, self.offline)
+                        .await?;
+                } else {
+                    // If the installation directory exists AND there is an existing installation with
+                    // that InstallationId, then merely update the installation in the State file to
+                    // reflect this manifest/project.
+                    state.update_installation_manifests(&product.installation_id(), &project)?;
+                    tracing::info!("Skipping installation for product '{}' because it seems to be already installed.\n\
+                        If you want to reinstall it, please run 'criticalup install --reinstall'.",
+                            product.name());
+                }
             }
+            // Even though we do not install the existing packages again, we still need to add
+            // the manifest to the state.json.
+            state.persist().await?;
         }
-        // Even though we do not install the existing packages again, we still need to add
-        // the manifest to the state.json.
-        state.persist().await?;
+
+        criticalup_core::binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?)
+            .await?;
+
+        Ok(())
     }
-
-    criticalup_core::binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
-
-    Ok(())
 }
 
 #[tracing::instrument(level = "debug", skip_all, fields(

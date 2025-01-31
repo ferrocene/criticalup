@@ -10,6 +10,7 @@ use std::{
     path::PathBuf,
 };
 
+use clap::Parser;
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
     download_server_cache::DownloadServerCache, download_server_client::DownloadServerClient,
@@ -20,42 +21,53 @@ use tokio::task::spawn_blocking;
 use tracing::Span;
 use walkdir::WalkDir;
 
-use crate::{errors::Error, Context};
+use crate::{cli::CommandExecute, errors::Error, Context};
 
 use super::install::DEFAULT_RELEASE_ARTIFACT_FORMAT;
 
-#[tracing::instrument(level = "debug", skip_all, fields(manifest_path, %offline))]
-pub(crate) async fn run(
-    ctx: &Context,
-    manifest_path: Option<&PathBuf>,
+/// Create a tar archive of the toolchain based on the manifest `criticalup.toml`
+#[derive(Debug, Parser)]
+pub(crate) struct Archive {
+    /// Path to the manifest `criticalup.toml`
+    #[arg(long)]
+    project: Option<PathBuf>,
+    /// Don't download from the server, only use previously cached artifacts
+    #[arg(long)]
     offline: bool,
-    out: Option<&PathBuf>,
-) -> Result<(), Error> {
-    let span = Span::current();
-    let manifest_path = if let Some(manifest_path) = manifest_path {
-        manifest_path.clone()
-    } else {
-        ProjectManifest::discover(&current_dir()?)?
-    };
-    span.record(
-        "manifest_path",
-        tracing::field::display(manifest_path.display()),
-    );
+    /// Path to output the archive to (else use stdout)
+    #[arg()]
+    out: Option<PathBuf>,
+}
 
-    let state = State::load(&ctx.config).await?;
-    let maybe_client = if !offline {
-        Some(DownloadServerClient::new(&ctx.config, &state))
-    } else {
-        None
-    };
-    let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
-    let keys = cache.keys().await?;
+impl CommandExecute for Archive {
+    #[tracing::instrument(level = "debug", skip_all, fields(
+        project,
+        %offline = self.offline
+    ))]
+    async fn execute(self, ctx: &Context) -> Result<(), Error> {
+        let span = Span::current();
+        let project = if let Some(project) = self.project {
+            project.clone()
+        } else {
+            ProjectManifest::discover(&current_dir()?)?
+        };
+        span.record("project", tracing::field::display(project.display()));
 
-    let project_manifest = ProjectManifest::load(&manifest_path)?;
+        let state = State::load(&ctx.config).await?;
+        let maybe_client = if !self.offline {
+            Some(DownloadServerClient::new(&ctx.config, &state))
+        } else {
+            None
+        };
+        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
+        let keys = cache.keys().await?;
 
-    archive(cache, &keys, &project_manifest, out).await?;
+        let project_manifest = ProjectManifest::load(&project)?;
 
-    Ok(())
+        archive(cache, &keys, &project_manifest, self.out.as_ref()).await?;
+
+        Ok(())
+    }
 }
 
 #[tracing::instrument(level = "debug", skip_all, fields(product_path))]

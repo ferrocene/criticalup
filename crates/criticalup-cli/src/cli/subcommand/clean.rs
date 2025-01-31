@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use clap::Parser;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
@@ -8,20 +9,28 @@ use criticalup_core::binary_proxies;
 use criticalup_core::project_manifest::InstallationId;
 use criticalup_core::state::State;
 
+use crate::cli::CommandExecute;
 use crate::errors::Error;
 use crate::Context;
 
-pub(crate) async fn run(ctx: &Context) -> Result<(), Error> {
-    let installations_dir = &ctx.config.paths.installation_dir;
-    let state = State::load(&ctx.config).await?;
+/// Delete cache and unused installations
+#[derive(Debug, Parser)]
+pub(crate) struct Clean;
 
-    delete_cache_directory(&ctx.config.paths.cache_dir).await?;
-    delete_unused_installations(installations_dir, &state).await?;
-    // Deletes unused binary proxies after state cleanup.
-    binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
-    delete_untracked_installation_dirs(installations_dir, state).await?;
+impl CommandExecute for Clean {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn execute(self, ctx: &Context) -> Result<(), Error> {
+        let installations_dir = &ctx.config.paths.installation_dir;
+        let state = State::load(&ctx.config).await?;
 
-    Ok(())
+        delete_cache_directory(&ctx.config.paths.cache_dir).await?;
+        delete_unused_installations(installations_dir, &state).await?;
+        // Deletes unused binary proxies after state cleanup.
+        binary_proxies::update(&ctx.config, &state, &std::env::current_exe()?).await?;
+        delete_untracked_installation_dirs(installations_dir, state).await?;
+
+        Ok(())
+    }
 }
 
 async fn delete_cache_directory(cache_dir: &Path) -> Result<(), Error> {
