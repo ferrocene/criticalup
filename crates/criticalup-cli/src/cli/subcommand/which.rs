@@ -15,7 +15,7 @@ use tracing::Span;
 #[derive(Debug, Parser)]
 pub(crate) struct Which {
     /// Name of the binary to find the absolute path of
-    binary: String,
+    command: String,
     /// Path to the manifest `criticalup.toml`
     #[arg(long)]
     project: Option<PathBuf>,
@@ -41,7 +41,7 @@ impl CommandExecute for Which {
             let bin_path = PathBuf::from("bin");
 
             let mut tool_executable = PathBuf::new();
-            tool_executable.set_file_name(&self.binary);
+            tool_executable.set_file_name(&self.command);
 
             let tools_bin_path = abs_installation_dir_path.join(bin_path.join(&tool_executable));
 
@@ -56,11 +56,11 @@ impl CommandExecute for Which {
                     if tools_bin_path_with_exe.exists() {
                         println!("{}\n", tools_bin_path_with_exe.display());
                     } else {
-                        return Err(BinaryNotInstalled(self.binary));
+                        return Err(BinaryNotInstalled(self.command));
                     }
                 }
                 #[cfg(not(windows))]
-                return Err(BinaryNotInstalled(self.binary));
+                return Err(BinaryNotInstalled(self.command));
             }
         }
 
