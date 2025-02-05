@@ -1052,7 +1052,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_set_authn_token_env_var() {
+    async fn test_set_auth_token_env_var() {
         let test_env = TestEnvironment::with().state().prepare().await;
         let state = test_env.state();
 
