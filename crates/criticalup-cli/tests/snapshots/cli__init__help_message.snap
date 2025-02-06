@@ -1,0 +1,22 @@
+---
+source: crates/criticalup-cli/tests/cli/init.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+Create a manifest file (criticalup.toml) inside current directory
+
+Usage:
+  criticalup-test init [OPTIONS]
+
+Options:
+      --release <RELEASE>           Release version string of Ferrocene for this manifest
+      --print-only                  Only print the contents of manifest instead of saving to file
+  -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-level [<LOG_LEVEL>...]  Tracing directives
+  -h, --help                        Print help
+------
