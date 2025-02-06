@@ -18,6 +18,7 @@ Commands:
   auth     Show and change authentication with the download server
   clean    Delete cache and unused installations
   doc      Open the documentation for the current toolchain
+  init     Create a manifest file (criticalup.toml) inside current directory
   install  Install the toolchain for the given project based on the manifest `criticalup.toml`
   remove   Delete all the products specified in the manifest `criticalup.toml`
   run      Run a command for a given toolchain

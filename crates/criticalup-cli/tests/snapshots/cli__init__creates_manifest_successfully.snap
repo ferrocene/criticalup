@@ -1,0 +1,12 @@
+---
+source: crates/criticalup-cli/tests/cli/init.rs
+expression: repr
+---
+exit: exit status: 0
+
+empty stdout
+
+stderr
+------
+ INFO Created project manifest at /path/to/created/criticalup.toml
+------
