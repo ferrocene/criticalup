@@ -376,31 +376,32 @@ impl StateInstallation {
     }
 }
 
-#[derive(Default)]
 pub struct EnvVars {
     criticalup_token: Option<String>,
 }
 
-impl EnvVars {
-    pub async fn read() -> Result<Self, Error> {
-        let mut env_vars = EnvVars::default();
-        match std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME) {
+impl Default for EnvVars {
+    fn default() -> Self {
+        let criticalup_token = match std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME) {
             Ok(value) => {
                 if !value.is_empty() {
-                    env_vars.criticalup_token = Some(value);
+                    Some(value)
+                } else {
+                    None
                 }
             }
             Err(var_err) => {
-                if let VarError::NotUnicode(err) = var_err {
-                    return Err(Error::EnvVarNotUtf8 {
-                        name: CRITICALUP_TOKEN_ENV_VAR_NAME.to_string(),
-                        kind: VarError::NotUnicode(err),
-                    });
+                if let VarError::NotUnicode(_) = var_err {
+                    tracing::error!(
+                        "Environment variable {} is not Unicode.",
+                        CRITICALUP_TOKEN_ENV_VAR_NAME
+                    );
                 }
+                None
             }
-        }
+        };
 
-        Ok(env_vars)
+        EnvVars { criticalup_token }
     }
 }
 
@@ -1077,14 +1078,14 @@ mod tests {
     #[tokio::test]
     async fn test_read_env_var() {
         std::env::set_var(CRITICALUP_TOKEN_ENV_VAR_NAME, "HoustonWeHaveAToken!");
-        let ev = EnvVars::read().await.unwrap();
+        let ev = EnvVars::default();
         assert_eq!(
             ev.criticalup_token,
             Some("HoustonWeHaveAToken!".to_string())
         );
 
         std::env::remove_var(CRITICALUP_TOKEN_ENV_VAR_NAME);
-        let ev = EnvVars::read().await.unwrap();
+        let ev = EnvVars::default();
         assert_eq!(ev.criticalup_token, None);
     }
 }
