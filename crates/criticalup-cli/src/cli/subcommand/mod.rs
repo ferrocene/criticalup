@@ -6,6 +6,7 @@ use auth::Auth;
 use clap::Subcommand;
 use clean::Clean;
 use doc::Doc;
+use init::Init;
 use install::Install;
 use remove::Remove;
 use run::Run;
@@ -17,6 +18,7 @@ pub(crate) mod auth;
 
 pub(crate) mod clean;
 pub(crate) mod doc;
+pub(crate) mod init;
 pub(crate) mod install;
 pub(crate) mod remove;
 pub(crate) mod run;
@@ -29,6 +31,7 @@ pub(crate) enum CriticalupSubcommand {
     Auth(Auth),
     Clean(Clean),
     Doc(Doc),
+    Init(Init),
     Install(Install),
     Remove(Remove),
     Run(Run),

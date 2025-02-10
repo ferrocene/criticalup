@@ -33,6 +33,7 @@ impl CommandExecute for Criticalup {
             CriticalupSubcommand::Auth(auth) => auth.execute(ctx).await,
             CriticalupSubcommand::Clean(clean) => clean.execute(ctx).await,
             CriticalupSubcommand::Doc(doc) => doc.execute(ctx).await,
+            CriticalupSubcommand::Init(init) => init.execute(ctx).await,
             CriticalupSubcommand::Install(install) => install.execute(ctx).await,
             CriticalupSubcommand::Remove(remove) => remove.execute(ctx).await,
             CriticalupSubcommand::Run(run) => run.execute(ctx).await,

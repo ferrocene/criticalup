@@ -9,6 +9,7 @@ mod auth_set;
 mod binary_proxies;
 mod clean;
 mod doc;
+mod init;
 mod install;
 mod remove;
 mod root;

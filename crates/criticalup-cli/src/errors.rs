@@ -153,6 +153,9 @@ pub(crate) enum Error {
     #[error("Failed to install package '{}'.", .0)]
     RevocationCheckFailed(String, #[source] criticaltrust::Error),
 
+    #[error("Manifest serialization failed.")]
+    TomlSerializationFailed(#[from] toml_edit::ser::Error),
+
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
     CtrlHandler,

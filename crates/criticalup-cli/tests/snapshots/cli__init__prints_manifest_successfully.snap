@@ -1,0 +1,23 @@
+---
+source: crates/criticalup-cli/tests/cli/init.rs
+expression: repr
+---
+exit: exit status: 0
+
+stdout
+------
+manifest-version = 1
+
+[products.ferrocene]
+release = "stable-24.11.0"
+packages = [
+    "cargo-${rustc-host}",
+    "rustc-${rustc-host}",
+    "clippy-${rustc-host}",
+    "rust-std-${rustc-host}",
+    "rustfmt-${rustc-host}",
+]
+
+------
+
+empty stderr
