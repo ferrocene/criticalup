@@ -14,7 +14,7 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 pub(crate) struct Init {
     /// Release version string of Ferrocene for this manifest
     #[arg(long)]
-    release: Option<String>,
+    release: String,
     /// Only print the contents of manifest instead of saving to file
     #[arg(long)]
     print_only: bool,

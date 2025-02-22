@@ -18,7 +18,9 @@ async fn creates_manifest_successfully() {
     let manifest_path = root.parent().unwrap().join("criticalup.toml");
 
     assert!(!&manifest_path.exists());
-    assert_output!(test_env.cmd().args(["init"]));
+    assert_output!(test_env
+        .cmd()
+        .args(["init", "--release", "the-amazing-ferrocene-release"]));
     assert!(&manifest_path.exists());
 
     // Current directory for these tests is crates/criticalup-cli which means this
@@ -31,5 +33,16 @@ async fn creates_manifest_successfully() {
 #[tokio::test]
 async fn prints_manifest_successfully() {
     let test_env = TestEnvironment::prepare().await;
-    assert_output!(test_env.cmd().args(["init", "--print-only"]));
+    assert_output!(test_env.cmd().args([
+        "init",
+        "--release",
+        "the-amazing-ferrocene-release",
+        "--print-only"
+    ]));
+}
+
+#[tokio::test]
+async fn error_on_missing_required_arg() {
+    let test_env = TestEnvironment::prepare().await;
+    assert_output!(test_env.cmd().args(["init"]));
 }

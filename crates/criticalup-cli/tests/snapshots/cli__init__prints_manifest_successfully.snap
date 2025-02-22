@@ -9,7 +9,7 @@ stdout
 manifest-version = 1
 
 [products.ferrocene]
-release = "stable-24.11.0"
+release = "the-amazing-ferrocene-release"
 packages = [
     "cargo-${rustc-host}",
     "rustc-${rustc-host}",

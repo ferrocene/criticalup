@@ -20,7 +20,7 @@ pub(super) struct ProjectManifestProduct {
     pub(super) packages: Vec<String>,
 }
 
-pub fn sample_manifest(release: Option<String>) -> ProjectManifest {
+pub fn sample_manifest(release: String) -> ProjectManifest {
     let packages = vec![
         "cargo-${rustc-host}".into(),
         "rustc-${rustc-host}".into(),
@@ -29,16 +29,7 @@ pub fn sample_manifest(release: Option<String>) -> ProjectManifest {
         "rustfmt-${rustc-host}".into(),
     ];
 
-    let mut product = ProjectManifestProduct {
-        release: "".into(),
-        packages,
-    };
-
-    if let Some(release_val) = release {
-        product.release = release_val;
-    } else {
-        product.release = "stable-24.11.0".to_string();
-    }
+    let product = ProjectManifestProduct { release, packages };
 
     ProjectManifest {
         manifest_version: 1,
