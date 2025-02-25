@@ -29,6 +29,16 @@ A typical ``criticalup.toml`` manifest looks like this:
 This manifest will install everything the average developer might want for a Ferrocene
 based project.
 
+Sample manifest
+------------------------
+
+You can create a sample manifest - ``criticalup.toml`` - using the ``init`` command.
+
+.. code-block::
+
+   criticalup init --release <RELEASE>
+
+For more information, see :ref:`creating_sample_manifest` in the "Using CriticalUp" section.
 
 Manifest Settings
 -----------------
