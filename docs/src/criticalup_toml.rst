@@ -14,29 +14,31 @@ A typical ``criticalup.toml`` manifest looks like this:
 
 .. code-block::
 
-    manifest-version = 1
+   manifest-version = 1
 
-    [products.ferrocene]
-    release = "stable-24.05.0"
-    packages = [
-        "cargo-${rustc-host}",
-        "rustc-${rustc-host}",
-        "rust-std-${rustc-host}",
-        "llvm-tools-${rustc-host}",
-        "rust-src"
-    ]
+   [products.ferrocene]
+   release = "stable-25.02.0"
+   packages = [
+       "cargo-${rustc-host}",
+       "rustc-${rustc-host}",
+       "clippy-${rustc-host}",
+       "rust-std-${rustc-host}",
+       "rustfmt-${rustc-host}",
+       "llvm-tools-${rustc-host}",
+       "rust-src"
+   ]
 
 This manifest will install everything the average developer might want for a Ferrocene
 based project.
 
 Sample manifest
-------------------------
+---------------
 
-You can create a sample manifest - ``criticalup.toml`` - using the ``init`` command.
+You can create a sample ``criticalup.toml`` using the ``init`` command.
 
 .. code-block::
 
-   criticalup init --release <RELEASE>
+   criticalup init --release "stable-25.02.0"
 
 For more information, see :ref:`creating_sample_manifest` in the "Using CriticalUp" section.
 
@@ -72,7 +74,7 @@ A map of ``product`` entries, as defined :ref:`in 'Product Settings' below
 .. code-block::
 
     [products.ferrocene]
-    release = "stable-24.05.0"
+    release = "stable-25.02.0"
     packages = [
         "rustc-${rustc-host}",
         "rust-std-aarch64-unknown-none"
@@ -94,14 +96,14 @@ channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
 .. code-block::
 
     [products.ferrocene]
-    release = "stable-24.05.0"
+    release = "stable-25.02.0"
     # ...
 
 ``packages``
 ^^^^^^^^^^^^
 
-A set of package names as listed in the release page, for example the `stable-24.05.0
-<https://releases.ferrocene.dev/ferrocene/files/stable-24.05.0/index.html>`_
+A set of package names as listed in the release page, for example the `stable-25.02.0
+<https://releases.ferrocene.dev/ferrocene/files/stable-25.02.0/index.html>`_
 release.
 
 Each supported Ferrocene target lists required packages in the on its page

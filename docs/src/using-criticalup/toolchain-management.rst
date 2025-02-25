@@ -24,11 +24,13 @@ Where the ``criticalup.toml`` contains the following content:
    manifest-version = 1
 
    [products.ferrocene]
-   release = "stable-24.05.0"
+   release = "stable-25.02.0"
    packages = [
-      "rustc-${rustc-host}",
-      "cargo-${rustc-host}",
-      "rust-std-${rustc-host}"
+       "cargo-${rustc-host}",
+       "rustc-${rustc-host}",
+       "clippy-${rustc-host}",
+       "rust-std-${rustc-host}",
+       "rustfmt-${rustc-host}",
    ]
 
 CriticalUp understands ``${rustc-host}`` to mean the target triple of the host operating system. These triple values are listed in :ref:`Platforms <platforms>`.
@@ -37,12 +39,16 @@ CriticalUp understands ``${rustc-host}`` to mean the target triple of the host o
 
    Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
 
-.. caution::
+Creating sample ``criticalup.toml``
+-----------------------------------
 
-   The ``stable-24.05.0`` release only supports Linux. If you are using Windows or an
-   Apple Silicon macOS device, pick the latest version in the nightly channel
-   displayed in `releases.ferrocene.dev
-   <https://releases.ferrocene.dev/ferrocene/index.html>`_.
+You can create a sample ``criticalup.toml`` using the ``init`` command.
+
+.. code-block::
+
+   criticalup init --release "stable-25.02.0"
+
+For more information, see :ref:`creating_sample_manifest` in the "Using CriticalUp" section.
 
 .. _install_toolchain:
 
@@ -65,15 +71,17 @@ To change the installed products, edit the ``criticalup.toml`` as desired. For e
 
 .. code-block::
 
-   manifest-version = 1
+    manifest-version = 1
 
    [products.ferrocene]
-   release = "stable-24.05.0"
+   release = "stable-25.02.0"
    packages = [
-      "rustc-${rustc-host}",
-      "cargo-${rustc-host}",
-      "rust-std-${rustc-host}",
-      "rust-std-aarch64-unknown-none", # Line added
+       "cargo-${rustc-host}",
+       "rustc-${rustc-host}",
+       "clippy-${rustc-host}",
+       "rust-std-${rustc-host}",
+       "rustfmt-${rustc-host}",
+       "rust-std-aarch64-unknown-none", # Line added
    ]
 
 Then run the install command again:
