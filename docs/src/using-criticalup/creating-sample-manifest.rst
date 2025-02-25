@@ -26,8 +26,8 @@ Running this command again will overwrite the existing ``criticalup.toml`` file 
 Print the contents only
 -----------------------
 
-Running the ``init`` command with flag ``--print-only`` will print the sample manifest contents to stdout. It will not create nor write any file to the file system.
+Running the ``init`` command with flag ``--print`` will print the sample manifest contents to stdout. It will not create nor write any file to the file system.
 
 .. code-block::
 
-   criticalup init --release <RELEASE> --print-only
+   criticalup init --release <RELEASE> --print

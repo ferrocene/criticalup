@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- New subcommand `init` creates a simple project manifest file in the current directory. A flag `--print-only` can
+- New subcommand `init` creates a simple project manifest file in the current directory. A flag `--print` can
   be passed to not save the file and only print the contents.
 
 ## [1.3.0] - 2025-01-30

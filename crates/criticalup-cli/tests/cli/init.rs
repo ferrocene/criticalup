@@ -37,7 +37,7 @@ async fn prints_manifest_successfully() {
         "init",
         "--release",
         "the-amazing-ferrocene-release",
-        "--print-only"
+        "--print"
     ]));
 }
 

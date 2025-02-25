@@ -17,7 +17,7 @@ pub(crate) struct Init {
     release: String,
     /// Only print the contents of manifest instead of saving to file
     #[arg(long)]
-    print_only: bool,
+    print: bool,
 }
 
 impl CommandExecute for Init {
@@ -29,7 +29,7 @@ impl CommandExecute for Init {
         let manifest_content = sample_manifest(self.release);
         let manifest_content_serialized = toml_edit::ser::to_string_pretty(&manifest_content)?;
 
-        if self.print_only {
+        if self.print {
             println!("{}", manifest_content_serialized);
         } else {
             let mut manifest_file = BufWriter::new(File::create(&manifest_path).await?);
