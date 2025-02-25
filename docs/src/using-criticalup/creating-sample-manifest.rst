@@ -19,9 +19,15 @@ Running the ``init`` command will create a file ``criticalup.toml`` in the curre
 
 
 The ``--release`` flag's value must be one of the product releases listed on the `release
-channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_.
+channels page <https://releases.ferrocene.dev/ferrocene/index.html>`_. For example,
 
-Running this command again will overwrite the existing ``criticalup.toml`` file in the current working directory.
+.. code-block::
+
+    criticalup init --release "stable-25.02.0"
+
+.. caution::
+
+    Running this command again will overwrite the existing ``criticalup.toml`` file in the current working directory.
 
 Print the contents only
 -----------------------
