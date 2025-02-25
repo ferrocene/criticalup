@@ -12,7 +12,7 @@ use tokio::io::{AsyncWriteExt, BufWriter};
 /// Create a manifest file (criticalup.toml) inside current directory
 #[derive(Debug, Parser)]
 pub(crate) struct Init {
-    /// Release version string of Ferrocene for this manifest
+    /// Release version of Ferrocene from https://releases.ferrocene.dev/ferrocene/index.html
     #[arg(long)]
     release: String,
     /// Only print the contents of manifest instead of saving to file

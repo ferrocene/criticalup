@@ -14,7 +14,7 @@ Usage:
   criticalup-test init [OPTIONS] --release <RELEASE>
 
 Options:
-      --release <RELEASE>           Release version string of Ferrocene for this manifest
+      --release <RELEASE>           Release version of Ferrocene from https://releases.ferrocene.dev/ferrocene/index.html
       --print-only                  Only print the contents of manifest instead of saving to file
   -v, --verbose...                  Enable debug logs, -vv for trace
       --log-level [<LOG_LEVEL>...]  Tracing directives
