@@ -1,0 +1,13 @@
+---
+source: crates/criticalup-cli/tests/cli/init.rs
+expression: repr
+---
+exit: exit status: 1
+
+empty stdout
+
+stderr
+------
+error: A 'criticalup.toml' already exists in the current directory.
+Please delete or move that file and run the 'criticalup init' command again.
+------

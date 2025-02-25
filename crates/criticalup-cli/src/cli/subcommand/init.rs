@@ -32,6 +32,10 @@ impl CommandExecute for Init {
         if self.print {
             println!("{}", manifest_content_serialized);
         } else {
+            if manifest_path.exists() {
+                return Err(Error::ManifestAlreadyExists());
+            }
+
             let mut manifest_file = BufWriter::new(File::create(&manifest_path).await?);
             manifest_file
                 .write_all(manifest_content_serialized.as_bytes())

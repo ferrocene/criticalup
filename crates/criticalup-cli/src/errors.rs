@@ -156,6 +156,12 @@ pub(crate) enum Error {
     #[error("Manifest serialization failed.")]
     TomlSerializationFailed(#[from] toml_edit::ser::Error),
 
+    #[error(
+        "A 'criticalup.toml' already exists in the current directory.\n\
+    Please delete or move that file and run the 'criticalup init' command again."
+    )]
+    ManifestAlreadyExists(),
+
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
     CtrlHandler,
