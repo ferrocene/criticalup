@@ -1,14 +1,14 @@
 .. SPDX-FileCopyrightText: The Ferrocene Developers
 .. SPDX-License-Identifier: MIT OR Apache-2.0
 
-.. _creating_sample_manifest:
+.. _creating_a_manifest:
 
-Creating sample manifest
+Creating a manifest
 ========================
 
-This chapter describes a way to quickly create a sample ``criticalup.toml`` for your project.
+This chapter describes a way to quickly create a ``criticalup.toml`` for your project.
 
-Creating a sample manifest file
+Creating a manifest file
 -------------------------------
 
 Running the ``init`` command will create a file ``criticalup.toml`` in the current working directory.

@@ -39,16 +39,16 @@ CriticalUp understands ``${rustc-host}`` to mean the target triple of the host o
 
    Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
 
-Creating sample ``criticalup.toml``
+Creating a ``criticalup.toml``
 -----------------------------------
 
-You can create a sample ``criticalup.toml`` using the ``init`` command.
+You can create a ``criticalup.toml`` using the ``init`` command.
 
 .. code-block::
 
    criticalup init --release "stable-25.02.0"
 
-For more information, see :ref:`creating_sample_manifest` in the "Using CriticalUp" section.
+For more information, see :ref:`creating_a_manifest` in the "Using CriticalUp" section.
 
 .. _install_toolchain:
 

@@ -27,7 +27,7 @@ CriticalUp User Documentation
 
    using-criticalup/authenticating
    using-criticalup/toolchain-management
-   using-criticalup/creating-sample-manifest
+   using-criticalup/creating-a-manifest
    using-criticalup/running-tools
 
 .. toctree::
