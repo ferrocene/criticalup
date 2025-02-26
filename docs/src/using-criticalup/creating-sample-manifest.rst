@@ -11,7 +11,7 @@ This chapter describes a way to quickly create a ``criticalup.toml`` for your pr
 Creating a manifest file
 -------------------------------
 
-Running the ``init`` command will create a file ``criticalup.toml`` in the current working directory.
+Running the ``init`` command will create a ``criticalup.toml`` in the current working directory.
 
 .. code-block::
 
