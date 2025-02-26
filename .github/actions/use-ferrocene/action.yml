@@ -16,8 +16,11 @@ runs:
       if: ${{ inputs.uninstall-rust == 'true' }}
       shell: bash
       run: |
-        rustup self uninstall
-        rm ~/.cargo
+        ${{ runner.os == 'Linux' && 'apt remove rustup' || '' }}
+        ${{ runner.os == 'Windows' && 'choco uninstall rustup' || '' }}
+        ${{ runner.os == 'macOS' && 'brew uninstall rustup' || '' }}
+        rm -rf ~/.rustup
+        rm -rf ~/.cargo
     - name: Install Ferrocene
       shell: bash
       run: |
