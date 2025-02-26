@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+manifest-version = 1
+
+[products.ferrocene]
+release = "stable-25.02.0"
+packages = [
+    "cargo-${rustc-host}",
+    "rustc-${rustc-host}",
+    "clippy-${rustc-host}",
+    "rustfmt-${rustc-host}",
+    "rust-std-${rustc-host}",
+]
