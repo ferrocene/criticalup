@@ -7,7 +7,7 @@ inputs:
   uninstall-rust:
     description: If Rust should be uninstalled as well, ensuring only Ferrocene is used.
     required: false
-    default: false
+    default: "false"
 
 runs:
   using: composite
@@ -15,7 +15,9 @@ runs:
     - name: Remove Rust
       if: ${{ inputs.uninstall-rust == 'true' }}
       shell: bash
-      run: rustup self uninstall
+      run: |
+        rustup self uninstall
+        rm ~/.cargo
     - name: Install Ferrocene
       shell: bash
       run: |

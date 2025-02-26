@@ -1,5 +1,5 @@
 - name: Use Ferrocene
-  uses: ./github/actions/use-ferrocene.yml
+  uses: ./.github/actions/use-ferrocene/
   with:
     token: ${{ secrets.CRITICALUP_TOKEN }}
     uninstall-rust: true
