@@ -48,8 +48,6 @@ You can create a ``criticalup.toml`` using the ``init`` command.
 
    criticalup init --release "stable-25.02.0"
 
-For more information, see :ref:`creating_a_manifest` in the "Using CriticalUp" section.
-
 .. _install_toolchain:
 
 Installing Toolchains
