@@ -23,6 +23,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ./github/actions/use-ferrocene.yml
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          uninstall-rust: true
 
       # Windows seems to have an existing non-RustUp tools in `~/.cargo/bin/` which have to be removed
       - if: ${{ matrix.os == 'windows-latest' }}

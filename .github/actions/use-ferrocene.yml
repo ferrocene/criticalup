@@ -1,0 +1,27 @@
+name: "Use Ferrocene"
+description: "Use Ferrocene instead of Rustup"
+inputs:
+  token:
+    description: The CriticalUp token to use (use a GHA Secret)
+    required: true
+  uninstall-rust:
+    description: If Rust should be uninstalled as well, ensuring only Ferrocene is used.
+    required: false
+    default: false
+
+runs:
+  using: composite
+  steps:
+    - name: Remove Rust
+      if: ${{ inputs.uninstall-rust == 'true' }}
+      shell: bash
+      run: rustup self uninstall
+    - name: Install Ferrocene
+      shell: bash
+      run: |
+        curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.sh | sh
+        criticalup auth set ${{ inputs.token }}
+        criticalup install
+        ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/bin" >> $GITHUB_PATH' || '' }}
+        ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/bin" >> $GITHUB_PATH' || '' }}
+        ${{ runner.os == 'macOS' && 'echo "$HOME/Library/Application Support/criticalup/bin" >> $GITHUB_PATH' || '' }}
