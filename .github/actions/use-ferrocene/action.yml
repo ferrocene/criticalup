@@ -21,8 +21,7 @@ runs:
       if: ${{ inputs.uninstall-rust == 'true' }}
       shell: bash
       run: |
-        ${{ runner.os == 'Linux' && 'apt remove rustup' || '' }}
-        ${{ runner.os == 'Windows' && 'choco uninstall rustup' || '' }}
+        ${{ runner.os == 'Linux' && 'sudo apt remove rustup' || '' }}
         ${{ runner.os == 'macOS' && 'brew uninstall rustup' || '' }}
         rm -rf ~/.rustup
         rm -rf ~/.cargo
