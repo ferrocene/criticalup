@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 mod substitutions;
-mod v1;
+pub mod v1;
 
 use crate::errors::Error::FailedToFindCanonicalPath;
 use crate::errors::ProjectManifestLoadingError::MultipleProductsNotSupportedInProjectManifest;
@@ -20,7 +20,7 @@ use tokio::fs::canonicalize;
 const DEFAULT_PROJECT_MANIFEST_NAME: &str = "criticalup.toml";
 const DEFAULT_PROJECT_MANIFEST_VERSION: u32 = 1;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct ProjectManifest {
     products: Vec<ProjectManifestProduct>,
 }
@@ -119,8 +119,8 @@ impl ProjectManifest {
 ///
 /// Deref and DerefMut are implemented for this type to keep things as smooth as possible
 /// with the least amount of breaking changes, if any.
-#[derive(Debug, PartialEq, Eq)]
-struct Packages(Vec<String>);
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct Packages(Vec<String>);
 
 impl Hash for Packages {
     /// Packages hash to be done only on sorted packages.
@@ -148,7 +148,7 @@ impl DerefMut for Packages {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct ProjectManifestProduct {
     name: String,
     release: String,
