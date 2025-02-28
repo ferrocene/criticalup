@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Ferrocene Developers
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use std::env::VarError;
 
 pub const CRITICALUP_TOKEN_ENV_VAR_NAME: &str = "CRITICALUP_TOKEN";
