@@ -36,6 +36,9 @@ impl CommandExecute for Run {
     ))]
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let installations = locate_installations(ctx, self.project).await?;
+        if installations.len() == 0 {
+            return Err(Error::InstallationNotFound);
+        }
         let mut bin_paths = vec![];
         let mut lib_paths = vec![];
         for installation in installations {
@@ -153,7 +156,9 @@ pub(crate) async fn locate_installations(
     let mut found_installation_dirs = vec![];
     for product in manifest.products() {
         let abs_installation_dir_path = installation_dir.join(product.installation_id());
-        found_installation_dirs.push(abs_installation_dir_path);
+        if abs_installation_dir_path.exists() {
+            found_installation_dirs.push(abs_installation_dir_path);
+        }
     }
 
     Ok(found_installation_dirs)
