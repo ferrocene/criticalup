@@ -3,6 +3,7 @@
 
 use crate::assert_output;
 use crate::utils::TestEnvironment;
+use std::env;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -21,7 +22,12 @@ const INSTALLATION_ID: &str = "1f67f84fa2c0e3d1b99bf72f971b7a10eef29d91b50d9d9f8
 #[tokio::test]
 async fn invoking_outside_of_project() {
     let test_env = TestEnvironment::prepare().await;
-    assert_output!(test_env.binary_proxy("rustc"));
+    let current_dir = tempdir().unwrap();
+    assert_output!(
+        test_env.binary_proxy("rustc")
+            .current_dir(current_dir)
+            // .env("CRITICALUP_DISCOVER_EXCLUSION", std::env::current_dir().unwrap().parent().unwrap().parent().unwrap().join("criticalup.toml"))
+    );
 }
 
 #[tokio::test]
@@ -88,7 +94,9 @@ async fn invoking_inside_of_installed_project() {
 
     assert_output!(test_env
         .binary_proxy("sample")
-        .current_dir(current_dir.path()));
+        .env_remove("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
+        .current_dir(current_dir.path())
+    );
 }
 
 pub(crate) fn compile_to(dest: &Path, source: &str) {

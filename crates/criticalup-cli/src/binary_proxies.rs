@@ -6,7 +6,7 @@ use crate::spawn;
 use criticalup_core::config::{Config, WhitelabelConfig};
 use criticalup_core::project_manifest::ProjectManifest;
 use criticalup_core::state::State;
-use std::env::JoinPathsError;
+use std::env::{self, JoinPathsError};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -31,12 +31,18 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let config = Config::detect(whitelabel)?;
     let state = State::load(&config).await?;
 
-    let manifest_path = ProjectManifest::discover_canonical_path(
-        std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
-            .map(std::path::PathBuf::from)
-            .as_deref(),
-    )
-    .await?;
+    // Some of our tests require us to ignore Criticalup's criticalup.toml during discovery.
+    // We don't currently support users doing this.
+    let exclusions = match std::env::var_os("CRITICALUP_DISCOVER_EXCLUSION").map(std::path::PathBuf::from) {
+        Some(path) => Some(vec![path]),
+        None => None,
+    };
+
+    let manifest_path = match std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
+        .map(std::path::PathBuf::from) {
+            Some(path) => ProjectManifest::discover(&path, exclusions.as_ref())?,
+            None => ProjectManifest::discover(&env::current_dir()?, exclusions.as_ref())?,
+        };
 
     let project_manifest = ProjectManifest::load(manifest_path.as_path())?;
 
