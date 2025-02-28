@@ -164,8 +164,8 @@ pub(crate) enum Error {
 
     #[error("\
         An installation corresponding to your `criticalup.toml` was not found.\n\
-        Please ensure your `criticalup.toml` is present and what you expect, then\n\
-        run `criticalup install` to ensure it is installed.
+        Please ensure your `criticalup.toml` contains what you expect, and then\n\
+        run `criticalup install` to complete the installation.
     ")]
     InstallationNotFound,
 
