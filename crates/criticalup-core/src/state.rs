@@ -19,7 +19,6 @@ use crate::project_manifest::InstallationId;
 use crate::utils::open_file_for_write;
 
 const CURRENT_FORMAT_VERSION: u32 = 1;
-const CRITICALUP_TOKEN_ENV_VAR_NAME: &str = "CRITICALUP_TOKEN";
 
 #[derive(Clone)]
 pub struct State {
@@ -78,18 +77,9 @@ impl State {
     }
 
     /// Returns the authentication token.
-    ///
-    /// Attempts to read from:
-    ///  1. The `CRITICALUP_TOKEN_ENV_VAR_NAME` environment
-    ///  2. The state
     fn authentication_token_inner(&self) -> Option<AuthenticationToken> {
-        match std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME) {
-            Ok(token_from_env) => Some(AuthenticationToken(token_from_env)),
-            Err(_) => {
-                let borrowed = self.inner.borrow();
-                borrowed.repr.authentication_token.clone()
-            }
-        }
+        let borrowed = self.inner.borrow();
+        borrowed.repr.authentication_token.clone()
     }
 
     pub fn set_authentication_token(&self, token: Option<AuthenticationToken>) {
@@ -385,6 +375,12 @@ impl AuthenticationToken {
 
     pub fn unseal(&self) -> &str {
         &self.0
+    }
+}
+
+impl From<String> for AuthenticationToken {
+    fn from(value: String) -> Self {
+        AuthenticationToken(value)
     }
 }
 
