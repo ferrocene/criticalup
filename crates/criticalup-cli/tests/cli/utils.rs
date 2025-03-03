@@ -221,7 +221,13 @@ macro_rules! assert_output {
         #[cfg(target_os = "linux")]
         settings.add_filter(
             r"/tmp/.*/criticalup.toml",
-            "/tmp/TEMPDIR/criticalup.toml",
+            "TEMPDIR/criticalup.toml",
+        );
+
+        #[cfg(target_os = "macos")]
+        settings.add_filter(
+            r"/var/folders/.*/criticalup.toml",
+            "TEMPDIR/criticalup.toml",
         );
 
         #[cfg(windows)]

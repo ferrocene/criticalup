@@ -8,7 +8,7 @@ empty stdout
 
 stderr
 ------
-error: An installation corresponding to `/tmp/TEMPDIR/criticalup.toml` was not found.
+error: An installation corresponding to `TEMPDIR/criticalup.toml` was not found.
 Please ensure your `criticalup.toml` contains what you expect, and then
 run `criticalup install` to complete the installation.
     
