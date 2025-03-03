@@ -232,7 +232,7 @@ macro_rules! assert_output {
 
         #[cfg(target_os = "windows")]
         settings.add_filter(
-            r".*\\Users\\.*\\AppData\\Local\\Temp\\.*\\criticalup.toml",
+            r"\w:\\Users\\.*\\AppData\\Local\\Temp\\.*\\criticalup.toml",
             "TEMPDIR/criticalup.toml",
         );
 
