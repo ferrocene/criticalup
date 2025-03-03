@@ -164,7 +164,6 @@ jobs:
             ./criticalup.exe run -- cargo.exe --version
 
       - name: Run test cleanup workflow
-        if: ${{ runner.os == 'Windows' }}
         working-directory: crab-boil
         run: |
           ./criticalup remove
