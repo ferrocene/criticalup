@@ -340,10 +340,11 @@ mod tests {
             set_current_dir(&expected_project_path).unwrap();
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let discovered_abs_path =
-                tokio::fs::canonicalize(ProjectManifest::discover(&env::current_dir().unwrap()).unwrap())
-                    .await
-                    .unwrap();
+            let discovered_abs_path = tokio::fs::canonicalize(
+                ProjectManifest::discover(&env::current_dir().unwrap()).unwrap(),
+            )
+            .await
+            .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
                 tokio::fs::canonicalize(expected_project_path.join("criticalup.toml"))
