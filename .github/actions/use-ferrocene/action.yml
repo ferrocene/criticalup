@@ -29,12 +29,23 @@ runs:
         curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/latest/download/criticalup-installer.sh | sh
         criticalup auth set ${{ inputs.token }}
         criticalup install
-        
-        ${{ runner.os == 'Linux' && 'echo "Adding to path: $HOME/.local/share/criticalup/bin"' || '' }}
+
+    - name: Add Ferrocene to path
+      shell: bash
+      if: ${{ runner.os = 'Linux' || runner.os = 'macOS' }}
+      run: |
+        ${{ runner.os == 'Linux' && 'echo "Adding to bash path: $HOME/.local/share/criticalup/bin"' || '' }}
         ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/bin" >> $GITHUB_PATH' || '' }}
         
-        ${{ runner.os == 'Windows' && 'echo "Adding to path: $HOME/AppData/Roaming/criticalup/bin"' || '' }}
+        ${{ runner.os == 'Windows' && 'echo "Adding to bash path: $HOME/AppData/Roaming/criticalup/bin"' || '' }}
         ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/bin" >> $GITHUB_PATH' || '' }}
         
-        ${{ runner.os == 'macOS' && 'echo "Adding to path: $HOME/Library/Application Support/criticalup/bin"' || '' }}
+        ${{ runner.os == 'macOS' && 'echo "Adding to bash path: $HOME/Library/Application Support/criticalup/bin"' || '' }}
         ${{ runner.os == 'macOS' && 'echo "$HOME/Library/Application Support/criticalup/bin" >> $GITHUB_PATH' || '' }}
+
+    - name: Add Ferrocene to path
+      shell: pwsh
+      if: ${{ runner.os = 'Windws' }}
+      run: |
+        echo "Adding to Powershell path: $HOME/AppData/Roaming/criticalup/bin"
+        echo "$HOME/AppData/Roaming/criticalup/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
