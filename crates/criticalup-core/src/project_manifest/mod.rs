@@ -31,7 +31,7 @@ impl ProjectManifest {
             search = path.parent();
 
             let candidate = path.join(DEFAULT_PROJECT_MANIFEST_NAME);
-            
+
             if let Some(exclusions) = exclusions {
                 if exclusions.iter().any(|v| *v == candidate) {
                     continue;
@@ -66,7 +66,10 @@ impl ProjectManifest {
         let manifest = match project_path {
             Some(manifest_path) => ProjectManifest::load(&manifest_path)?,
             None => {
-                let discovered_manifest = Self::discover(&env::current_dir().map_err(Error::FailedToReadDirectory)?, None)?;
+                let discovered_manifest = Self::discover(
+                    &env::current_dir().map_err(Error::FailedToReadDirectory)?,
+                    None,
+                )?;
                 Self::load(discovered_manifest.as_path())?
             }
         };
@@ -319,7 +322,8 @@ mod tests {
             let root = tempfile::tempdir().unwrap();
             write_sample_manifest(root.path());
             let discovered_manifest_path =
-                ProjectManifest::discover(&root.path().join("child").join("grandchild"), None).unwrap();
+                ProjectManifest::discover(&root.path().join("child").join("grandchild"), None)
+                    .unwrap();
             assert_sample_parsed(
                 ProjectManifest::load(discovered_manifest_path.as_path()).unwrap(),
             );
@@ -347,9 +351,11 @@ mod tests {
             set_current_dir(&expected_project_path).unwrap();
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let discovered_abs_path = canonicalize(ProjectManifest::discover(&env::current_dir().unwrap(), None).unwrap())
-                .await
-                .unwrap();
+            let discovered_abs_path = canonicalize(
+                ProjectManifest::discover(&env::current_dir().unwrap(), None).unwrap(),
+            )
+            .await
+            .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
                 tokio::fs::canonicalize(expected_project_path.join("criticalup.toml"))
@@ -357,8 +363,7 @@ mod tests {
                     .unwrap();
 
             #[cfg(target_os = "macos")]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
-                .await
+            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap(), None)
                 .unwrap()
                 .strip_prefix("/private")
                 .unwrap()
@@ -371,8 +376,7 @@ mod tests {
                 .to_path_buf();
 
             #[cfg(target_os = "windows")]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
-                .await
+            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap(), None)
                 .unwrap();
             // We need to canonicalize this side as well because Windows canonical paths
             // add an extra oomph as prefix \\?\.

@@ -24,9 +24,7 @@ async fn invoking_outside_of_project() {
     let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
     assert_output!(
-        test_env.binary_proxy("rustc")
-            .current_dir(current_dir)
-            // .env("CRITICALUP_DISCOVER_EXCLUSION", std::env::current_dir().unwrap().parent().unwrap().parent().unwrap().join("criticalup.toml"))
+        test_env.binary_proxy("rustc").current_dir(current_dir.into_path())
     );
 }
 
@@ -95,8 +93,7 @@ async fn invoking_inside_of_installed_project() {
     assert_output!(test_env
         .binary_proxy("sample")
         .env_remove("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
-        .current_dir(current_dir.path())
-    );
+        .current_dir(current_dir.path()));
 }
 
 pub(crate) fn compile_to(dest: &Path, source: &str) {
