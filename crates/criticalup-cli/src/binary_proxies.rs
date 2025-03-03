@@ -31,17 +31,11 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let config = Config::detect(whitelabel)?;
     let state = State::load(&config).await?;
 
-    // Some of our tests require us to ignore Criticalup's criticalup.toml during discovery.
-    // We don't currently support users doing this.
-    let exclusions = std::env::var_os("CRITICALUP_DISCOVER_EXCLUSION")
-        .map(std::path::PathBuf::from)
-        .map(|v| vec![v]);
-
     let manifest_path = match std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
         .map(std::path::PathBuf::from)
     {
-        Some(path) => ProjectManifest::discover(&path, exclusions.as_ref())?,
-        None => ProjectManifest::discover(&env::current_dir()?, exclusions.as_ref())?,
+        Some(path) => ProjectManifest::discover(&path)?,
+        None => ProjectManifest::discover(&env::current_dir()?)?,
     };
 
     let project_manifest = ProjectManifest::load(manifest_path.as_path())?;

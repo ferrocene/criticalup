@@ -97,6 +97,12 @@ jobs:
     env:
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/use-ferrocene/
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          uninstall-rust: true
+          
       - name: "Define toolchain"
         shell: bash # Powershell does not do heredocs
         run: |

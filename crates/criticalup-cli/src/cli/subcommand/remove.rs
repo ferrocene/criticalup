@@ -27,7 +27,7 @@ impl CommandExecute for Remove {
         let project = if let Some(project) = self.project {
             project.clone()
         } else {
-            ProjectManifest::discover(&current_dir()?, None)?
+            ProjectManifest::discover(&current_dir()?)?
         };
         span.record("project", tracing::field::display(project.display()));
 

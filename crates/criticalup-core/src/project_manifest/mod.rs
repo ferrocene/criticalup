@@ -25,18 +25,12 @@ pub struct ProjectManifest {
 
 impl ProjectManifest {
     /// Try to find the criticalup.toml project manifest in parent directories.
-    pub fn discover(base: &Path, exclusions: Option<&Vec<PathBuf>>) -> Result<PathBuf, Error> {
+    pub fn discover(base: &Path) -> Result<PathBuf, Error> {
         let mut search = Some(base);
         while let Some(path) = search.take() {
             search = path.parent();
 
             let candidate = path.join(DEFAULT_PROJECT_MANIFEST_NAME);
-
-            if let Some(exclusions) = exclusions {
-                if exclusions.iter().any(|v| *v == candidate) {
-                    continue;
-                }
-            }
 
             if candidate.is_file() {
                 return Ok(candidate);
@@ -67,8 +61,7 @@ impl ProjectManifest {
             Some(manifest_path) => ProjectManifest::load(&manifest_path)?,
             None => {
                 let discovered_manifest = Self::discover(
-                    &env::current_dir().map_err(Error::FailedToReadDirectory)?,
-                    None,
+                    &env::current_dir().map_err(Error::FailedToReadDirectory)?
                 )?;
                 Self::load(discovered_manifest.as_path())?
             }
@@ -291,8 +284,6 @@ mod tests {
     }
 
     mod test_discover {
-        use tokio::fs::canonicalize;
-
         use super::*;
         use std::env::set_current_dir;
 
@@ -300,7 +291,7 @@ mod tests {
         fn test_current_directory() {
             let root = tempfile::tempdir().unwrap();
             write_sample_manifest(root.path());
-            let discovered_manifest_path = ProjectManifest::discover(root.path(), None).unwrap();
+            let discovered_manifest_path = ProjectManifest::discover(root.path()).unwrap();
             assert_sample_parsed(
                 ProjectManifest::load(discovered_manifest_path.as_path()).unwrap(),
             );
@@ -311,7 +302,7 @@ mod tests {
             let root = tempfile::tempdir().unwrap();
             write_sample_manifest(root.path());
             let discovered_manifest_path =
-                ProjectManifest::discover(&root.path().join("child"), None).unwrap();
+                ProjectManifest::discover(&root.path().join("child")).unwrap();
             assert_sample_parsed(
                 ProjectManifest::load(discovered_manifest_path.as_path()).unwrap(),
             );
@@ -322,7 +313,7 @@ mod tests {
             let root = tempfile::tempdir().unwrap();
             write_sample_manifest(root.path());
             let discovered_manifest_path =
-                ProjectManifest::discover(&root.path().join("child").join("grandchild"), None)
+                ProjectManifest::discover(&root.path().join("child").join("grandchild"))
                     .unwrap();
             assert_sample_parsed(
                 ProjectManifest::load(discovered_manifest_path.as_path()).unwrap(),
@@ -335,7 +326,7 @@ mod tests {
             write_sample_manifest(&root.path().join("child"));
 
             assert!(matches!(
-                ProjectManifest::discover(root.path(), None).unwrap_err(),
+                ProjectManifest::discover(root.path()).unwrap_err(),
                 Error::ProjectManifestDetectionFailed
             ));
         }
@@ -376,7 +367,7 @@ mod tests {
                 .to_path_buf();
 
             #[cfg(target_os = "windows")]
-            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap(), None)
+            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap())
                 .unwrap();
             // We need to canonicalize this side as well because Windows canonical paths
             // add an extra oomph as prefix \\?\.
@@ -396,7 +387,7 @@ mod tests {
             write_sample_manifest(&root.path().join("child").join("grandchild"));
 
             assert!(matches!(
-                ProjectManifest::discover(root.path(), None).unwrap_err(),
+                ProjectManifest::discover(root.path()).unwrap_err(),
                 Error::ProjectManifestDetectionFailed
             ));
         }
@@ -404,7 +395,7 @@ mod tests {
         #[test]
         fn test_no_file() {
             assert!(matches!(
-                ProjectManifest::discover(tempfile::tempdir().unwrap().path(), None).unwrap_err(),
+                ProjectManifest::discover(tempfile::tempdir().unwrap().path()).unwrap_err(),
                 Error::ProjectManifestDetectionFailed
             ));
         }
