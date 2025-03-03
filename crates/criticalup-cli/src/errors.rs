@@ -162,6 +162,18 @@ pub(crate) enum Error {
     )]
     ManifestAlreadyExists(),
 
+    #[error(
+        "\
+        An installation corresponding to `{}` was not found.\n\
+        Please ensure your `criticalup.toml` contains what you expect, and then\n\
+        run `criticalup install` to complete the installation.
+    ", .0.display()
+    )]
+    InstallationNotFound(PathBuf),
+
+    #[error("Current directory not found.")]
+    CurrentDirectoryNotFound,
+
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
     CtrlHandler,

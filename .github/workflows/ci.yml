@@ -154,10 +154,6 @@ jobs:
 
           ./criticalup which rustc
 
-          ./criticalup remove
-
-          ./criticalup clean
-
       # Windows allows the `.exe` or not, at the users option.
       - name: Run Windows exclusive commands
         if: ${{ runner.os == 'Windows' }}
@@ -166,6 +162,14 @@ jobs:
             ./criticalup.exe run -- cargo --version
             ./criticalup run -- cargo.exe --version
             ./criticalup.exe run -- cargo.exe --version
+
+      - name: Run test cleanup workflow
+        working-directory: crab-boil
+        run: |
+          ./criticalup remove
+
+          ./criticalup clean
+
 
   license:
     name: Check licenses
