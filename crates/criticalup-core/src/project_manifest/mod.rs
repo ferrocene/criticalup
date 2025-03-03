@@ -341,7 +341,7 @@ mod tests {
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let discovered_abs_path =
-                canonicalize(ProjectManifest::discover(&env::current_dir().unwrap()).unwrap())
+                tokio::fs::canonicalize(ProjectManifest::discover(&env::current_dir().unwrap()).unwrap())
                     .await
                     .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]

@@ -25,6 +25,7 @@ async fn invoking_outside_of_project() {
     let current_dir = tempdir().unwrap();
     assert_output!(test_env
         .binary_proxy("rustc")
+        .env_remove("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
         .current_dir(current_dir.into_path()));
 }
 
