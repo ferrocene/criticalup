@@ -9,6 +9,7 @@ use crate::cli::CommandExecute;
 use crate::errors::Error;
 use crate::spawn::spawn_command;
 use crate::Context;
+use std::env::current_dir;
 use std::path::PathBuf;
 // We *deliberately* use a sync Command here, since we are spawning a process to replace the current one.
 use std::process::{Command, Stdio};
@@ -36,9 +37,7 @@ impl CommandExecute for Run {
     ))]
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let installations = locate_installations(ctx, self.project).await?;
-        if installations.is_empty() {
-            return Err(Error::InstallationNotFound);
-        }
+
         let mut bin_paths = vec![];
         let mut lib_paths = vec![];
         for installation in installations {
@@ -149,7 +148,14 @@ pub(crate) async fn locate_installations(
     ctx: &Context,
     project: Option<PathBuf>,
 ) -> Result<Vec<PathBuf>, Error> {
-    let manifest = ProjectManifest::get(project).await?;
+    let manifest_path = if let Some(path) = project {
+        path
+    } else {
+        let current_dir = current_dir().or(Err(Error::CurrentDirectoryNotFound))?;
+        ProjectManifest::discover(&current_dir)?
+    };
+    
+    let manifest = ProjectManifest::load(&manifest_path)?;
 
     let installation_dir = &ctx.config.paths.installation_dir;
 
@@ -159,6 +165,10 @@ pub(crate) async fn locate_installations(
         if abs_installation_dir_path.exists() {
             found_installation_dirs.push(abs_installation_dir_path);
         }
+    }
+
+    if found_installation_dirs.is_empty() {
+        return Err(Error::InstallationNotFound(manifest_path));
     }
 
     Ok(found_installation_dirs)

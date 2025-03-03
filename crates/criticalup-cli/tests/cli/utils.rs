@@ -218,6 +218,12 @@ macro_rules! assert_output {
             "error: Failed to load the project manifest at /path/to/manifest/criticalup-empty-packages.toml",
         );
 
+        #[cfg(target_os = "linux")]
+        settings.add_filter(
+            r"/tmp/.*/criticalup.toml",
+            "/tmp/TEMPDIR/criticalup.toml",
+        );
+
         #[cfg(windows)]
         settings.add_filter("exit code: ", "exit status: ");
         #[cfg(windows)]
