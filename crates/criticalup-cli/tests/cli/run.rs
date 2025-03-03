@@ -23,8 +23,8 @@ async fn simple_run_command_manifest_not_found() {
 }
 
 #[tokio::test]
-async fn simple_run_command_missing_package() {
-    // Make sure the project manifest exists, but the package 'rustc' does not.
+async fn simple_run_command_did_not_run_install() {
+    // Make sure the project manifest exists, but it is not installed
     let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
     let manifest = current_dir.path().join("criticalup.toml");
