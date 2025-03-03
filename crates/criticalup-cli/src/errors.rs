@@ -162,11 +162,13 @@ pub(crate) enum Error {
     )]
     ManifestAlreadyExists(),
 
-    #[error("\
+    #[error(
+        "\
         An installation corresponding to your `criticalup.toml` was not found.\n\
         Please ensure your `criticalup.toml` contains what you expect, and then\n\
         run `criticalup install` to complete the installation.
-    ")]
+    "
+    )]
     InstallationNotFound,
 
     #[cfg(windows)]
