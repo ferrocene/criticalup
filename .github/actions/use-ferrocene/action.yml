@@ -32,7 +32,6 @@ runs:
 
     - name: Add Ferrocene to path
       shell: bash
-      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
         ${{ runner.os == 'Linux' && 'echo "Adding to bash path: $HOME/.local/share/criticalup/bin"' || '' }}
         ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/bin" >> $GITHUB_PATH' || '' }}
