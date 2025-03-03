@@ -36,7 +36,7 @@ impl CommandExecute for Run {
     ))]
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let installations = locate_installations(ctx, self.project).await?;
-        if installations.len() == 0 {
+        if installations.is_empty() {
             return Err(Error::InstallationNotFound);
         }
         let mut bin_paths = vec![];
