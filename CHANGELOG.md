@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- The reworked `criticalup run` behavior was not correctly checking that the toolchain specified
+  in `criticalup.toml` was installed. This lead to some situations where users could accidently 
+  run a non-Ferrocene tool when they meant to run Ferrocene tools. This has been fixed.
+
 ### Added
 
 - New subcommand `init` creates a simple project manifest file in the current directory. A flag `--print` can
