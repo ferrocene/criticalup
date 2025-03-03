@@ -154,7 +154,7 @@ pub(crate) async fn locate_installations(
         let current_dir = current_dir().or(Err(Error::CurrentDirectoryNotFound))?;
         ProjectManifest::discover(&current_dir)?
     };
-    
+
     let manifest = ProjectManifest::load(&manifest_path)?;
 
     let installation_dir = &ctx.config.paths.installation_dir;

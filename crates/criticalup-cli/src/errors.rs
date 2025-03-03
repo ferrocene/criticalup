@@ -171,9 +171,7 @@ pub(crate) enum Error {
     )]
     InstallationNotFound(PathBuf),
 
-    #[error(
-        "Current directory not found."
-    )]
+    #[error("Current directory not found.")]
     CurrentDirectoryNotFound,
 
     #[cfg(windows)]
