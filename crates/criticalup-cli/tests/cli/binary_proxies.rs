@@ -23,9 +23,9 @@ const INSTALLATION_ID: &str = "1f67f84fa2c0e3d1b99bf72f971b7a10eef29d91b50d9d9f8
 async fn invoking_outside_of_project() {
     let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
-    assert_output!(
-        test_env.binary_proxy("rustc").current_dir(current_dir.into_path())
-    );
+    assert_output!(test_env
+        .binary_proxy("rustc")
+        .current_dir(current_dir.into_path()));
 }
 
 #[tokio::test]

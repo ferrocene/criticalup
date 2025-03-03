@@ -60,9 +60,8 @@ impl ProjectManifest {
         let manifest = match project_path {
             Some(manifest_path) => ProjectManifest::load(&manifest_path)?,
             None => {
-                let discovered_manifest = Self::discover(
-                    &env::current_dir().map_err(Error::FailedToReadDirectory)?
-                )?;
+                let discovered_manifest =
+                    Self::discover(&env::current_dir().map_err(Error::FailedToReadDirectory)?)?;
                 Self::load(discovered_manifest.as_path())?
             }
         };
@@ -313,8 +312,7 @@ mod tests {
             let root = tempfile::tempdir().unwrap();
             write_sample_manifest(root.path());
             let discovered_manifest_path =
-                ProjectManifest::discover(&root.path().join("child").join("grandchild"))
-                    .unwrap();
+                ProjectManifest::discover(&root.path().join("child").join("grandchild")).unwrap();
             assert_sample_parsed(
                 ProjectManifest::load(discovered_manifest_path.as_path()).unwrap(),
             );
@@ -342,11 +340,10 @@ mod tests {
             set_current_dir(&expected_project_path).unwrap();
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let discovered_abs_path = canonicalize(
-                ProjectManifest::discover(&env::current_dir().unwrap(), None).unwrap(),
-            )
-            .await
-            .unwrap();
+            let discovered_abs_path =
+                canonicalize(ProjectManifest::discover(&env::current_dir().unwrap()).unwrap())
+                    .await
+                    .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
                 tokio::fs::canonicalize(expected_project_path.join("criticalup.toml"))
@@ -354,7 +351,7 @@ mod tests {
                     .unwrap();
 
             #[cfg(target_os = "macos")]
-            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap(), None)
+            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap())
                 .unwrap()
                 .strip_prefix("/private")
                 .unwrap()
@@ -367,8 +364,8 @@ mod tests {
                 .to_path_buf();
 
             #[cfg(target_os = "windows")]
-            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap())
-                .unwrap();
+            let discovered_abs_path =
+                ProjectManifest::discover(&env::current_dir().unwrap()).unwrap();
             // We need to canonicalize this side as well because Windows canonical paths
             // add an extra oomph as prefix \\?\.
             // https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths
