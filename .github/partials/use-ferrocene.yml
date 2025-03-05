@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+- name: Use Ferrocene
+  uses: ./.github/actions/use-ferrocene/
+  with:
+    token: ${{ secrets.CRITICALUP_TOKEN }}
+    uninstall-rust: true

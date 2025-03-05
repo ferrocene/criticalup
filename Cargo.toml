@@ -28,6 +28,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "json",
 ] }
 walkdir = "2"
+dirs = { version = "6.0.0", default-features = false }
 
 # The profile that 'cargo dist' will build with
 [profile.dist]

@@ -36,9 +36,6 @@ macro_rules! run_cmd {
             .expect("failed to execute command");
         match &$expected {
             Some(expected) => {
-                // Since 1.84, stable Rust Clippy will complain about Regex inside a for loop.
-                // Unblocking ourselves by ignoring this warning in tests.
-                #[allow(clippy::regex_creation_in_loops)]
                 // This regex replacement dance is required because this nested macro tests
                 // set is instantiating the test server twice which means each run gives
                 // a different local port. We replace with a stable port just for this test.

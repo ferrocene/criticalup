@@ -6,7 +6,7 @@ use crate::spawn;
 use criticalup_core::config::{Config, WhitelabelConfig};
 use criticalup_core::project_manifest::ProjectManifest;
 use criticalup_core::state::State;
-use std::env::JoinPathsError;
+use std::env::{self, JoinPathsError};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -31,12 +31,12 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     let config = Config::detect(whitelabel)?;
     let state = State::load(&config).await?;
 
-    let manifest_path = ProjectManifest::discover_canonical_path(
-        std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
-            .map(std::path::PathBuf::from)
-            .as_deref(),
-    )
-    .await?;
+    let manifest_path = match std::env::var_os("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
+        .map(std::path::PathBuf::from)
+    {
+        Some(path) => ProjectManifest::discover(&path)?,
+        None => ProjectManifest::discover(&env::current_dir()?)?,
+    };
 
     let project_manifest = ProjectManifest::load(manifest_path.as_path())?;
 
