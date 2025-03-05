@@ -5,7 +5,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.4.0] - 2025-03-04
+## [1.4.0] - 2025-03-05
 
 ### Fixed
 
