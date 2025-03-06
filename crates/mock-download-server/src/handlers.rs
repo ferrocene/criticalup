@@ -19,6 +19,7 @@ pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
         (Method::Get, ["v1", "releases", product, release]) => {
             handle_v1_release(data, product, release)
         }
+        // GET `/v1/releases/:product/:release/download/:package/:format`
         _ => handle_404(),
     };
 
