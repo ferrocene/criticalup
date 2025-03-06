@@ -1713,11 +1713,18 @@ dependencies = [
 name = "mock-download-server"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "criticaltrust",
  "serde",
  "serde_json",
+ "sha2",
+ "tar",
+ "tempfile",
  "time",
  "tiny_http",
+ "tokio",
+ "walkdir",
+ "xz2",
 ]
 
 [[package]]

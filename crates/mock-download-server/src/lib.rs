@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+extern crate core;
+
 mod handlers;
 mod server;
 
@@ -26,7 +28,7 @@ pub struct AuthenticationToken {
 }
 
 pub struct Data {
-    pub keypair: EphemeralKeyPair,
+    pub keypair: Option<EphemeralKeyPair>,
     pub tokens: HashMap<String, AuthenticationToken>,
     pub keys: Vec<SignedPayload<PublicKey>>,
     pub revoked_signatures: SignedPayload<RevocationInfo>,
@@ -36,6 +38,7 @@ pub struct Data {
 pub fn new() -> Builder {
     Builder {
         data: Data {
+            keypair: None,
             tokens: HashMap::new(),
             keys: Vec::new(),
             revoked_signatures: SignedPayload::new(&RevocationInfo::new(
@@ -53,6 +56,11 @@ pub struct Builder {
 }
 
 impl Builder {
+    pub fn add_keypair(mut self, keypair: EphemeralKeyPair) -> Self {
+        self.data.keypair = Some(keypair);
+        self
+    }
+
     pub fn add_token(mut self, token: &str, info: AuthenticationToken) -> Self {
         self.data.tokens.insert(token.into(), info);
         self

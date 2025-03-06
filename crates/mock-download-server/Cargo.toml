@@ -12,3 +12,10 @@ serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139"
 tiny_http = { version = "0.12.0", default-features = false, features = ["rustls"] }
 time = { version = "0.3.37", features = ["std", "serde", "serde-well-known"] }
+sha2 = "0.10.7"
+tar = "0.4.43"
+xz2 = "0.1.7"
+anyhow = "1.0.19"
+walkdir = "2.5.0"
+tempfile.workspace = true
+tokio.workspace = true

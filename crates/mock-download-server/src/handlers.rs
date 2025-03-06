@@ -19,6 +19,10 @@ pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
         (Method::Get, ["v1", "releases", product, release]) => {
             handle_v1_release(data, product, release)
         }
+        // GET `/v1/releases/:product/:release/download/:package/:format`
+        (Method::Get, ["v1", "releases", product, release, "download", package, format]) => {
+            handle_v1_package(data, product, release, package, format)
+        }
         _ => handle_404(),
     };
 
@@ -28,6 +32,16 @@ pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
         Ok(resp) => resp.into_tiny_http(),
         Err(resp) => resp.into_tiny_http(),
     }
+}
+
+fn handle_v1_package(
+    data: &Data,
+    product: &str,
+    release: &str,
+    package: &str,
+    format: &str,
+) -> Result<Resp, Resp> {
+    todo!()
 }
 
 fn handle_v1_tokens_current(data: &Data, req: &Request) -> Result<Resp, Resp> {
