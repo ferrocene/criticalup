@@ -77,7 +77,7 @@ impl TestEnvironment {
         TestEnvironment {
             root,
             trust_root: keypair.public().clone(),
-            server: setup_mock_server(&keypair).await,
+            server: setup_mock_server(keypair).await,
             customer_portal_url: "https://customers-test.ferrocene.dev".into(),
         }
     }
@@ -118,8 +118,9 @@ impl TestEnvironment {
         });
     }
 
-    pub(crate) fn server(&self) -> &MockServer {
-        &self.server
+    // Beware of the consumption.
+    pub(crate) fn server(self) -> MockServer {
+        self.server
     }
 }
 
@@ -131,17 +132,21 @@ pub(crate) fn stdin(content: &str) -> Stdio {
     file.into()
 }
 
-async fn setup_mock_server<K: KeyPair>(keypair: &K) -> MockServer {
-    let mut server = mock_download_server::new();
+async fn setup_mock_server(keypair: EphemeralKeyPair) -> MockServer {
+    let mut server_builder = mock_download_server::new();
     for (token, data) in MOCK_AUTH_TOKENS {
-        server = server.add_token(token, data.clone());
+        server_builder = server_builder.add_token(token, data.clone());
     }
+    server_builder = server_builder.add_keypair(keypair.to_owned());
     for (product, release, mut manifest) in mock_release_manifests() {
-        manifest.signed.add_signature(keypair).await.unwrap();
-        server =
-            server.add_release_manifest(product.to_string(), release.to_string(), manifest.clone());
+        manifest.signed.add_signature(&keypair).await.unwrap();
+        server_builder = server_builder.add_release_manifest(
+            product.to_string(),
+            release.to_string(),
+            manifest.clone(),
+        );
     }
-    server.start()
+    server_builder.start()
 }
 
 pub(crate) trait IntoOutput {
