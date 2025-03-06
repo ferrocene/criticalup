@@ -117,6 +117,10 @@ impl TestEnvironment {
             data.tokens.remove(token);
         });
     }
+
+    pub(crate) fn server(&self) -> &MockServer {
+        &self.server
+    }
 }
 
 pub(crate) fn stdin(content: &str) -> Stdio {
@@ -227,12 +231,6 @@ macro_rules! assert_output {
         #[cfg(target_os = "macos")]
         settings.add_filter(
             r"/var/folders/.*/criticalup.toml",
-            "TEMPDIR/criticalup.toml",
-        );
-
-        #[cfg(target_os = "windows")]
-        settings.add_filter(
-            r"\w:\\Users\\.*\\AppData\\Local\\Temp\\.*\\criticalup.toml",
             "TEMPDIR/criticalup.toml",
         );
 
