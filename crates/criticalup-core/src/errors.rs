@@ -4,6 +4,7 @@
 use criticaltrust::Error as TrustError;
 use reqwest::Error as ReqError;
 use reqwest::StatusCode;
+use std::env::VarError;
 use std::path::PathBuf;
 
 /// We're using a custom error enum instead of `Box<dyn Error>` or one of the crates providing a
@@ -95,6 +96,13 @@ pub enum Error {
 
     #[error("Failed to load keys into keychain.")]
     KeychainLoadingFailed(#[source] criticaltrust::Error),
+
+    #[error("Environment variable '{}' is not UTF-8 encoded.", name)]
+    EnvVarNotUtf8 {
+        name: String,
+        #[source]
+        kind: VarError,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -19,7 +19,6 @@ use crate::project_manifest::InstallationId;
 use crate::utils::open_file_for_write;
 
 const CURRENT_FORMAT_VERSION: u32 = 1;
-const CRITICALUP_TOKEN_ENV_VAR_NAME: &str = "CRITICALUP_TOKEN";
 
 #[derive(Clone)]
 pub struct State {
@@ -48,48 +47,9 @@ impl State {
     }
 
     /// Returns the authentication token.
-    ///
-    /// Attempts to read from:
-    ///  1. `token_path` (if present)
-    ///  2. The `CRITICALUP_TOKEN_ENV_VAR_NAME` environment
-    ///  3. The state
-    ///     1. check if token_path was sent in the fn call
-    ///     2. if not, then try to see if the env var is set
-    ///     3. if that was not set then look at the State
-    ///     4. else, None
-    pub async fn authentication_token(
-        &self,
-        token_path: Option<&str>,
-    ) -> Option<AuthenticationToken> {
-        match token_path {
-            Some(token_path) => {
-                let token_path = std::path::Path::new(token_path);
-                if token_path.exists() {
-                    match tokio::fs::read_to_string(token_path).await {
-                        Ok(token) => Some(AuthenticationToken(token.to_string().trim().into())),
-                        Err(_) => self.authentication_token_inner(),
-                    }
-                } else {
-                    self.authentication_token_inner()
-                }
-            }
-            None => self.authentication_token_inner(),
-        }
-    }
-
-    /// Returns the authentication token.
-    ///
-    /// Attempts to read from:
-    ///  1. The `CRITICALUP_TOKEN_ENV_VAR_NAME` environment
-    ///  2. The state
-    fn authentication_token_inner(&self) -> Option<AuthenticationToken> {
-        match std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME) {
-            Ok(token_from_env) => Some(AuthenticationToken(token_from_env)),
-            Err(_) => {
-                let borrowed = self.inner.borrow();
-                borrowed.repr.authentication_token.clone()
-            }
-        }
+    pub async fn authentication_token(&self) -> Option<AuthenticationToken> {
+        let borrowed = self.inner.borrow();
+        borrowed.repr.authentication_token.clone()
     }
 
     pub fn set_authentication_token(&self, token: Option<AuthenticationToken>) {
@@ -388,6 +348,12 @@ impl AuthenticationToken {
     }
 }
 
+impl From<String> for AuthenticationToken {
+    fn from(value: String) -> Self {
+        AuthenticationToken(value)
+    }
+}
+
 impl std::fmt::Debug for AuthenticationToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // We don't want to accidentally include the full authentication token in debug reprs or
@@ -460,7 +426,7 @@ mod tests {
         let state = State::load(test_env.config()).await.unwrap();
         assert_eq!(
             Some(AuthenticationToken("hello".into())),
-            state.authentication_token(None).await
+            state.authentication_token().await
         );
     }
 
@@ -751,7 +717,7 @@ mod tests {
         state.set_authentication_token(None);
 
         //  Make sure the state file has authentication token as None.
-        assert_eq!(state.authentication_token(None).await, None);
+        assert_eq!(state.authentication_token().await, None);
 
         let file_token_content = "my-awesome-token-from-file";
         let token_name = "CRITICALUP_TOKEN";
@@ -761,11 +727,10 @@ mod tests {
         let secrets_dir = test_env.root().join::<PathBuf>("run/secrets".into());
         tokio::fs::create_dir_all(&secrets_dir).await.unwrap();
         std::fs::write(secrets_dir.join(token_name), file_token_content).unwrap();
-        let token = test_env
-            .state()
-            .authentication_token(Some(secrets_dir.join(token_name).to_str().unwrap()))
-            .await;
-        assert_eq!(Some(AuthenticationToken(file_token_content.into())), token)
+        let token = AuthenticationToken::from(
+            std::fs::read_to_string(secrets_dir.join("CRITICALUP_TOKEN")).unwrap(),
+        );
+        assert_eq!(AuthenticationToken(file_token_content.into()), token)
     }
 
     #[tokio::test]
@@ -774,12 +739,12 @@ mod tests {
         let state = test_env.state();
 
         state.set_authentication_token(None);
-        assert_eq!(None, state.authentication_token(None).await);
+        assert_eq!(None, state.authentication_token().await);
 
         state.set_authentication_token(Some(AuthenticationToken("hello world".into())));
         assert_eq!(
             Some(AuthenticationToken("hello world".into())),
-            state.authentication_token(None).await
+            state.authentication_token().await
         );
     }
 
@@ -794,7 +759,7 @@ mod tests {
         test_env.state().persist().await.unwrap();
 
         let new_state = State::load(test_env.config()).await.unwrap();
-        assert_eq!(Some(token), new_state.authentication_token(None).await);
+        assert_eq!(Some(token), new_state.authentication_token().await);
     }
 
     #[tokio::test]
