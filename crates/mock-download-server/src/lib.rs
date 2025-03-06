@@ -26,6 +26,7 @@ pub struct AuthenticationToken {
 }
 
 pub struct Data {
+    pub keypair: EphemeralKeyPair,
     pub tokens: HashMap<String, AuthenticationToken>,
     pub keys: Vec<SignedPayload<PublicKey>>,
     pub revoked_signatures: SignedPayload<RevocationInfo>,

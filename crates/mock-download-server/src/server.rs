@@ -3,6 +3,7 @@
 
 use crate::handlers::handle_request;
 use crate::Data;
+use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -53,6 +54,18 @@ impl MockServer {
 
     pub fn edit_data(&self, f: impl FnOnce(&mut Data)) {
         f(&mut self.data.lock().unwrap());
+    }
+
+    pub fn create_release(&mut self, name: &str, packages: Vec<&str>) -> Result<(), ()> {
+        todo!()
+    }
+
+    pub fn create_package(&mut self, name: &str, untarred_thing: &Path) -> Result<(), ()> {
+        // create signatures
+
+        // tarball it
+
+        todo!()
     }
 }
 

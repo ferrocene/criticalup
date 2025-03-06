@@ -4,6 +4,7 @@
 use crate::assert_output;
 use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path, TestEnvironment};
 use serde_json::json;
+use tempfile::tempdir;
 use std::io::Write;
 
 #[tokio::test]
@@ -94,31 +95,52 @@ async fn run_install() {
 #[ignore = "Testing `install` subcommand will be enabled at a later date"]
 async fn product_dirs_are_created() {
     let test_env = TestEnvironment::prepare().await;
+    let repository = tempdir().unwrap();
 
-    let mut current_dir =
-        std::env::current_dir().expect("Could not read current directory in the test.");
-    current_dir.push("tests/resources/criticalup.toml");
-    let manifest_path = current_dir.to_str().expect("conversion to str failed");
+    // Create a packet
+    let package_ref = "my_test_packet";
+    let release_ref = "my_test_release";
+    let untarred_thing = tempdir().unwrap();
+    tokio::fs::write(untarred_thing.path().join("boop"), "swoop").await.unwrap();
+    test_env.server().create_package(package_ref, untarred_thing.path()).unwrap();
+    test_env.server().create_release(release_ref, vec![package_ref]).unwrap();
+
+    let test_manifest = toml! {
+        manifest-version = 1
+
+        [products.ferrocene]
+        release = #release_ref
+        packages = [
+            #package_ref,
+        ]
+    };
+    let manifest_path = repository.join("criticalup.toml");
+    tokio::fs::write(manifest_path, toml::serialize(test_manifest));
+
+    // let mut current_dir =
+    //     std::env::current_dir().expect("Could not read current directory in the test.");
+    // current_dir.push("tests/resources/criticalup.toml");
+    // let manifest_path = current_dir.to_str().expect("conversion to str failed");
 
     run_install_cmd(&test_env, manifest_path);
 
-    let ex1 = construct_toolchains_product_path(
-        &test_env,
-        "791180e94af037a98410323424f9bfda82d82fdbc991a9cd8da30a091459f5f5",
-    );
-    assert!(ex1.exists());
+    // let ex1 = construct_toolchains_product_path(
+    //     &test_env,
+    //     "791180e94af037a98410323424f9bfda82d82fdbc991a9cd8da30a091459f5f5",
+    // );
+    // assert!(ex1.exists());
 
-    let ex2 = construct_toolchains_product_path(
-        &test_env,
-        "ceac76fcf73a702d9349a7064679606f90c4d8db09a763c9fd4d5acd9059544d",
-    );
-    assert!(ex2.exists());
+    // let ex2 = construct_toolchains_product_path(
+    //     &test_env,
+    //     "ceac76fcf73a702d9349a7064679606f90c4d8db09a763c9fd4d5acd9059544d",
+    // );
+    // assert!(ex2.exists());
 
-    let ex3 = construct_toolchains_product_path(
-        &test_env,
-        "723bbd3fb691ce24dc6d59afc5f9d4caabce6b359ac512784c057bef7025b095",
-    );
-    assert!(ex3.exists());
+    // let ex3 = construct_toolchains_product_path(
+    //     &test_env,
+    //     "723bbd3fb691ce24dc6d59afc5f9d4caabce6b359ac512784c057bef7025b095",
+    // );
+    // assert!(ex3.exists());
 }
 
 fn run_install_cmd(test_env: &TestEnvironment, manifest_path: &str) {
