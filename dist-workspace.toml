@@ -30,12 +30,13 @@ install-path = "CARGO_HOME"
 aarch64-apple-darwin = "macos-latest"
 
 [dist.github-custom-runners.x86_64-unknown-linux-gnu]
-runner = "ubuntu-latest"
-container = { image = "ubuntu:20.04", host = "x86_64-unknown-linux-musl" }
+runner = "ubuntu-24.04"
 
 [dist.github-custom-runners.aarch64-unknown-linux-gnu]
-runner = "ubuntu-latest"
-container = { image = "ubuntu:20.04", host = "x86_64-unknown-linux-musl" }
+runner = "ubuntu-24.04"
+
+[dist.min-glibc-version]
+"*" = "2.32"
 
 [dist.dependencies.apt]
 gcc-aarch64-linux-gnu = "*"
