@@ -5,12 +5,13 @@ use std::env::VarError;
 
 pub const CRITICALUP_TOKEN_ENV_VAR_NAME: &str = "CRITICALUP_TOKEN";
 
+#[derive(Default)]
 pub struct EnvVars {
     pub criticalup_token: Option<String>,
 }
 
-impl Default for EnvVars {
-    fn default() -> Self {
+impl EnvVars {
+    pub fn new() -> Self {
         let criticalup_token = match std::env::var(CRITICALUP_TOKEN_ENV_VAR_NAME) {
             Ok(value) => {
                 if !value.is_empty() {

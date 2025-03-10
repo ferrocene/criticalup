@@ -126,7 +126,7 @@ impl DownloadServerClient {
             None
         };
 
-        let token_from_env = envvars::EnvVars::default()
+        let token_from_env = envvars::EnvVars::new()
             .criticalup_token
             .map(|item| item.into());
 
