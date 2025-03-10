@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::config::Config;
+use crate::envvars;
 use crate::errors::{DownloadServerError, Error};
-use crate::state::State;
+use crate::state::{AuthenticationToken, State};
 use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
@@ -117,17 +118,29 @@ impl DownloadServerClient {
         // If the token contains such chars treat the authentication as failed due to an invalid
         // token, as the server wouldn't be able to validate it either anyway.
 
-        // set path to token file for docker
-        let path_to_token_file = if std::path::Path::new("/.dockerenv").exists() {
-            Some("/run/secrets/CRITICALUP_TOKEN")
+        // Get token from file path.
+        let token_from_file = if std::path::Path::new("/.dockerenv").exists() {
+            std::fs::read_to_string("/run/secrets/CRITICALUP_TOKEN")
+                .map_or(None, |item| Some(AuthenticationToken::from(item)))
         } else {
             None
         };
 
-        let header = self
-            .state
-            .authentication_token(path_to_token_file)
-            .await
+        let token_from_env = envvars::EnvVars::new()
+            .criticalup_token
+            .map(|item| item.into());
+
+        let token_from_state = self.state.authentication_token().await;
+
+        // Set precedence for tokens.
+        let token = match (token_from_file, token_from_env, token_from_state) {
+            (Some(token), _, _) => Some(token),
+            (_, Some(token), _) => Some(token),
+            (_, _, Some(token)) => Some(token),
+            _ => None,
+        };
+
+        let header = token
             .as_ref()
             .and_then(|token| HeaderValue::from_str(&format!("Bearer {}", token.unseal())).ok());
 
