@@ -4,7 +4,6 @@
 mod substitutions;
 pub mod v1;
 
-use crate::errors::Error::FailedToFindCanonicalPath;
 use crate::errors::ProjectManifestLoadingError::MultipleProductsNotSupportedInProjectManifest;
 use crate::errors::{Error, ProjectManifestLoadingError};
 use crate::project_manifest::substitutions::apply_substitutions;
@@ -15,7 +14,6 @@ use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
-use tokio::fs::canonicalize;
 
 const DEFAULT_PROJECT_MANIFEST_NAME: &str = "criticalup.toml";
 const DEFAULT_PROJECT_MANIFEST_VERSION: u32 = 1;
@@ -33,42 +31,13 @@ impl ProjectManifest {
             search = path.parent();
 
             let candidate = path.join(DEFAULT_PROJECT_MANIFEST_NAME);
+
             if candidate.is_file() {
                 return Ok(candidate);
             }
         }
 
         Err(Error::ProjectManifestDetectionFailed)
-    }
-
-    /// Find the absolute path to the manifest.
-    ///
-    /// The path, which is optionally provided by the user could be relative, but we need the
-    /// absolute path for state file.
-    ///
-    /// If the project path is provided then it could be a relative path. In that case, find the
-    /// full path to the criticalup.toml.
-    ///
-    /// If the path is not provided then tries to find the manifest iterating over parent
-    /// directories looking for one, and stopping at the closest parent directory with the file.
-    pub async fn discover_canonical_path(project_path: Option<&Path>) -> Result<PathBuf, Error> {
-        match project_path {
-            Some(path) => {
-                Ok(canonicalize(path)
-                    .await
-                    .map_err(|err| FailedToFindCanonicalPath {
-                        path: path.to_path_buf(),
-                        kind: err,
-                    })?)
-            }
-            None => {
-                let curr_directory = env::current_dir().map_err(Error::FailedToReadDirectory)?;
-                let path = ProjectManifest::discover(&curr_directory)?;
-                Ok(canonicalize(&path)
-                    .await
-                    .map_err(|err| FailedToFindCanonicalPath { path, kind: err })?)
-            }
-        }
     }
 
     /// Try to parse and return the `ProjectManifest` object.
@@ -91,7 +60,8 @@ impl ProjectManifest {
         let manifest = match project_path {
             Some(manifest_path) => ProjectManifest::load(&manifest_path)?,
             None => {
-                let discovered_manifest = Self::discover_canonical_path(None).await?;
+                let discovered_manifest =
+                    Self::discover(&env::current_dir().map_err(Error::FailedToReadDirectory)?)?;
                 Self::load(discovered_manifest.as_path())?
             }
         };
@@ -370,9 +340,11 @@ mod tests {
             set_current_dir(&expected_project_path).unwrap();
 
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
-                .await
-                .unwrap();
+            let discovered_abs_path = tokio::fs::canonicalize(
+                ProjectManifest::discover(&env::current_dir().unwrap()).unwrap(),
+            )
+            .await
+            .unwrap();
             #[cfg(not(any(target_os = "macos", target_os = "windows")))]
             let expected_project_path =
                 tokio::fs::canonicalize(expected_project_path.join("criticalup.toml"))
@@ -380,8 +352,7 @@ mod tests {
                     .unwrap();
 
             #[cfg(target_os = "macos")]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
-                .await
+            let discovered_abs_path = ProjectManifest::discover(&env::current_dir().unwrap())
                 .unwrap()
                 .strip_prefix("/private")
                 .unwrap()
@@ -394,9 +365,8 @@ mod tests {
                 .to_path_buf();
 
             #[cfg(target_os = "windows")]
-            let discovered_abs_path = ProjectManifest::discover_canonical_path(None)
-                .await
-                .unwrap();
+            let discovered_abs_path =
+                ProjectManifest::discover(&env::current_dir().unwrap()).unwrap();
             // We need to canonicalize this side as well because Windows canonical paths
             // add an extra oomph as prefix \\?\.
             // https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats#unc-paths

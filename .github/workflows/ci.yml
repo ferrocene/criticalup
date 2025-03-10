@@ -23,19 +23,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      # Windows seems to have an existing non-RustUp tools in `~/.cargo/bin/` which have to be removed
-      - if: ${{ matrix.os == 'windows-latest' }}
-        shell: bash
-        run: |
-          rm -rv C://Users/runneradmin/.cargo/bin/rust-analyzer.exe
-          rm -rv C://Users/runneradmin/.cargo/bin/rustfmt.exe
-          rm -rv C://Users/runneradmin/.cargo/bin/cargo-fmt.exe
-      - name: Make sure Rust stable is installed
-        shell: bash
-        run: |
-          rustup update stable --no-self-update
-          rustup default stable
+      - uses: ./.github/actions/use-ferrocene/
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          uninstall-rust: true
 
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
@@ -106,6 +97,12 @@ jobs:
     env:
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/use-ferrocene/
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          uninstall-rust: true
+          
       - name: "Define toolchain"
         shell: bash # Powershell does not do heredocs
         run: |
