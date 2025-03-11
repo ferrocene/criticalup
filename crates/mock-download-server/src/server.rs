@@ -105,7 +105,6 @@ impl MockServer {
             let keypair_lock = self.data.lock().unwrap();
             keypair_lock.keypair.clone()
         };
-
         signed
             .add_signature(keypair.as_ref().unwrap())
             .await
@@ -195,15 +194,25 @@ impl MockServer {
             }
         }
 
+        let mut signed = SignedPayload::new(&Release {
+            product: product_name.to_string(),
+            release: release_name.to_string(),
+            commit: "123abc".to_string(),
+            packages: packages_update,
+        })
+        .unwrap();
+        let keypair = {
+            let keypair_lock = self.data.lock().unwrap();
+            keypair_lock.keypair.clone()
+        };
+        signed
+            .add_signature(keypair.as_ref().unwrap())
+            .await
+            .unwrap();
+
         let release_manifest_content = &ReleaseManifest {
             version: ManifestVersion,
-            signed: SignedPayload::new(&Release {
-                product: product_name.to_string(),
-                release: release_name.to_string(),
-                commit: "123abc".to_string(),
-                packages: packages_update,
-            })
-            .unwrap(),
+            signed,
         };
 
         tokio::fs::write(

@@ -93,7 +93,7 @@ async fn run_install() {
 }
 
 #[tokio::test]
-async fn product_dirs_are_created() {
+async fn run_install_successfully() {
     let mut test_env = TestEnvironment::prepare().await;
 
     // Create a release with one package.
