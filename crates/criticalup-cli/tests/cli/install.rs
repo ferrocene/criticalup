@@ -139,6 +139,11 @@ async fn run_install_successfully() {
 
     let manifest_path = work_dir.join("criticalup.toml");
     tokio::fs::write(&manifest_path, manifest).await.unwrap();
+
+    // Cache must be deleted, otherwise the install command will get keys only from cache which
+    // will be stale.
+    test_env.cmd().args(["clean"]).output().unwrap();
+
     run_install_cmd(&test_env, manifest_path.to_str().unwrap());
 }
 
