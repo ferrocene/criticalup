@@ -103,12 +103,9 @@ impl MockServer {
         let mut signed = SignedPayload::new(&package).unwrap();
         let keypair = {
             let keypair_lock = self.data.lock().unwrap();
-            keypair_lock.keypair.clone()
+            keypair_lock.keypairs.get("packages").unwrap().clone()
         };
-        signed
-            .add_signature(keypair.as_ref().unwrap())
-            .await
-            .unwrap();
+        signed.add_signature(&keypair).await.unwrap();
 
         let package_manifest_with_dir_structure = input_dir
             .join("share")
@@ -203,12 +200,9 @@ impl MockServer {
         .unwrap();
         let keypair = {
             let keypair_lock = self.data.lock().unwrap();
-            keypair_lock.keypair.clone()
+            keypair_lock.keypairs.get("releases").unwrap().clone()
         };
-        signed
-            .add_signature(keypair.as_ref().unwrap())
-            .await
-            .unwrap();
+        signed.add_signature(&keypair).await.unwrap();
 
         let release_manifest_content = &ReleaseManifest {
             version: ManifestVersion,

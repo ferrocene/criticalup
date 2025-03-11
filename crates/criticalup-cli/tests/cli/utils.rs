@@ -65,7 +65,7 @@ pub(crate) struct TestEnvironment {
 
 impl TestEnvironment {
     pub(crate) async fn prepare() -> Self {
-        let keypair = EphemeralKeyPair::generate(
+        let root_keypair = EphemeralKeyPair::generate(
             KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
             KeyRole::Root,
             None,
@@ -76,8 +76,8 @@ impl TestEnvironment {
 
         TestEnvironment {
             root,
-            trust_root: keypair.public().clone(),
-            server: setup_mock_server(keypair).await,
+            trust_root: root_keypair.public().clone(),
+            server: setup_mock_server(root_keypair).await,
             customer_portal_url: "https://customers-test.ferrocene.dev".into(),
         }
     }
@@ -132,14 +132,65 @@ pub(crate) fn stdin(content: &str) -> Stdio {
     file.into()
 }
 
-async fn setup_mock_server(keypair: EphemeralKeyPair) -> MockServer {
+async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
     let mut server_builder = mock_download_server::new();
     for (token, data) in MOCK_AUTH_TOKENS {
         server_builder = server_builder.add_token(token, data.clone());
     }
-    server_builder = server_builder.add_keypair(keypair.to_owned());
+
+    // Root keypair.
+    server_builder = server_builder.add_keypair(root_keypair.to_owned(), "root");
+
+    // Releases keypair.
+    let releases_keypair = EphemeralKeyPair::generate(
+        KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
+        KeyRole::Releases,
+        None,
+    )
+    .unwrap();
+    let mut releases_key_payload = SignedPayload::new(releases_keypair.public()).unwrap();
+    releases_key_payload
+        .add_signature(&root_keypair)
+        .await
+        .unwrap();
+    server_builder = server_builder.add_key(releases_key_payload);
+    server_builder = server_builder.add_keypair(releases_keypair, "releases");
+
+    // Revocation keypair.
+    let revocation_keypair = EphemeralKeyPair::generate(
+        KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
+        KeyRole::Revocation,
+        None,
+    )
+    .unwrap();
+    let mut revocation_key_payload = SignedPayload::new(revocation_keypair.public()).unwrap();
+    revocation_key_payload
+        .add_signature(&root_keypair)
+        .await
+        .unwrap();
+    server_builder = server_builder.add_key(revocation_key_payload);
+    server_builder = server_builder
+        .add_revocation_info(&revocation_keypair)
+        .await;
+    server_builder = server_builder.add_keypair(revocation_keypair, "revocation");
+
+    // Packages keypair.
+    let packages_keypair = EphemeralKeyPair::generate(
+        KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
+        KeyRole::Packages,
+        None,
+    )
+    .unwrap();
+    let mut packages_key_payload = SignedPayload::new(packages_keypair.public()).unwrap();
+    packages_key_payload
+        .add_signature(&root_keypair)
+        .await
+        .unwrap();
+    server_builder = server_builder.add_key(packages_key_payload);
+    server_builder = server_builder.add_keypair(packages_keypair, "packages");
+
     for (product, release, mut manifest) in mock_release_manifests() {
-        manifest.signed.add_signature(&keypair).await.unwrap();
+        manifest.signed.add_signature(&root_keypair).await.unwrap();
         server_builder = server_builder.add_release_manifest(
             product.to_string(),
             release.to_string(),
