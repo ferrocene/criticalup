@@ -33,6 +33,7 @@ pub struct Data {
     pub keys: Vec<SignedPayload<PublicKey>>,
     pub revoked_signatures: SignedPayload<RevocationInfo>,
     pub release_manifests: HashMap<(String, String), ReleaseManifest>,
+    pub release_packages: HashMap<(String, String, String), Vec<u8>>,
 }
 
 pub fn new() -> Builder {
@@ -47,6 +48,7 @@ pub fn new() -> Builder {
             ))
             .unwrap(),
             release_manifests: HashMap::new(),
+            release_packages: HashMap::new(),
         },
     }
 }

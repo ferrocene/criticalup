@@ -41,7 +41,7 @@ fn handle_v1_package(
     package: &str,
     format: &str,
 ) -> Result<Resp, Resp> {
-    todo!()
+    Ok(Resp::File(data.release_packages.get(&(product.to_string(), release.to_string(), package.to_string())).unwrap().clone()))
 }
 
 fn handle_v1_tokens_current(data: &Data, req: &Request) -> Result<Resp, Resp> {
@@ -94,6 +94,7 @@ enum Resp {
     Forbidden,
     NotFound,
     Json(Vec<u8>),
+    File(Vec<u8>),
 }
 
 impl Resp {
@@ -109,6 +110,12 @@ impl Resp {
                 .with_header(
                     Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
                 )
+                .boxed(),
+
+            Resp::File(data) => Response::from_data(data)
+                .with_status_code(StatusCode(200))
+                .with_header(Header::from_bytes(&b"Content-Type"[..], &b"application/octet-stream"[..]).unwrap())
+                .with_header(Header::from_bytes(&b"Content-Disposition"[..], &b"attachment"[..]).unwrap())
                 .boxed(),
 
             Resp::Forbidden => Response::empty(StatusCode(403)).boxed(),

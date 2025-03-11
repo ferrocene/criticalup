@@ -129,21 +129,11 @@ async fn product_dirs_are_created() {
     // manifest-version = 1
     //
     //     [products.ferrocene]
-    //     release = #release_ref
+    //     release = {}
     //     packages = [
-    //         #package_ref,
+    //         {},
     //     ]
     // "#;
-    //
-    // let test_manifest = toml! {
-    //     manifest-version = 1
-    //
-    //     [products.ferrocene]
-    //     release = #release_ref
-    //     packages = [
-    //         #package_ref,
-    //     ]
-    // };
     //
     // let manifest_path = test_proj_repository.join("criticalup.toml");
     // tokio::fs::write(manifest_path, toml::serialize(test_manifest));

@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use std::collections::HashMap;
 use crate::handlers::handle_request;
 use crate::Data;
 use anyhow::Result;
@@ -11,6 +12,7 @@ use criticaltrust::manifests::{
 use criticaltrust::signatures::SignedPayload;
 use sha2::{Digest, Sha256};
 use std::fs::File;
+use std::ops::Deref;
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
 use std::path::Path;
@@ -61,6 +63,11 @@ impl MockServer {
 
     pub fn served_requests_count(&self) -> usize {
         self.served_requests.load(Ordering::SeqCst)
+    }
+
+    pub fn release_package(&self) -> HashMap<(String, String, String), Vec<u8>> {
+        let s = self.data.lock().unwrap().release_packages.clone();
+        s
     }
 
     pub fn edit_data(&self, f: impl FnOnce(&mut Data)) {
@@ -162,7 +169,7 @@ impl MockServer {
                 std::fs::metadata(output_dir.join(format!("{}.tar.xz", item))).unwrap();
 
             let mut hasher = Sha256::new();
-            hasher.update(artifact_file);
+            hasher.update(&artifact_file);
             let hash = hasher.finalize().to_vec();
 
             let artifact = ReleaseArtifact {
@@ -174,25 +181,37 @@ impl MockServer {
                 package: item.to_string(),
                 artifacts: vec![artifact],
                 dependencies: vec![],
-            })
+            });
+
+            {
+                let mut data_grabbed = self.data.lock().unwrap();
+                data_grabbed.release_packages.insert((product_name.to_string(), release_name.to_string(), item.to_string()), artifact_file);
+            }
         }
+
+        let release_manifest_content = &ReleaseManifest {
+            version: ManifestVersion,
+            signed: SignedPayload::new(&Release {
+                product: product_name.to_string(),
+                release: release_name.to_string(),
+                commit: "123abc".to_string(),
+                packages: packages_update,
+            })
+                .unwrap(),
+        };
 
         tokio::fs::write(
             &release_manifest,
-            serde_json::to_vec_pretty(&ReleaseManifest {
-                version: ManifestVersion,
-                signed: SignedPayload::new(&Release {
-                    product: product_name.to_string(),
-                    release: release_name.to_string(),
-                    commit: "123abc".to_string(),
-                    packages: packages_update,
-                })
-                .unwrap(),
-            })
+            serde_json::to_vec_pretty(release_manifest_content)
             .unwrap(),
         )
         .await
         .unwrap();
+
+        {
+            let mut data_grabbed = self.data.lock().unwrap();
+            data_grabbed.release_manifests.insert((product_name.to_string(), release_name.to_string()), release_manifest_content.clone());
+        }
 
         Ok(())
     }
