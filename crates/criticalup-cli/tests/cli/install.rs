@@ -3,6 +3,7 @@
 
 use crate::assert_output;
 use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path, TestEnvironment};
+use mock_download_server::MockServer;
 use serde_json::json;
 use std::io::Write;
 use tempfile::tempdir;
@@ -93,7 +94,7 @@ async fn run_install() {
 
 #[tokio::test]
 async fn product_dirs_are_created() {
-    let test_env = TestEnvironment::prepare().await;
+    let mut test_env = TestEnvironment::prepare().await;
 
     // Create a release with one package.
     let package_ref = "rustc";
@@ -114,7 +115,7 @@ async fn product_dirs_are_created() {
         .unwrap();
     assert!(input_dir.join("bin/rustc").exists());
 
-    let mut server = test_env.server();
+    let server: &mut MockServer = test_env.server();
 
     server
         .create_package(package_ref, product_ref, &input_dir, &output_dir)
@@ -125,19 +126,20 @@ async fn product_dirs_are_created() {
         .await
         .unwrap();
 
-    // let test_manifest_str = r#"
-    // manifest-version = 1
-    //
-    //     [products.ferrocene]
-    //     release = {}
-    //     packages = [
-    //         {},
-    //     ]
-    // "#;
-    //
-    // let manifest_path = test_proj_repository.join("criticalup.toml");
-    // tokio::fs::write(manifest_path, toml::serialize(test_manifest));
-    // run_install_cmd(&test_env, manifest_path);
+    let manifest = toml::toml! {
+        manifest-version = 1
+
+        [products.ferrocene]
+        release = release_ref
+        packages = [
+            package_ref,
+        ]
+    }
+    .to_string();
+
+    let manifest_path = work_dir.join("criticalup.toml");
+    tokio::fs::write(&manifest_path, manifest).await.unwrap();
+    run_install_cmd(&test_env, manifest_path.to_str().unwrap());
 }
 
 fn run_install_cmd(test_env: &TestEnvironment, manifest_path: &str) {

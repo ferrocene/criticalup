@@ -714,6 +714,7 @@ dependencies = [
  "thiserror 2.0.11",
  "time",
  "tokio",
+ "toml",
  "toml_edit",
  "tracing",
  "tracing-subscriber",
@@ -2914,6 +2915,18 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "toml"
+version = "0.8.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd87a5cdd6ffab733b2f74bc4fd7ee5fff6634124999ac278c35fc78c6120148"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
 ]
 
 [[package]]

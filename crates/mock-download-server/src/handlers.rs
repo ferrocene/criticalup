@@ -20,8 +20,8 @@ pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
             handle_v1_release(data, product, release)
         }
         // GET `/v1/releases/:product/:release/download/:package/:format`
-        (Method::Get, ["v1", "releases", product, release, "download", package, format]) => {
-            handle_v1_package(data, product, release, package, format)
+        (Method::Get, ["v1", "releases", product, release, "download", package, _]) => {
+            handle_v1_package(data, product, release, package)
         }
         _ => handle_404(),
     };
@@ -39,9 +39,17 @@ fn handle_v1_package(
     product: &str,
     release: &str,
     package: &str,
-    format: &str,
 ) -> Result<Resp, Resp> {
-    Ok(Resp::File(data.release_packages.get(&(product.to_string(), release.to_string(), package.to_string())).unwrap().clone()))
+    Ok(Resp::File(
+        data.release_packages
+            .get(&(
+                product.to_string(),
+                release.to_string(),
+                package.to_string(),
+            ))
+            .unwrap()
+            .clone(),
+    ))
 }
 
 fn handle_v1_tokens_current(data: &Data, req: &Request) -> Result<Resp, Resp> {
@@ -114,8 +122,13 @@ impl Resp {
 
             Resp::File(data) => Response::from_data(data)
                 .with_status_code(StatusCode(200))
-                .with_header(Header::from_bytes(&b"Content-Type"[..], &b"application/octet-stream"[..]).unwrap())
-                .with_header(Header::from_bytes(&b"Content-Disposition"[..], &b"attachment"[..]).unwrap())
+                .with_header(
+                    Header::from_bytes(&b"Content-Type"[..], &b"application/octet-stream"[..])
+                        .unwrap(),
+                )
+                .with_header(
+                    Header::from_bytes(&b"Content-Disposition"[..], &b"attachment"[..]).unwrap(),
+                )
                 .boxed(),
 
             Resp::Forbidden => Response::empty(StatusCode(403)).boxed(),

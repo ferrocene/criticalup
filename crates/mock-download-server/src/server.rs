@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use std::collections::HashMap;
 use crate::handlers::handle_request;
 use crate::Data;
 use anyhow::Result;
@@ -11,8 +10,8 @@ use criticaltrust::manifests::{
 };
 use criticaltrust::signatures::SignedPayload;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::fs::File;
-use std::ops::Deref;
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
 use std::path::Path;
@@ -185,7 +184,14 @@ impl MockServer {
 
             {
                 let mut data_grabbed = self.data.lock().unwrap();
-                data_grabbed.release_packages.insert((product_name.to_string(), release_name.to_string(), item.to_string()), artifact_file);
+                data_grabbed.release_packages.insert(
+                    (
+                        product_name.to_string(),
+                        release_name.to_string(),
+                        item.to_string(),
+                    ),
+                    artifact_file,
+                );
             }
         }
 
@@ -197,20 +203,22 @@ impl MockServer {
                 commit: "123abc".to_string(),
                 packages: packages_update,
             })
-                .unwrap(),
+            .unwrap(),
         };
 
         tokio::fs::write(
             &release_manifest,
-            serde_json::to_vec_pretty(release_manifest_content)
-            .unwrap(),
+            serde_json::to_vec_pretty(release_manifest_content).unwrap(),
         )
         .await
         .unwrap();
 
         {
             let mut data_grabbed = self.data.lock().unwrap();
-            data_grabbed.release_manifests.insert((product_name.to_string(), release_name.to_string()), release_manifest_content.clone());
+            data_grabbed.release_manifests.insert(
+                (product_name.to_string(), release_name.to_string()),
+                release_manifest_content.clone(),
+            );
         }
 
         Ok(())

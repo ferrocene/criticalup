@@ -119,8 +119,8 @@ impl TestEnvironment {
     }
 
     // Beware of the consumption.
-    pub(crate) fn server(self) -> MockServer {
-        self.server
+    pub(crate) fn server(&mut self) -> &mut MockServer {
+        &mut self.server
     }
 }
 
