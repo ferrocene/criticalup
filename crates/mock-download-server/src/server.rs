@@ -19,6 +19,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use tiny_http::Server;
+use walkdir::WalkDir;
 use xz2::write::XzEncoder;
 
 pub struct MockServer {
@@ -250,21 +251,23 @@ fn server_thread(data: Arc<Mutex<Data>>, server: Arc<Server>, served_requests: A
 }
 
 fn collect_files(package: &mut Package, dir: &Path) {
-    for entry in std::fs::read_dir(dir).unwrap() {
-        let entry = entry.unwrap().path();
-        let relative_path = entry.strip_prefix(dir).unwrap();
-        if entry.is_file() {
-            package.files.push(PackageFile {
-                path: relative_path.into(),
-                #[cfg(not(windows))]
-                posix_mode: entry.metadata().unwrap().mode(),
-                #[cfg(windows)]
-                posix_mode: 0,
-                sha256: hash_file(&entry),
-                needs_proxy: false,
-            })
-        } else if entry.is_dir() {
-            collect_files(package, &entry);
+    for entry in WalkDir::new(dir) {
+        let entry = entry.unwrap();
+        let relative_path = entry.path().strip_prefix(dir).unwrap();
+        if entry.file_type().is_file() {
+            package.files.push(
+                PackageFile {
+                    path: relative_path.into(),
+                    #[cfg(not(windows))]
+                    posix_mode: entry.metadata().unwrap().mode(),
+                    #[cfg(windows)]
+                    posix_mode: 0,
+                    sha256: hash_file(entry.path()),
+                    needs_proxy: false,
+                }
+            )
+        } else if entry.file_type().is_file() {
+            collect_files(package, entry.path());
         }
     }
 }
