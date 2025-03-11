@@ -255,17 +255,15 @@ fn collect_files(package: &mut Package, dir: &Path) {
         let entry = entry.unwrap();
         let relative_path = entry.path().strip_prefix(dir).unwrap();
         if entry.file_type().is_file() {
-            package.files.push(
-                PackageFile {
-                    path: relative_path.into(),
-                    #[cfg(not(windows))]
-                    posix_mode: entry.metadata().unwrap().mode(),
-                    #[cfg(windows)]
-                    posix_mode: 0,
-                    sha256: hash_file(entry.path()),
-                    needs_proxy: false,
-                }
-            )
+            package.files.push(PackageFile {
+                path: relative_path.into(),
+                #[cfg(not(windows))]
+                posix_mode: entry.metadata().unwrap().mode(),
+                #[cfg(windows)]
+                posix_mode: 0,
+                sha256: hash_file(entry.path()),
+                needs_proxy: false,
+            })
         } else if entry.file_type().is_file() {
             collect_files(package, entry.path());
         }
