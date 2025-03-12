@@ -5,9 +5,7 @@ use crate::assert_output;
 use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path, TestEnvironment};
 use mock_download_server::MockServer;
 use serde_json::json;
-use std::fs::Permissions;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use tempfile::tempdir;
 
 #[tokio::test]
@@ -116,13 +114,6 @@ async fn run_install_successfully() {
         .await
         .unwrap();
     assert!(input_dir.join("bin/rustc").exists());
-    let rust_binary = tokio::fs::File::open(input_dir.join("bin/rustc"))
-        .await
-        .unwrap();
-    rust_binary
-        .set_permissions(Permissions::from_mode(0o755))
-        .await
-        .unwrap();
 
     let server: &mut MockServer = test_env.server();
 
