@@ -21,8 +21,8 @@ jobs:
           - runner: macos-latest
             target: aarch64-apple-darwin
           - runner: ubuntu-latest
-            # Specify the glibc version for zigbuild
-            target: x86_64-unknown-linux-gnu.2.32
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.32"
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
     uses: ./.github/workflows/build.yml
@@ -38,17 +38,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
     env:
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/use-ferrocene/
-        with:
-          token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rust: true
-          
+
       - name: "Define toolchain"
         shell: bash # Powershell does not do heredocs
         run: |
@@ -68,7 +70,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: criticalup-${{ matrix.os }}
+          name: criticalup-${{ matrix.target }}
           path: crab-boil
 
       - name: Make executable
