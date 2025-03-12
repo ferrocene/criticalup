@@ -4,7 +4,7 @@
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use criticaltrust::manifests::{Release, ReleaseManifest};
 use criticaltrust::signatures::SignedPayload;
-use mock_download_server::{AuthenticationToken, MockServer};
+use mock_download_server::{AuthenticationToken, Builder, MockServer};
 use std::borrow::Cow;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
@@ -139,55 +139,26 @@ async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
     }
 
     // Root keypair.
+    // This is the only keypair that is added without adding a public signed payload because
+    // Root is self-trusting and has no parent to sign its public key.
     server_builder = server_builder.add_keypair(root_keypair.to_owned(), "root");
 
     // Releases keypair.
-    let releases_keypair = EphemeralKeyPair::generate(
-        KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
-        KeyRole::Releases,
-        None,
-    )
-    .unwrap();
-    let mut releases_key_payload = SignedPayload::new(releases_keypair.public()).unwrap();
-    releases_key_payload
-        .add_signature(&root_keypair)
-        .await
-        .unwrap();
-    server_builder = server_builder.add_key(releases_key_payload);
-    server_builder = server_builder.add_keypair(releases_keypair, "releases");
-
+    server_builder =
+        add_non_root_key_to_server(server_builder, "releases", KeyRole::Releases, &root_keypair)
+            .await;
     // Revocation keypair.
-    let revocation_keypair = EphemeralKeyPair::generate(
-        KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
+    server_builder = add_non_root_key_to_server(
+        server_builder,
+        "revocation",
         KeyRole::Revocation,
-        None,
+        &root_keypair,
     )
-    .unwrap();
-    let mut revocation_key_payload = SignedPayload::new(revocation_keypair.public()).unwrap();
-    revocation_key_payload
-        .add_signature(&root_keypair)
-        .await
-        .unwrap();
-    server_builder = server_builder.add_key(revocation_key_payload);
-    server_builder = server_builder
-        .add_revocation_info(&revocation_keypair)
-        .await;
-    server_builder = server_builder.add_keypair(revocation_keypair, "revocation");
-
+    .await;
     // Packages keypair.
-    let packages_keypair = EphemeralKeyPair::generate(
-        KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
-        KeyRole::Packages,
-        None,
-    )
-    .unwrap();
-    let mut packages_key_payload = SignedPayload::new(packages_keypair.public()).unwrap();
-    packages_key_payload
-        .add_signature(&root_keypair)
-        .await
-        .unwrap();
-    server_builder = server_builder.add_key(packages_key_payload);
-    server_builder = server_builder.add_keypair(packages_keypair, "packages");
+    server_builder =
+        add_non_root_key_to_server(server_builder, "packages", KeyRole::Packages, &root_keypair)
+            .await;
 
     for (product, release, mut manifest) in mock_release_manifests() {
         manifest.signed.add_signature(&root_keypair).await.unwrap();
@@ -355,4 +326,34 @@ pub(crate) fn auth_set_with_valid_token(env: &TestEnvironment) {
         .expect("sssss")
         .status
         .success());
+}
+
+fn generate_key(role: KeyRole) -> EphemeralKeyPair {
+    EphemeralKeyPair::generate(KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer, role, None).unwrap()
+}
+
+async fn generate_trusted_key(
+    role: KeyRole,
+    trusted_by: &EphemeralKeyPair,
+) -> (EphemeralKeyPair, SignedPayload<PublicKey>) {
+    let key = generate_key(role);
+    let mut payload = SignedPayload::new(key.public()).unwrap();
+    payload.add_signature(trusted_by).await.unwrap();
+    (key, payload)
+}
+
+async fn add_non_root_key_to_server(
+    mut server_builder: Builder,
+    name: &str,
+    role: KeyRole,
+    trusted_by: &EphemeralKeyPair,
+) -> Builder {
+    let (keypair, signed_payload) = generate_trusted_key(role, &trusted_by).await;
+    if name == "revocation" {
+        server_builder = server_builder.add_revocation_info(&keypair).await;
+    }
+    server_builder = server_builder.add_key(signed_payload);
+    server_builder = server_builder.add_keypair(keypair, name);
+
+    server_builder
 }
