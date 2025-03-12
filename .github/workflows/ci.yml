@@ -30,6 +30,7 @@ jobs:
     with:
       runner: ${{ matrix.runner }}
       target: ${{ matrix.target }}
+      glibc: ${{ matrix.glibc }}
       release: false
 
   integration-test:

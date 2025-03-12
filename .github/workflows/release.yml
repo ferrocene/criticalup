@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: CI
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+permissions:
+  # Allow write access to the source code to enable GitHub Pages publishing.
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.32"
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      runner: ${{ matrix.runner }}
+      target: ${{ matrix.target }}
+      glibc: ${{ matrix.glibc }}
+      release: true
+
+  # package:
+  #   needs: [build]
+  #   uses: ./.github/workflows/package.yml
+  #   secrets: inherit

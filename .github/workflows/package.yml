@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: Package
+
+on:
+  workflow_call:
+    inputs:
+      criticalup-token:
+        type: string
+        description: The criticalup token to use
+      target:
+        type: string
+        description: The Rust triple of the host platform
+      runner:
+        type: string
+        description: The GitHub Runner to run on
+      release:
+        type: boolean
+        default: false
+        description: If the package should be built in release mode
+      glibc:
+        type: string
+        description: (Linux only) The glibc version to use
+    outputs:
+      run-id:
+        description: The id of the workflow run
+        value: ${{ github.run_id }}
+      msi-id:
+        description: The artifact msi id
+        value: ${{ jobs.msi.outputs.msi-id }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  msi:
+    runs-on: windows-latest
+    outputs:
+      msi-id: ${{ steps.msi.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install WiX
+        run: dotnet tool install --global wix
+
+      - name: Install cargo-binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+      
+      - name: Install cargo-zigbuild
+        run: cargo binstall cargo-wix
+
+      
