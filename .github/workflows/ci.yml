@@ -26,11 +26,11 @@ jobs:
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
     uses: ./.github/workflows/build.yml
+    secrets: inherit
     with:
       runner: ${{ matrix.runner }}
       target: ${{ matrix.target }}
       release: false
-      criticalup-token: ${{ secrets.CRITICALUP_TOKEN }}
 
   integration-test:
     name: Test CriticalUp on GHA Runners

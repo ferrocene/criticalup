@@ -47,7 +47,7 @@ jobs:
 
       - uses: ./.github/actions/use-ferrocene/
         with:
-          token: ${{ inputs.criticalup-token }}
+          token: ${{ secrets.CRITICALUP_TOKEN }}
           uninstall-rust: true  
     
       - name: Install cargo-binstall
