@@ -290,6 +290,12 @@ macro_rules! assert_output {
             "TEMPDIR/criticalup.toml",
         );
 
+        #[cfg(target_os = "windows")]
+        settings.add_filter(
+            r"[a-zA-Z]:\\.*\\Temp\\.*\\criticalup.toml",
+            "TEMPDIR/criticalup.toml",
+        );
+
         #[cfg(windows)]
         settings.add_filter("exit code: ", "exit status: ");
         #[cfg(windows)]
