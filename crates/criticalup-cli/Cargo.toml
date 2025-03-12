@@ -43,6 +43,7 @@ regex = "1.11.1"
 serde = { version = "1.0.218", features = ["derive"] }
 tempfile.workspace = true
 toml = "0.8.20"
+dirs.workspace = true
 
 [target.x86_64-pc-windows-msvc.dependencies]
 windows-sys = { version = "0.59.0", features = ["Win32_Foundation", "Win32_System_Console"] }
