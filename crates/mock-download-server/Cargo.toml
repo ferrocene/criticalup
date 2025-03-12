@@ -16,6 +16,6 @@ sha2 = "0.10.7"
 tar = "0.4.43"
 xz2 = "0.1.7"
 anyhow = "1.0.19"
-walkdir = "2.5.0"
+walkdir.workspace = true
 tempfile.workspace = true
 tokio.workspace = true
