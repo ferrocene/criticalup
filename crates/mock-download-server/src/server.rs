@@ -10,7 +10,6 @@ use criticaltrust::manifests::{
 };
 use criticaltrust::signatures::SignedPayload;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::fs::File;
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
@@ -65,11 +64,6 @@ impl MockServer {
 
     pub fn served_requests_count(&self) -> usize {
         self.served_requests.load(Ordering::SeqCst)
-    }
-
-    pub fn release_package(&self) -> HashMap<(String, String, String), Vec<u8>> {
-        let s = self.data.lock().unwrap().release_packages.clone();
-        s
     }
 
     pub fn edit_data(&self, f: impl FnOnce(&mut Data)) {
