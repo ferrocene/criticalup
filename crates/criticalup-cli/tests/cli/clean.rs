@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader, Write};
+use std::path::PathBuf;
 
 #[tokio::test]
 async fn help_message() {
@@ -65,6 +66,9 @@ async fn clean_deletes_only_unused_installations() {
     assert!(toolchains_dir.join(installation_id_2).exists());
     assert!(toolchains_dir.join(installation_id_3).exists());
 
+    // Removing cache directory is important because this ensures consistency in running
+    // these tests. Otherwise, these tests get flaky.
+    delete_cache_dir().await;
     assert_output!(test_env.cmd().args(["clean"]));
 
     let state_file_actual: Value =
@@ -149,6 +153,7 @@ async fn clean_deletes_only_unused_installations_also_from_disk() {
     assert!(toolchains_dir.join(installation_id_2).exists());
     assert!(toolchains_dir.join(installation_id_3).exists());
 
+    delete_cache_dir().await;
     // Run the `clean` command.
     assert_output!(test_env.cmd().args(["clean"]));
 
@@ -234,6 +239,7 @@ async fn removes_unused_installations_from_disk_that_do_not_have_state() {
     assert!(toolchains_dir.join(installation_id_2).exists());
     assert!(toolchains_dir.join(installation_id_3).exists());
 
+    delete_cache_dir().await;
     // Run the `clean` command.
     assert_output!(test_env.cmd().args(["clean"]));
 
@@ -321,6 +327,7 @@ async fn clean_deletes_only_unused_installations_that_are_not_on_disk() {
     assert!(!toolchains_dir.join(installation_id_2).exists());
     assert!(!toolchains_dir.join(installation_id_3).exists());
 
+    delete_cache_dir().await;
     // Run the `clean` command.
     assert_output!(test_env.cmd().args(["clean"]));
 
@@ -355,4 +362,13 @@ async fn clean_deletes_only_unused_installations_that_are_not_on_disk() {
     );
 
     assert!(toolchains_dir.join(installation_id_1).exists());
+}
+
+async fn delete_cache_dir() {
+    let cache_dir_test: PathBuf = dirs::cache_dir()
+        .map(|v| v.join("criticalup-test"))
+        .unwrap();
+    if cache_dir_test.exists() {
+        tokio::fs::remove_dir_all(&cache_dir_test).await.unwrap();
+    }
 }

@@ -26,15 +26,18 @@ pub struct AuthenticationToken {
 }
 
 pub struct Data {
+    pub keypairs: HashMap<String, EphemeralKeyPair>,
     pub tokens: HashMap<String, AuthenticationToken>,
     pub keys: Vec<SignedPayload<PublicKey>>,
     pub revoked_signatures: SignedPayload<RevocationInfo>,
     pub release_manifests: HashMap<(String, String), ReleaseManifest>,
+    pub release_packages: HashMap<(String, String, String), Vec<u8>>,
 }
 
 pub fn new() -> Builder {
     Builder {
         data: Data {
+            keypairs: HashMap::new(),
             tokens: HashMap::new(),
             keys: Vec::new(),
             revoked_signatures: SignedPayload::new(&RevocationInfo::new(
@@ -43,6 +46,7 @@ pub fn new() -> Builder {
             ))
             .unwrap(),
             release_manifests: HashMap::new(),
+            release_packages: HashMap::new(),
         },
     }
 }
@@ -52,6 +56,11 @@ pub struct Builder {
 }
 
 impl Builder {
+    pub fn add_keypair(mut self, keypair: EphemeralKeyPair, name: &str) -> Self {
+        self.data.keypairs.insert(name.to_string(), keypair);
+        self
+    }
+
     pub fn add_token(mut self, token: &str, info: AuthenticationToken) -> Self {
         self.data.tokens.insert(token.into(), info);
         self

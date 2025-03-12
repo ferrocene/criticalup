@@ -702,6 +702,7 @@ dependencies = [
  "clap",
  "criticaltrust",
  "criticalup-core",
+ "dirs",
  "futures",
  "insta",
  "mock-download-server",
@@ -714,6 +715,7 @@ dependencies = [
  "thiserror 2.0.11",
  "time",
  "tokio",
+ "toml",
  "toml_edit",
  "tracing",
  "tracing-subscriber",
@@ -1713,11 +1715,18 @@ dependencies = [
 name = "mock-download-server"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "criticaltrust",
  "serde",
  "serde_json",
+ "sha2",
+ "tar",
+ "tempfile",
  "time",
  "tiny_http",
+ "tokio",
+ "walkdir",
+ "xz2",
 ]
 
 [[package]]
@@ -2706,9 +2715,9 @@ dependencies = [
 
 [[package]]
 name = "tar"
-version = "0.4.43"
+version = "0.4.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c65998313f8e17d0d553d28f91a0df93e4dbbbf770279c7bc21ca0f09ea1a1f6"
+checksum = "1d863878d212c87a19c1a610eb53bb01fe12951c0501cf5a0d65f724914a667a"
 dependencies = [
  "filetime",
  "libc",
@@ -2907,6 +2916,18 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "toml"
+version = "0.8.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd87a5cdd6ffab733b2f74bc4fd7ee5fff6634124999ac278c35fc78c6120148"
+dependencies = [
+ "serde",
+ "serde_spanned",
+ "toml_datetime",
+ "toml_edit",
 ]
 
 [[package]]

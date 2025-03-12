@@ -4,7 +4,7 @@
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use criticaltrust::manifests::{Release, ReleaseManifest};
 use criticaltrust::signatures::SignedPayload;
-use mock_download_server::{AuthenticationToken, MockServer};
+use mock_download_server::{AuthenticationToken, Builder, MockServer};
 use std::borrow::Cow;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
@@ -65,7 +65,7 @@ pub(crate) struct TestEnvironment {
 
 impl TestEnvironment {
     pub(crate) async fn prepare() -> Self {
-        let keypair = EphemeralKeyPair::generate(
+        let root_keypair = EphemeralKeyPair::generate(
             KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
             KeyRole::Root,
             None,
@@ -76,8 +76,8 @@ impl TestEnvironment {
 
         TestEnvironment {
             root,
-            trust_root: keypair.public().clone(),
-            server: setup_mock_server(&keypair).await,
+            trust_root: root_keypair.public().clone(),
+            server: setup_mock_server(root_keypair).await,
             customer_portal_url: "https://customers-test.ferrocene.dev".into(),
         }
     }
@@ -117,6 +117,11 @@ impl TestEnvironment {
             data.tokens.remove(token);
         });
     }
+
+    // Beware of the consumption.
+    pub(crate) fn server(&mut self) -> &mut MockServer {
+        &mut self.server
+    }
 }
 
 pub(crate) fn stdin(content: &str) -> Stdio {
@@ -127,17 +132,43 @@ pub(crate) fn stdin(content: &str) -> Stdio {
     file.into()
 }
 
-async fn setup_mock_server<K: KeyPair>(keypair: &K) -> MockServer {
-    let mut server = mock_download_server::new();
+async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
+    let mut server_builder = mock_download_server::new();
     for (token, data) in MOCK_AUTH_TOKENS {
-        server = server.add_token(token, data.clone());
+        server_builder = server_builder.add_token(token, data.clone());
     }
+
+    // Root keypair.
+    // This is the only keypair that is added without adding a public signed payload because
+    // Root is self-trusting and has no parent to sign its public key.
+    server_builder = server_builder.add_keypair(root_keypair.to_owned(), "root");
+
+    // Releases keypair.
+    server_builder =
+        add_non_root_key_to_server(server_builder, "releases", KeyRole::Releases, &root_keypair)
+            .await;
+    // Revocation keypair.
+    server_builder = add_non_root_key_to_server(
+        server_builder,
+        "revocation",
+        KeyRole::Revocation,
+        &root_keypair,
+    )
+    .await;
+    // Packages keypair.
+    server_builder =
+        add_non_root_key_to_server(server_builder, "packages", KeyRole::Packages, &root_keypair)
+            .await;
+
     for (product, release, mut manifest) in mock_release_manifests() {
-        manifest.signed.add_signature(keypair).await.unwrap();
-        server =
-            server.add_release_manifest(product.to_string(), release.to_string(), manifest.clone());
+        manifest.signed.add_signature(&root_keypair).await.unwrap();
+        server_builder = server_builder.add_release_manifest(
+            product.to_string(),
+            release.to_string(),
+            manifest.clone(),
+        );
     }
-    server.start()
+    server_builder.start()
 }
 
 pub(crate) trait IntoOutput {
@@ -232,7 +263,7 @@ macro_rules! assert_output {
 
         #[cfg(target_os = "windows")]
         settings.add_filter(
-            r"\w:\\Users\\.*\\AppData\\Local\\Temp\\.*\\criticalup.toml",
+            r"[a-zA-Z]:\\.*\\Temp\\.*\\criticalup.toml",
             "TEMPDIR/criticalup.toml",
         );
 
@@ -295,4 +326,34 @@ pub(crate) fn auth_set_with_valid_token(env: &TestEnvironment) {
         .expect("sssss")
         .status
         .success());
+}
+
+fn generate_key(role: KeyRole) -> EphemeralKeyPair {
+    EphemeralKeyPair::generate(KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer, role, None).unwrap()
+}
+
+async fn generate_trusted_key(
+    role: KeyRole,
+    trusted_by: &EphemeralKeyPair,
+) -> (EphemeralKeyPair, SignedPayload<PublicKey>) {
+    let key = generate_key(role);
+    let mut payload = SignedPayload::new(key.public()).unwrap();
+    payload.add_signature(trusted_by).await.unwrap();
+    (key, payload)
+}
+
+async fn add_non_root_key_to_server(
+    mut server_builder: Builder,
+    name: &str,
+    role: KeyRole,
+    trusted_by: &EphemeralKeyPair,
+) -> Builder {
+    let (keypair, signed_payload) = generate_trusted_key(role, trusted_by).await;
+    if name == "revocation" {
+        server_builder = server_builder.add_revocation_info(&keypair).await;
+    }
+    server_builder = server_builder.add_key(signed_payload);
+    server_builder = server_builder.add_keypair(keypair, name);
+
+    server_builder
 }

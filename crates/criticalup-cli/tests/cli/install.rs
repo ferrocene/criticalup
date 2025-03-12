@@ -3,8 +3,10 @@
 
 use crate::assert_output;
 use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path, TestEnvironment};
+use mock_download_server::MockServer;
 use serde_json::json;
 use std::io::Write;
+use tempfile::tempdir;
 
 #[tokio::test]
 async fn help_message() {
@@ -77,48 +79,59 @@ async fn already_installed_toolchain_should_not_throw_error() {
     assert_output!(test_env.cmd().args(["install", "--project", manifest_path]))
 }
 
-/// Sample test to run the command in test environment without any other computation
 #[tokio::test]
-#[ignore = "Testing `install` subcommand will be enabled at a later date"]
-async fn run_install() {
-    let test_env = TestEnvironment::prepare().await;
+async fn run_install_successfully() {
+    let mut test_env = TestEnvironment::prepare().await;
 
-    let mut current_dir = std::env::current_dir().unwrap();
-    current_dir.push("tests/resources/criticalup.toml");
-    let manifest_path = current_dir.to_str().unwrap();
+    // Create a release with one package.
+    let package_ref = "rustc";
+    let product_ref = "ferrocene";
+    let release_ref = "25.02.0";
 
-    run_install_cmd(&test_env, manifest_path);
-}
+    let work_dir_binding = tempdir().unwrap();
+    let work_dir = work_dir_binding.path();
+    let output_dir = work_dir.join("output");
+    tokio::fs::create_dir_all(&output_dir).await.unwrap();
 
-#[tokio::test]
-#[ignore = "Testing `install` subcommand will be enabled at a later date"]
-async fn product_dirs_are_created() {
-    let test_env = TestEnvironment::prepare().await;
+    let input_dir = work_dir.join("input");
+    tokio::fs::create_dir_all(input_dir.join("bin"))
+        .await
+        .unwrap();
+    tokio::fs::write(input_dir.join("bin").join("rustc"), "hello")
+        .await
+        .unwrap();
+    assert!(input_dir.join("bin/rustc").exists());
 
-    let mut current_dir =
-        std::env::current_dir().expect("Could not read current directory in the test.");
-    current_dir.push("tests/resources/criticalup.toml");
-    let manifest_path = current_dir.to_str().expect("conversion to str failed");
+    let server: &mut MockServer = test_env.server();
 
-    run_install_cmd(&test_env, manifest_path);
+    server
+        .create_package(package_ref, product_ref, &input_dir, &output_dir)
+        .await
+        .unwrap();
+    server
+        .create_release(product_ref, release_ref, vec![package_ref], &output_dir)
+        .await
+        .unwrap();
 
-    let ex1 = construct_toolchains_product_path(
-        &test_env,
-        "791180e94af037a98410323424f9bfda82d82fdbc991a9cd8da30a091459f5f5",
-    );
-    assert!(ex1.exists());
+    let manifest = toml::toml! {
+        manifest-version = 1
 
-    let ex2 = construct_toolchains_product_path(
-        &test_env,
-        "ceac76fcf73a702d9349a7064679606f90c4d8db09a763c9fd4d5acd9059544d",
-    );
-    assert!(ex2.exists());
+        [products.ferrocene]
+        release = release_ref
+        packages = [
+            package_ref,
+        ]
+    }
+    .to_string();
 
-    let ex3 = construct_toolchains_product_path(
-        &test_env,
-        "723bbd3fb691ce24dc6d59afc5f9d4caabce6b359ac512784c057bef7025b095",
-    );
-    assert!(ex3.exists());
+    let manifest_path = work_dir.join("criticalup.toml");
+    tokio::fs::write(&manifest_path, manifest).await.unwrap();
+
+    // Cache must be deleted, otherwise the install command will get keys only from cache which
+    // will be stale.
+    test_env.cmd().args(["clean"]).output().unwrap();
+
+    run_install_cmd(&test_env, manifest_path.to_str().unwrap());
 }
 
 fn run_install_cmd(test_env: &TestEnvironment, manifest_path: &str) {
