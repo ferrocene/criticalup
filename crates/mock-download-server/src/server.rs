@@ -14,6 +14,8 @@ use std::collections::HashMap;
 use std::fs::File;
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
+#[cfg(windows)]
+use std::os::windows::prelude::MetadataExt;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -170,7 +172,10 @@ impl MockServer {
 
             let artifact = ReleaseArtifact {
                 format: ReleaseArtifactFormat::TarXz,
+                #[cfg(not(windows))]
                 size: artifact_file_metadata.size() as usize,
+                #[cfg(windows)]
+                size: artifact_file_metadata.file_size() as usize,
                 sha256: hash,
             };
             packages_update.push(ReleasePackage {
