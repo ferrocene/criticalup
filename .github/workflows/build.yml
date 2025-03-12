@@ -1,0 +1,102 @@
+name: Build
+run-name: Build (${{inputs.target}})
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_call:
+    inputs:
+      criticalup-token:
+        type: string
+        description: The criticalup token to use
+      target:
+        type: string
+        description: The Rust triple of the host platform
+      runner:
+        type: string
+        description: The GitHub Runner to run on
+      release:
+        type: boolean
+        default: false
+        description: If the package should be built in release mode
+    outputs:
+      run-id:
+        description: The id of the workflow run
+        value: ${{ github.run_id }}
+      binary-id:
+        description: The artifact binary id
+        value: ${{ jobs.build.outputs.binary-id }}
+      binary-digest:
+        description: The artifact binary digest
+        value: ${{ jobs.build.outputs.binary-digest }}
+      timings-id:
+        description: The artifact timings id
+        value: ${{ jobs.build.outputs.timings-id }}
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      binary-id: ${{ steps.binary.outputs.artifact-id }}
+      binary-digest: ${{ steps.binary.outputs.artifact-digest }}
+      timings-id: ${{ steps.timings.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/use-ferrocene/
+        with:
+          token: ${{ inputs.criticalup-token }}
+          uninstall-rust: true  
+    
+      - name: Install cargo-binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Install cargo-zigbuild
+        run: cargo binstall cargo-zigbuild
+
+      - name: Cache Rust dependencies
+        uses: ferrous-systems/shared-github-actions/cache-rust@main
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Check Clippy warnings
+        run: cargo clippy --workspace --tests --locked -- -Dwarnings
+
+      - name: Prepare file to record snapshots used by insta
+        run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
+
+      - name: Run the test suite (Without AWS KMS)
+        if: ${{ runner.os != 'Linux' }}
+        run: cargo test --timings --workspace --locked
+
+      - name: Run the test suite (With AWS KMS)
+        if: ${{ runner.os == 'Linux' }}
+        run: cargo test --timings --workspace --locked --features aws-kms -- --test-threads=1
+
+      # Incompatible with Windows, insta snapshots output Windows paths
+      # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
+      - if: ${{ runner.os == 'Linux' }}
+        name: Ensure there are no unused insta snapshots
+        run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
+
+      - name: Build ${{ inputs.release && '(Release)' || '(Debug)'}}
+        run: cargo zigbuild --workspace ${{ inputs.release && '--release' || ''}}
+
+      - name: Upload criticalup debug build
+        id: binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-${{ inputs.target }}
+          path: target/${{ inputs.release && 'release' || 'debug' }}/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
+          retention-days: 7
+
+      - name: Upload cargo timings
+        id: timings
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timings-${{ inputs.target }}
+          path: target/cargo-timings/cargo-timing.html
+          retention-days: 7
