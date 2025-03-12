@@ -79,19 +79,6 @@ async fn already_installed_toolchain_should_not_throw_error() {
     assert_output!(test_env.cmd().args(["install", "--project", manifest_path]))
 }
 
-/// Sample test to run the command in test environment without any other computation
-#[tokio::test]
-#[ignore = "Testing `install` subcommand will be enabled at a later date"]
-async fn run_install() {
-    let test_env = TestEnvironment::prepare().await;
-
-    let mut current_dir = std::env::current_dir().unwrap();
-    current_dir.push("tests/resources/criticalup.toml");
-    let manifest_path = current_dir.to_str().unwrap();
-
-    run_install_cmd(&test_env, manifest_path);
-}
-
 #[tokio::test]
 async fn run_install_successfully() {
     let mut test_env = TestEnvironment::prepare().await;

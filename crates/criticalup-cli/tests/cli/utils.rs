@@ -348,7 +348,7 @@ async fn add_non_root_key_to_server(
     role: KeyRole,
     trusted_by: &EphemeralKeyPair,
 ) -> Builder {
-    let (keypair, signed_payload) = generate_trusted_key(role, &trusted_by).await;
+    let (keypair, signed_payload) = generate_trusted_key(role, trusted_by).await;
     if name == "revocation" {
         server_builder = server_builder.add_revocation_info(&keypair).await;
     }
