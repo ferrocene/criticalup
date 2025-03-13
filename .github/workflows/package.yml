@@ -8,19 +8,6 @@ name: Package
 on:
   workflow_call:
     inputs:
-      criticalup-token:
-        type: string
-        description: The criticalup token to use
-      target:
-        type: string
-        description: The Rust triple of the host platform
-      runner:
-        type: string
-        description: The GitHub Runner to run on
-      release:
-        type: boolean
-        default: false
-        description: If the package should be built in release mode
       glibc:
         type: string
         description: (Linux only) The glibc version to use
@@ -44,6 +31,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ./.github/actions/use-ferrocene/
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          uninstall-rust: true  
+
       - name: Install WiX
         run: |
           mkdir -p ~/wix
@@ -55,15 +47,20 @@ jobs:
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
       
       - name: Install cargo-wix
-        run: cargo binstall cargo-wix
+        run: cargo install --git https://github.com/volks73/cargo-wix --rev 590bc2b602758086e8cdbf62503262780a0b73a4 --locked cargo-wix
 
       - name: Run cargo-wix
         run: cargo wix --package criticalup --bin-path ~/wix
 
       - name: Sign with cargo-wix
-        
+        run: cargo wix sign Cargo.toml --bin-path ~/wix -p criticalup
 
       - name: Upload msi
-
+        id: msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-signed-msi
+          path: target/wix/criticalup-*
+          retention-days: 7
 
       

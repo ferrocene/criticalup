@@ -8,6 +8,8 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
+  # TODO: Remove me!!!!
+  pull_request: {}
 
 permissions:
   # Allow write access to the source code to enable GitHub Pages publishing.
@@ -35,5 +37,5 @@ jobs:
 
   package:
     needs: [build]
-    uses: ./.github/workflows/package.yml
     secrets: inherit
+    uses: ./.github/workflows/package.yml
