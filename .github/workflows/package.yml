@@ -38,10 +38,14 @@ jobs:
 
       - name: Install WiX
         run: |
-          mkdir -p ~/wix
-          cd ~/wix
+          mkdir -p ~/msi
+          cd ~/msi
           curl -L -o wix.zip https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip
           unzip wix.zip
+
+      - name: Copy Signtool into msi folder
+        run:
+          cp "/c/Program Files (x86)/Windows Kits/10/bin/10.0.22000.0/x64/signtool.exe" ~/msi/signtool.exe
 
       - name: Install cargo-binstall
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
@@ -50,10 +54,10 @@ jobs:
         run: cargo install --git https://github.com/volks73/cargo-wix --rev 590bc2b602758086e8cdbf62503262780a0b73a4 --locked cargo-wix
 
       - name: Run cargo-wix
-        run: cargo wix --package criticalup --bin-path ~/wix
+        run: cargo wix --package criticalup --bin-path ~/msi
 
       - name: Sign with cargo-wix
-        run: cargo wix sign Cargo.toml --bin-path ~/wix -p criticalup
+        run: cargo wix sign Cargo.toml --bin-path ~/msi -p criticalup
 
       - name: Upload msi
         id: msi
