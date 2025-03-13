@@ -56,6 +56,10 @@ jobs:
       - name: Run cargo-wix
         run: cargo wix --package criticalup --bin-path ~/msi --nocapture --output criticalup-unsigned.msi
 
+
+      - name: Create signed directory
+        run: mkdir -p signed
+
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
         with:
