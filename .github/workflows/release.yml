@@ -3,7 +3,7 @@
 
 ---
 
-name: CI
+name: Release
 on:
   push:
     tags:
@@ -36,6 +36,5 @@ jobs:
       release: true
 
   package:
-    needs: [build]
     secrets: inherit
     uses: ./.github/workflows/package.yml
