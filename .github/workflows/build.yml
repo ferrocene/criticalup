@@ -62,7 +62,7 @@ jobs:
       - name: Install zig
         shell: bash
         run: |
-          ${{ runner.os == 'Linux' && 'sudo apt install zig"' || '' }}
+          ${{ runner.os == 'Linux' && 'sudo apt install zig' || '' }}
           ${{ runner.os == 'Windows' && 'winget install zig.zig' || '' }}
           ${{ runner.os == 'macOS' && 'brew install zig' || '' }}
 

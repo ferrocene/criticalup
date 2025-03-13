@@ -54,10 +54,7 @@ jobs:
         run: cargo binstall cargo-wix
 
       - name: Run cargo-wix
-        run: cargo wix --package criticalup --bin-path ~/msi --nocapture --output ${GITHUB_WORKSPACE}/criticalup.msi
-
-      - name: Create signed directory
-        run: mkdir -p ${GITHUB_WORKSPACE}/signed
+        run: cargo wix --package criticalup --bin-path ~/msi --nocapture --output ${GITHUB_WORKSPACE}/criticalup-x86_64-pc-windows-msvc.msi
 
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
@@ -78,7 +75,7 @@ jobs:
           totp_secret: ${{secrets.SSLDOTCOM_TOTP_SECRET}}
           # Path of code object to be signed.
           # Supported File Types: acm, ax, bin, cab, cpl, dll, drv, efi, exe, mui, ocx, scr, sys, tsp, msi, ps1, ps1xml, js, vbs, wsf, jar
-          file_path: ${GITHUB_WORKSPACE}/criticalup.msi
+          file_path: ${GITHUB_WORKSPACE}/criticalup-x86_64-pc-windows-msvc.msi
           override: true
           # This variable are optional, and specify the environment name. If omitted, the environment name will be set to PROD and use production code_sign_tool.properties file. For signing artifact with demo account, the environment name will be set to TEST.
           environment_name: PROD
@@ -87,8 +84,8 @@ jobs:
         id: msi
         uses: actions/upload-artifact@v4
         with:
-          name: criticalup-msi
-          path: criticalup.msi
+          name: criticalup-msi-x86_64-pc-windows-msvc
+          path: criticalup-x86_64-pc-windows-msvc.msi
           retention-days: 7
 
       
