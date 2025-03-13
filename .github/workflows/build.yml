@@ -58,13 +58,20 @@ jobs:
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
           uninstall-rust: true  
-    
+
+      - name: Install zig
+        shell: bash
+        run: |
+          ${{ runner.os == 'Linux' && 'sudo apt install zig"' || '' }}
+          ${{ runner.os == 'Windows' && 'winget install zig.zig' || '' }}
+          ${{ runner.os == 'macOS' && 'brew install zig' || '' }}
+
       - name: Install cargo-binstall
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Install cargo-zigbuild
         run: cargo binstall cargo-zigbuild
-
+  
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
 
