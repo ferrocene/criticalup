@@ -33,7 +33,7 @@ jobs:
       glibc: ${{ matrix.glibc }}
       release: true
 
-  # package:
-  #   needs: [build]
-  #   uses: ./.github/workflows/package.yml
-  #   secrets: inherit
+  package:
+    needs: [build]
+    uses: ./.github/workflows/package.yml
+    secrets: inherit
