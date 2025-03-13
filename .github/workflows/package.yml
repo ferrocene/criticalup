@@ -79,8 +79,7 @@ jobs:
           # Path of code object to be signed.
           # Supported File Types: acm, ax, bin, cab, cpl, dll, drv, efi, exe, mui, ocx, scr, sys, tsp, msi, ps1, ps1xml, js, vbs, wsf, jar
           file_path: ${GITHUB_WORKSPACE}/criticalup.msi
-          # Directory where signed code object(s) will be written.
-          output_path: ${GITHUB_WORKSPACE}/signed/
+          override: true
           # This variable are optional, and specify the environment name. If omitted, the environment name will be set to PROD and use production code_sign_tool.properties file. For signing artifact with demo account, the environment name will be set to TEST.
           environment_name: PROD
 
@@ -88,8 +87,8 @@ jobs:
         id: msi
         uses: actions/upload-artifact@v4
         with:
-          name: criticalup-signed-msi
-          path: signed/criticalup.msi
+          name: criticalup-msi
+          path: criticalup.msi
           retention-days: 7
 
       
