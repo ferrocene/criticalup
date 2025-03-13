@@ -23,6 +23,12 @@ runs:
       run: |
         rm -rf ~/.rustup
         rm -rf ~/.cargo
+    - name: Ensure xz-utils is installed (Mac/Linux)
+      shell: bash
+      run: |
+        ${{ runner.os == 'Linux' && 'apt install xz-utils --yes' || '' }}        
+        ${{ runner.os == 'macOS' && 'brew install xz' || '' }}
+
     - name: Install Ferrocene
       shell: bash
       run: |
