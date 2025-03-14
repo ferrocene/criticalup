@@ -1,0 +1,153 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: Build
+run-name: Build (${{inputs.target}})
+
+on:
+  workflow_call:
+    inputs:
+      criticalup-token:
+        type: string
+        description: The criticalup token to use
+      target:
+        type: string
+        description: The Rust triple of the host platform
+      runner:
+        type: string
+        description: The GitHub Runner to run on
+      release:
+        type: boolean
+        default: false
+        description: If the package should be built in release mode
+      test:
+        type: boolean
+        default: true
+        description: If the tests should be run
+      glibc:
+        type: string
+        description: (Linux only) The glibc version to use
+    outputs:
+      run-id:
+        description: The id of the workflow run
+        value: ${{ github.run_id }}
+      package-id:
+        description: The artifact binary id
+        value: ${{ jobs.build.outputs.package-id }}
+      sha256sum-id:
+        description: The artifact binary digest
+        value: ${{ jobs.build.outputs.sha256sum-id }}
+
+defaults:
+  run:
+    shell: bash
+
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    outputs:
+      package-id: ${{ steps.package.outputs.artifact-id }}
+      sha256sum-id: ${{ steps.sha256sum.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: ${{ runner.os == 'Linux' }}
+        uses: docker/setup-qemu-action@v3
+
+      - uses: ./.github/actions/use-ferrocene/
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          uninstall-rust: true  
+
+      - name: Install zig
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: sudo snap install --beta zig --classic
+
+      - name: Install cargo-binstall
+        if: ${{ runner.os == 'Linux' }}
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Install cargo-zigbuild
+        if: ${{ runner.os == 'Linux' }}
+        run: cargo binstall cargo-zigbuild
+
+      - name: Install cross toolchain
+        if: ${{ runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu' }}
+        run: |
+          sudo apt install --yes \
+            g++-aarch64-linux-gnu \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu \
+            libc6-dev-arm64-cross \
+            libc6-arm64-cross
+  
+      - name: Cache Rust dependencies
+        uses: ferrous-systems/shared-github-actions/cache-rust@main
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Check Clippy warnings
+        run: cargo clippy --workspace --tests --locked -- -Dwarnings
+
+      - name: Prepare file to record snapshots used by insta
+        run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
+
+      - name: Run the test suite (Without AWS KMS)
+        if: ${{ runner.os != 'Linux' && inputs.test == true }}
+        run: cargo test --target ${{ inputs.target }} --workspace --locked
+
+      - name: Run the test suite (With AWS KMS)
+        if: ${{ runner.os == 'Linux' && inputs.test == true }}
+        run: cargo test --target ${{ inputs.target }} --workspace --locked --features aws-kms -- --test-threads=1
+
+      # Incompatible with Windows, insta snapshots output Windows paths
+      # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
+      - if: ${{ runner.os == 'Linux' && inputs.test == true }}
+        name: Ensure there are no unused insta snapshots
+        run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
+
+      - name: Build ${{ inputs.release && '(Release)' || '(Debug)'}}
+        run: cargo ${{ runner.os == 'Linux' && 'zigbuild' || 'build' }} --package criticalup --target ${{ inputs.target }}${{ inputs.glibc != '' && format('.{0}', inputs.glibc) || '' }} ${{ inputs.release && '--release' || ''}}
+
+      - name: Prepare archive
+        run: |
+          mkdir criticalup-${{ inputs.target }}
+          cp target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup criticalup-${{ inputs.target }}/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
+          cp crates/criticalup/README.md criticalup-${{ inputs.target }}/README.md
+          cp CHANGELOG.md criticalup-${{ inputs.target }}/CHANGELOG.md
+          
+      - name: Make archive (tar.xz)
+        if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+        run: |
+          tar cvf criticalup-${{ inputs.target }}.tar.xz criticalup-${{ inputs.target }}
+          ${{ runner.os == 'Linux' && 'sha256sum' || 'shasum -a 256' }} criticalup-${{ inputs.target }}.tar.xz >> criticalup-${{ inputs.target }}.tar.xz.sha256
+
+      - name: Make archive (zip)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          tar cvf criticalup-${{ inputs.target }}.zip criticalup-${{ inputs.target }}/*
+          sha256sum criticalup-${{ inputs.target }}.zip >> criticalup-${{ inputs.target }}.zip.sha256
+
+      - name: Upload criticalup ${{ inputs.release && '(Release)' || '(Debug)'}}
+        id: package
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.zip') || '.tar.xz' }}
+          path: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.zip') || '.tar.xz' }}
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload sha256sum ${{ inputs.release && '(Release)' || '(Debug)'}}
+        id: sha256sum
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.zip') || '.tar.xz' }}.sha256
+          path: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.zip') || '.tar.xz' }}.sha256
+          if-no-files-found: error
+          retention-days: 7
