@@ -112,7 +112,7 @@ jobs:
 
       # Incompatible with Windows, insta snapshots output Windows paths
       # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
-      - if: ${{ runner.os == 'Linux' }}
+      - if: ${{ runner.os == 'Linux' && inputs.test == true }}
         name: Ensure there are no unused insta snapshots
         run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
 
