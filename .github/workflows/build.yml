@@ -75,6 +75,15 @@ jobs:
       - name: Install cargo-zigbuild
         if: ${{ runner.os == 'Linux' }}
         run: cargo binstall cargo-zigbuild
+
+      - name: Install cross toolchain
+        if: ${{ runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu' }}
+        run: |
+          apt-install \
+            g++-aarch64-linux-gnu \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu \
+            libc6-dev-arm64-cross
   
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
