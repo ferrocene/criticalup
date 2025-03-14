@@ -78,10 +78,10 @@ jobs:
         shell: nu {0}
         run: |
           $env.VERSION = (open crates/criticalup/Cargo.toml | get package.version)
-          print -n $"VERSION=($env.VERSION)" | save -a $env.GITHUB_OUTPUT
+          echo $"VERSION=($env.VERSION)\n" | save -a $env.GITHUB_OUTPUT
 
           $env.DATE = (date now | format date "%Y-%m-%d")
-          print -n $"DATE=($env.DATE)" | save -a $env.GITHUB_OUTPUT
+          echo $"DATE=($env.DATE)\n" | save -a $env.GITHUB_OUTPUT
 
       - name: Make install script
         shell: nu {0}
