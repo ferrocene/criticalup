@@ -29,12 +29,12 @@ on:
       run-id:
         description: The id of the workflow run
         value: ${{ github.run_id }}
-      binary-id:
+      package-id:
         description: The artifact binary id
-        value: ${{ jobs.build.outputs.binary-id }}
-      binary-digest:
+        value: ${{ jobs.build.outputs.package-id }}
+      sha256sum-id:
         description: The artifact binary digest
-        value: ${{ jobs.build.outputs.binary-digest }}
+        value: ${{ jobs.build.outputs.sha256sum-id }}
       timings-id:
         description: The artifact timings id
         value: ${{ jobs.build.outputs.timings-id }}
@@ -83,7 +83,8 @@ jobs:
             g++-aarch64-linux-gnu \
             gcc-aarch64-linux-gnu \
             binutils-aarch64-linux-gnu \
-            libc6-dev-arm64-cross
+            libc6-dev-arm64-cross \
+            libc6-arm64-cross
   
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
