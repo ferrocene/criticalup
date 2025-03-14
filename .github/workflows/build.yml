@@ -65,7 +65,6 @@ jobs:
         run: sudo snap install --beta zig --classic
 
       - name: Install cargo-binstall
-        if: ${{ runner.os == 'Linux' }}
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Install cargo-zigbuild
