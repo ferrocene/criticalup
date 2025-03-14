@@ -65,14 +65,12 @@ jobs:
         run: sudo snap install --beta zig --classic
 
       - name: Install cargo-binstall
+        if: ${{ runner.os == 'Linux' }}
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Install cargo-zigbuild
         if: ${{ runner.os == 'Linux' }}
         run: cargo binstall cargo-zigbuild
-
-      - name: Install nu shell
-        run: cargo binstall nu
   
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
@@ -114,13 +112,13 @@ jobs:
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: |
           tar cvf criticalup-${{ inputs.target }}.tar.xz criticalup-${{ inputs.target }}
-          nu --commands 'sha256sum criticalup-${{ inputs.target }}.tar.xz' >> criticalup-${{ inputs.target }}.tar.xz.sha256
+          ${{ runner.os == 'Linux' && 'sha256sum' || 'shasum -a 256' }} criticalup-${{ inputs.target }}.tar.xz >> criticalup-${{ inputs.target }}.tar.xz.sha256
 
       - name: Make archive (zip)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          powershell Compress-Archive criticalup-${{ inputs.target }}.zip criticalup-${{ inputs.target }}/*
-          nu --commands 'sha256sum criticalup-${{ inputs.target }}.zip' >> criticalup-${{ inputs.target }}.zip.sha256
+          tar cvf criticalup-${{ inputs.target }}.zip criticalup-${{ inputs.target }}/*
+          sha256sum criticalup-${{ inputs.target }}.zip >> criticalup-${{ inputs.target }}.zip.sha256
 
       - name: Upload criticalup ${{ inputs.release && '(Release)' || '(Debug)'}}
         id: package
