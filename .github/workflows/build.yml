@@ -39,9 +39,6 @@ on:
       sha256sum-id:
         description: The artifact binary digest
         value: ${{ jobs.build.outputs.sha256sum-id }}
-      timings-id:
-        description: The artifact timings id
-        value: ${{ jobs.build.outputs.timings-id }}
 
 defaults:
   run:
@@ -54,7 +51,6 @@ jobs:
     outputs:
       package-id: ${{ steps.package.outputs.artifact-id }}
       sha256sum-id: ${{ steps.sha256sum.outputs.artifact-id }}
-      timings-id: ${{ steps.timings.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -104,11 +100,11 @@ jobs:
 
       - name: Run the test suite (Without AWS KMS)
         if: ${{ runner.os != 'Linux' && inputs.test == true }}
-        run: cargo test --target ${{ inputs.target }} --timings --workspace --locked
+        run: cargo test --target ${{ inputs.target }} --workspace --locked
 
       - name: Run the test suite (With AWS KMS)
         if: ${{ runner.os == 'Linux' && inputs.test == true }}
-        run: cargo test --target ${{ inputs.target }} --timings --workspace --locked --features aws-kms -- --test-threads=1
+        run: cargo test --target ${{ inputs.target }} --workspace --locked --features aws-kms -- --test-threads=1
 
       # Incompatible with Windows, insta snapshots output Windows paths
       # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
@@ -153,14 +149,5 @@ jobs:
         with:
           name: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.zip') || '.tar.xz' }}.sha256
           path: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.zip') || '.tar.xz' }}.sha256
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Upload cargo timings
-        id: timings
-        uses: actions/upload-artifact@v4
-        with:
-          name: timings-${{ inputs.target }}
-          path: target/cargo-timings/cargo-timing.html
           if-no-files-found: error
           retention-days: 7
