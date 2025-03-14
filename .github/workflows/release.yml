@@ -50,6 +50,7 @@ jobs:
       target: aarch64-unknown-linux-gnu
       glibc: "2.32"
       release: true
+      test: false
 
   package:
     secrets: inherit
