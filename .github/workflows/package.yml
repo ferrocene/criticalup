@@ -84,7 +84,7 @@ jobs:
         id: msi
         uses: actions/upload-artifact@v4
         with:
-          name: criticalup-msi-x86_64-pc-windows-msvc
+          name: criticalup-x86_64-pc-windows-msvc.msi
           path: criticalup-x86_64-pc-windows-msvc.msi
           retention-days: 7
 

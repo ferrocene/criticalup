@@ -54,6 +54,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        if: ${{ runner.os == 'Linux' }}
+        uses: docker/setup-qemu-action@v3
+
       - uses: ./.github/actions/use-ferrocene/
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
@@ -86,11 +90,11 @@ jobs:
 
       - name: Run the test suite (Without AWS KMS)
         if: ${{ runner.os != 'Linux' }}
-        run: cargo test --timings --workspace --locked
+        run: cargo test --target ${{ inputs.target }} --timings --workspace --locked
 
       - name: Run the test suite (With AWS KMS)
         if: ${{ runner.os == 'Linux' }}
-        run: cargo test --timings --workspace --locked --features aws-kms -- --test-threads=1
+        run: cargo test --target ${{ inputs.target }} --timings --workspace --locked --features aws-kms -- --test-threads=1
 
       # Incompatible with Windows, insta snapshots output Windows paths
       # Incompatible with Mac, find does not have `-n`, diff does not have `--color`

@@ -12,8 +12,8 @@ on:
   pull_request: {}
 
 permissions:
-  # Allow write access to the source code to enable GitHub Pages publishing.
-  contents: read
+  # Allow write access to the source code to enable release publishing.
+  contents: write
 
 jobs:
   # We don't matrix this so each job's outputs can be referred to individually without hacks
@@ -60,6 +60,7 @@ jobs:
     needs:
       - build-aarch64-apple-darwin
       - build-x86_64-pc-windows-msvc
+      - build-x86_64-unknown-linux-gnu
       - build-aarch64-unknown-linux-gnu
       - package
     steps:
@@ -76,10 +77,10 @@ jobs:
         shell: nu {0}
         run: |
           $env.VERSION = (open crates/criticalup/Cargo.toml | get package.version)
-          $"VERSION=($env.VERSION)" | save -a $env.GITHUB_OUTPUT
+          echo $"VERSION=($env.VERSION)" | save -a $env.GITHUB_OUTPUT
 
           $env.DATE = (date now | format date "%Y-%m-%d")
-          $"DATE=($env.DATE)" | save -a $env.GITHUB_OUTPUT
+          echo $"DATE=($env.DATE)" | save -a $env.GITHUB_OUTPUT
 
       - name: Make install script
         shell: nu {0}
