@@ -105,8 +105,8 @@ jobs:
         id: binary
         uses: actions/upload-artifact@v4
         with:
-          name: criticalup-${{ inputs.target }}
-          path: target/${{ inputs.release && 'release' || 'debug' }}/${{ runner.os == 'Linux' && format('{0}/', inputs.target) || '' }}/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
+          name: criticalup-${{ inputs.target }}${{ (runner.os == 'Windows' && '.exe') || '' }}
+          path: target/${{ inputs.release && 'release' || 'debug' }}/${{ runner.os == 'Linux' && format('{0}/', inputs.target) || '' }}criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
           retention-days: 7
 
       - name: Upload cargo timings

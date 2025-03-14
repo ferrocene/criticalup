@@ -70,13 +70,37 @@ jobs:
 
           $env.DATE = (date now | format date "%Y-%m-%d")
           $"DATE=($env.DATE)" | save -a $env.GITHUB_OUTPUT
-          
+
+      - name: Make install script
+        shell: nu {0}
+        run: |
+          mkdir -p installers
+          open ci/criticalup-installer.ps1 | str replace "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a installers/criticalup-installer.ps1
+          open ci/criticalup-installer.sh | str replace "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a installers/criticalup-installer.sh
+
+      - name: Upload powershell installer
+        id: installer-ps1
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-installer.ps1
+          path: installers/criticalup-installer.ps1
+          retention-days: 7
+
+      - name: Upload bash installer
+        id: installer-sh
+        uses: actions/upload-artifact@v4
+        with:
+          name: criticalup-installer.sh
+          path: installers/criticalup-installer.sh
+          retention-days: 7
+
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           pattern: criticalup-*
           merge-multiple: true
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
