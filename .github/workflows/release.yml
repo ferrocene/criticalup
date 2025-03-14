@@ -16,25 +16,66 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        include:
-          - runner: macos-latest
-            target: aarch64-apple-darwin
-          - runner: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            glibc: "2.32"
-          - runner: windows-latest
-            target: x86_64-pc-windows-msvc
+  # We don't matrix this so each job's outputs can be referred to individually without hacks
+  binary-aarch64-apple-darwin:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      runner: ${{ matrix.runner }}
-      target: ${{ matrix.target }}
-      glibc: ${{ matrix.glibc }}
+      runner: macos-latest
+      target: aarch64-apple-darwin
+      release: true
+
+  binary-x86_64-pc-windows-msvc:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      runner: windows-latest
+      target: x86_64-pc-windows-msvc
+      release: true
+
+  binary-aarch64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      target: aarch64-unknown-linux-gnu
+      glibc: "2.32"
       release: true
 
   package:
     secrets: inherit
     uses: ./.github/workflows/package.yml
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install `cargo-binstall`
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
+      - name: Install nu shell
+        run: cargo binstall nu
+
+      - name: Get metadata
+        id: metadata
+        shell: nu {0}
+        run: |
+          $env.VERSION = (open crates/criticalup/Cargo.toml | get package.version)
+          $"VERSION=($env.VERSION)" | save -a $env.GITHUB_OUTPUT
+
+          $env.DATE = (date now | format date "%Y-%m-%d")
+          $"DATE=($env.DATE)" | save -a $env.GITHUB_OUTPUT
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: criticalup-*
+          merge-multiple: true
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          draft: true
+          name: ${{ steps.metadata.outputs.VERSION }} - ${{ steps.metadata.outputs.DATE }}
+          files:
+            artifacts/*
+
