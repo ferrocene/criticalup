@@ -104,7 +104,7 @@ jobs:
       - name: Prepare archive
         run: |
           mkdir criticalup-${{ inputs.target }}
-          cp target/${{ inputs.release && 'release' || 'debug' }}/${{ runner.os == 'Linux' && format('{0}/', inputs.target) || '' }}criticalup criticalup-${{ inputs.target }}/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
+          cp target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup criticalup-${{ inputs.target }}/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
           cp crates/criticalup/README.md criticalup-${{ inputs.target }}/README.md
           cp CHANGELOG.md criticalup-${{ inputs.target }}/CHANGELOG.md
           

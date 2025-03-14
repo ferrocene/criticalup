@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   # We don't matrix this so each job's outputs can be referred to individually without hacks
-  binary-aarch64-apple-darwin:
+  build-aarch64-apple-darwin:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
@@ -25,7 +25,7 @@ jobs:
       target: aarch64-apple-darwin
       release: true
 
-  binary-x86_64-pc-windows-msvc:
+  build-x86_64-pc-windows-msvc:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
@@ -33,7 +33,16 @@ jobs:
       target: x86_64-pc-windows-msvc
       release: true
 
-  binary-aarch64-unknown-linux-gnu:
+  build-x86_64-unknown-linux-gnu:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      target: x86_64-unknown-linux-gnu
+      glibc: "2.32"
+      release: true
+
+  build-aarch64-unknown-linux-gnu:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
@@ -49,9 +58,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs:
-      - binary-aarch64-apple-darwin
-      - binary-x86_64-pc-windows-msvc
-      - binary-aarch64-unknown-linux-gnu
+      - build-aarch64-apple-darwin
+      - build-x86_64-pc-windows-msvc
+      - build-aarch64-unknown-linux-gnu
       - package
     steps:
       - uses: actions/checkout@v4
