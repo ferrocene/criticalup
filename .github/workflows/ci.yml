@@ -71,13 +71,23 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: criticalup-${{ matrix.target }}
+          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
           path: crab-boil
 
-      - name: Make executable
+      - name: Unpack archive
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: crab-boil
+        run: |
+          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
+          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+
+      - name: Unpack archive and make executable
         if: ${{ runner.os != 'Windows' }}
         working-directory: crab-boil
-        run: chmod +x ./criticalup
+        run: |
+          tar xavf criticalup-${{ matrix.target }}.tar.xz
+          mv criticalup-${{ matrix.target }}/criticalup criticalup
+          chmod +x ./criticalup
 
       - name: Auth Criticalup
         working-directory: crab-boil
