@@ -7,8 +7,7 @@ name: CI
 on:
   push:
     branches: [staging, trying]
-  # TODO: Re-add me!!!!
-  # pull_request: {}
+  pull_request: {}
 
 permissions:
   # Allow write access to the source code to enable GitHub Pages publishing.

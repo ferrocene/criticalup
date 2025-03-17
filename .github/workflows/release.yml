@@ -8,8 +8,6 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
-  # TODO: Remove me!!!!
-  pull_request: {}
 
 permissions:
   # Allow write access to the source code to enable release publishing.
