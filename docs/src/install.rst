@@ -52,6 +52,9 @@ Windows
 
 We recommend using the MSI installation method. If you'd prefer not to use the MSI, a powershell based install is available.
 
+If you don't already have `Microsoft Visual C++ Redistributable <https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170>`_ installed,
+you'll need it to run CriticalUp.
+
 MSI based
 ^^^^^^^^^
 

@@ -125,13 +125,13 @@ jobs:
       - name: Make archive (tar.xz)
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
         run: |
-          tar cvf criticalup-${{ inputs.target }}.tar.xz criticalup-${{ inputs.target }}
+          tar --auto-compress --create --verbose --file criticalup-${{ inputs.target }}.tar.xz criticalup-${{ inputs.target }}
           ${{ runner.os == 'Linux' && 'sha256sum' || 'shasum -a 256' }} criticalup-${{ inputs.target }}.tar.xz >> criticalup-${{ inputs.target }}.tar.xz.sha256
 
       - name: Make archive (zip)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          tar cvf criticalup-${{ inputs.target }}.zip criticalup-${{ inputs.target }}/*
+          tar --auto-compress --create --verbose --file criticalup-${{ inputs.target }}.zip criticalup-${{ inputs.target }}/*
           sha256sum criticalup-${{ inputs.target }}.zip >> criticalup-${{ inputs.target }}.zip.sha256
 
       - name: Upload criticalup ${{ inputs.release && '(Release)' || '(Debug)'}}
