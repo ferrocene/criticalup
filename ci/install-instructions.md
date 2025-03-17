@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: Axo & The Ferrocene Developers -->
+<!-- SPDX-License-Identifier: MIT -->
 
 ## Install criticalup %REPLACE_VERSION%
 

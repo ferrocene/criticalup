@@ -1,7 +1,5 @@
-# Licensed under the MIT license
-# <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
-# option. This file may not be copied, modified, or distributed
-# except according to those terms.
+# SPDX-FileCopyrightText: Axo & The Ferrocene Developers
+# SPDX-License-Identifier: MIT
 
 # Adapted from https://github.com/axodotdev/cargo-dist
 
