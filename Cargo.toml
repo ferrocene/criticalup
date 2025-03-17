@@ -39,7 +39,6 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 walkdir = "2"
 xz2 = "0.1.7"
 
-# The profile that 'cargo dist' will build with
-[profile.dist]
-inherits = "release"
+[profile.release]
 lto = "thin"
+strip = "debuginfo"

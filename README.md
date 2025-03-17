@@ -53,8 +53,6 @@ cargo test
 
 ## Releasing a new version
 
-We use [`cargo-dist`](https://opensource.axo.dev/cargo-dist/book/quickstart/rust.html) to publish releases.
-
 To cut a release:
 
 - `git pull` on the `main` branch for latest changes.
@@ -68,19 +66,16 @@ To cut a release:
       Update this test to match the correct version (`X.Y.Z`).
     - [CHANGELOG.md](./CHANGELOG.md): Make `[Unreleased]` the correct version (`[X.Y.Z]`). Add correct links metadata at
       the bottom.
-    - [dist-workspace.toml](./dist-workspace.toml): Change `pr-run-mode = "plan"` to `pr-run-mode = "upload"`.
-    **Commit this change separately!** (We will need to drop this commit once the PR passes)
 - Run `cargo test --workspace` and `cargo clippy --workspace --tests --locked -- -Dwarnings` to make sure there no
   failures.
 - Commit and push this branch and open a PR against `main`, on GitHub.
-- If the full CI test cycle on the PR passes and the reviewer(s) are OK, drop the
-  [dist-workspace.toml](./dist-workspace.toml) commit from above and push.
 - Wait for approval(s) from reviewer(s).
 - Once the PR is approved, comment `bors merge` to merge the PR.
 - After the PR is merged, checkout `main` branch and update it (`git pull`) with the latest changes.
 - Create a tag `git tag 'vX.Y.Z'`.
 - Push the tag `git push origin vX.Y.Z`. This should trigger the release build in GitHub Actions and publish the release
   on its own.
+- Create a new PR updating the version to `X.Y.(Z+1)-prerelease.1`, eg `1.5.0` would become `1.5.1-prelease.1`.
 
 If the release build fails:
 

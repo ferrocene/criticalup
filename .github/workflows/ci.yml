@@ -14,95 +14,44 @@ permissions:
   contents: read
 
 jobs:
-  build-test:
-    name: Build and test
+  build:
     strategy:
-      fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/use-ferrocene/
-        with:
-          token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rust: true
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.32"
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      runner: ${{ matrix.runner }}
+      target: ${{ matrix.target }}
+      glibc: ${{ matrix.glibc }}
+      release: false
 
-      - name: Cache Rust dependencies
-        uses: ferrous-systems/shared-github-actions/cache-rust@main
-
-      - name: Check formatting
-        if: ${{ matrix.os == 'ubuntu-latest' }}  
-        shell: bash
-        run: cargo fmt --all --check
-
-      - name: Check Clippy warnings
-        shell: bash
-        run: cargo clippy --workspace --tests --locked -- -Dwarnings
-
-      - name: Prepare file to record snapshots used by insta
-        shell: bash
-        run: echo "INSTA_SNAPSHOT_REFERENCES_FILE=$(mktemp)" >> "${GITHUB_ENV}"
-
-      - name: Run the test suite (Without AWS KMS)
-        if: ${{ runner.os != 'Linux' }}
-        shell: bash
-        run: cargo test --timings --workspace --locked
-
-      - name: Run the test suite (With AWS KMS)
-        if: ${{ runner.os == 'Linux' }}
-        shell: bash
-        run: cargo test --timings --workspace --locked --features aws-kms -- --test-threads=1
-
-      # Incompatible with Windows, insta snapshots output Windows paths
-      # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
-      - if: ${{ matrix.os == 'ubuntu-latest' }}
-        name: Ensure there are no unused insta snapshots
-        shell: bash
-        run: diff -u --color <(find -name "*.snap" | xargs realpath | sort | uniq) <(cat "${INSTA_SNAPSHOT_REFERENCES_FILE}" | xargs realpath | sort | uniq)
-
-      - name: Build debug builds
-        shell: bash
-        run: cargo build --workspace
-
-      - name: Upload criticalup debug build
-        uses: actions/upload-artifact@v4
-        with:
-          name: criticalup-${{ matrix.os }}
-          path: target/debug/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
-          retention-days: 7
-
-      - name: Upload upload criticalup-dev debug build
-        uses: actions/upload-artifact@v4
-        with:
-          name: criticalup-dev-${{ matrix.os }}
-          path: target/debug/criticalup-dev${{ (runner.os == 'Windows' && '.exe') || '' }}
-          retention-days: 7
-
-      - name: Upload cargo timings
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-timings-${{ matrix.os }}
-          path: target/cargo-timings/cargo-timing.html
-          retention-days: 7
-
-  runner-test:
+  integration-test:
     name: Test CriticalUp on GHA Runners
-    needs: [build-test]
+    needs: [build]
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
     env:
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/use-ferrocene/
-        with:
-          token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rust: true
-          
+
       - name: "Define toolchain"
         shell: bash # Powershell does not do heredocs
         run: |
@@ -122,13 +71,23 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: criticalup-${{ matrix.os }}
+          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
           path: crab-boil
 
-      - name: Make executable
+      - name: Unpack archive
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: crab-boil
+        run: |
+          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
+          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+
+      - name: Unpack archive and make executable
         if: ${{ runner.os != 'Windows' }}
         working-directory: crab-boil
-        run: chmod +x ./criticalup
+        run: |
+          tar xvf criticalup-${{ matrix.target }}.tar.xz
+          mv criticalup-${{ matrix.target }}/criticalup criticalup
+          chmod +x ./criticalup
 
       - name: Auth Criticalup
         working-directory: crab-boil
@@ -229,8 +188,8 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     needs:
-      - build-test
-      - runner-test
+      - build
+      - integration-test
       - docs
       - deploy-docs
     steps:

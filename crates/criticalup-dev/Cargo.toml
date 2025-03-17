@@ -3,7 +3,7 @@
 
 [package]
 name = "criticalup-dev"
-version = "1.4.0"
+version = "1.4.1-prerelease.1"
 edition = "2021"
 publish = false
 
