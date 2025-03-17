@@ -75,6 +75,7 @@ To cut a release:
 - Create a tag `git tag 'vX.Y.Z'`.
 - Push the tag `git push origin vX.Y.Z`. This should trigger the release build in GitHub Actions and publish the release
   on its own.
+- Create a new PR updating the version to `X.Y.(Z+1)-prerelease.1`, eg `1.5.0` would become `1.5.1-prelease.1`.
 
 If the release build fails:
 
