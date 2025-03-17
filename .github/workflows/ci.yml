@@ -85,7 +85,7 @@ jobs:
         if: ${{ runner.os != 'Windows' }}
         working-directory: crab-boil
         run: |
-          tar xavf criticalup-${{ matrix.target }}.tar.xz
+          tar xvf criticalup-${{ matrix.target }}.tar.xz
           mv criticalup-${{ matrix.target }}/criticalup criticalup
           chmod +x ./criticalup
 
