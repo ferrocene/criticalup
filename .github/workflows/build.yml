@@ -131,7 +131,7 @@ jobs:
       - name: Make archive (zip)
         if: ${{ runner.os == 'Windows' }}
         run: |
-          powershell -c 'Compress-Archive -Verbose -DestinationPath criticalup-${{ inputs.target }}.zip -Path criticalup-${{ inputs.target }}'
+          powershell -c 'Compress-Archive -Verbose -DestinationPath criticalup-${{ inputs.target }}.zip -Path criticalup-${{ inputs.target }}/*'
           sha256sum criticalup-${{ inputs.target }}.zip >> criticalup-${{ inputs.target }}.zip.sha256
 
       - name: Upload criticalup ${{ inputs.release && '(Release)' || '(Debug)'}}
