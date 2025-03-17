@@ -41,4 +41,4 @@ xz2 = "0.1.7"
 
 [profile.release]
 lto = "thin"
-strip = true
+strip = "debuginfo"
