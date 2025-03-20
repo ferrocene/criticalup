@@ -72,20 +72,6 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: cargo binstall cargo-zigbuild
 
-      - name: Install cross toolchain
-        if: ${{ runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu' }}
-        run: |
-          sudo apt install --yes \
-            g++-aarch64-linux-gnu \
-            gcc-aarch64-linux-gnu \
-            binutils-aarch64-linux-gnu \
-            libc6-dev-arm64-cross \
-            libc6-arm64-cross \
-            qemu-system-aarch64
-          sudo update-binfmts --display
-          sudo update-binfmts --import qemu-aarch64
-          sudo update-binfmts --display
-  
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
 
@@ -101,13 +87,11 @@ jobs:
       - name: Run the test suite (Without AWS KMS)
         if: ${{ runner.os != 'Linux' && inputs.test == true }}
         run: |
-          ${{ (runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu') && 'export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu' || '' }}
           cargo test --target ${{ inputs.target }} --workspace --locked
 
       - name: Run the test suite (With AWS KMS)
         if: ${{ runner.os == 'Linux' && inputs.test == true }}
         run: |
-          ${{ (runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu') && 'export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu' || '' }}
           cargo test --target ${{ inputs.target }} --workspace --locked --features aws-kms -- --test-threads=1
 
       # Incompatible with Windows, insta snapshots output Windows paths

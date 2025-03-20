@@ -11,5 +11,4 @@ packages = [
     "clippy-${rustc-host}",
     "rustfmt-${rustc-host}",
     "rust-std-${rustc-host}",
-    "rust-std-aarch64-unknown-linux-gnu",
 ]
