@@ -35,7 +35,7 @@ jobs:
       runner: ${{ matrix.runner }}
       target: ${{ matrix.target }}
       glibc: ${{ matrix.glibc }}
-      cross-compile: ${{ matrix.cross-compile }}
+      cross-compile: ${{ matrix.cross-compile != '' && true || false }}
       release: false
 
   integration-test:
