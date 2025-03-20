@@ -23,6 +23,9 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             glibc: "2.32"
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            glibc: "2.32"
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
     uses: ./.github/workflows/build.yml
