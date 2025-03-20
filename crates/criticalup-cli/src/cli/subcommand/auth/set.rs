@@ -35,8 +35,14 @@ impl CommandExecute for AuthSet {
 
         state.set_authentication_token(Some(AuthenticationToken::seal(&token)));
 
+        tracing::trace!("Getting token data from server");
         match download_server.get_current_token_data().await {
-            Ok(_) => Ok(state.persist().await?),
+            Ok(_) => {
+                tracing::trace!("Got server response, persisting data");
+                let res = state.persist().await?;
+                tracing::trace!("Persisted data");
+                Ok(res)
+            },
 
             Err(LibError::DownloadServerError {
                 kind: DownloadServerError::AuthenticationFailed,

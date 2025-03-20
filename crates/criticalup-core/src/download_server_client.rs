@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use std::path::Path;
+
 use crate::config::Config;
 use crate::envvars;
 use crate::errors::{DownloadServerError, Error};
@@ -16,6 +18,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
+use tokio::fs::read_to_string;
 
 const CLIENT_MAX_RETRIES: u32 = 5;
 
@@ -119,9 +122,14 @@ impl DownloadServerClient {
         // token, as the server wouldn't be able to validate it either anyway.
 
         // Get token from file path.
-        let token_from_file = if std::path::Path::new("/.dockerenv").exists() {
-            std::fs::read_to_string("/run/secrets/CRITICALUP_TOKEN")
-                .map_or(None, |item| Some(AuthenticationToken::from(item)))
+        let docker_env_file = Path::new("/.dockerenv");
+        let criticalup_token_secret_file = Path::new("/run/secrets/CRITICALUP_TOKEN");
+        let token_from_file = if docker_env_file.exists() {
+            tracing::trace!("Detected `{}`, in a Docker environment, looking for `{}`", docker_env_file.display(), criticalup_token_secret_file.display());
+            let token = read_to_string(criticalup_token_secret_file).await
+                .map_or(None, |item| Some(AuthenticationToken::from(item)));
+            tracing::trace!("Got token from Docker secret from `{}`", criticalup_token_secret_file.display());
+            token
         } else {
             None
         };
@@ -134,9 +142,18 @@ impl DownloadServerClient {
 
         // Set precedence for tokens.
         let token = match (token_from_file, token_from_env, token_from_state) {
-            (Some(token), _, _) => Some(token),
-            (_, Some(token), _) => Some(token),
-            (_, _, Some(token)) => Some(token),
+            (Some(token), _, _) => {
+                tracing::trace!("Using token from {}", criticalup_token_secret_file.display());
+                Some(token)
+            },
+            (_, Some(token), _) => {
+                tracing::trace!("Using token from environment variable `CRITICALUP_TOKEN`");
+                Some(token)
+            },
+            (_, _, Some(token)) => {
+                tracing::trace!("Using token from CriticalUp state file");
+                Some(token)
+            },
             _ => None,
         };
 
@@ -145,7 +162,12 @@ impl DownloadServerClient {
             .and_then(|token| HeaderValue::from_str(&format!("Bearer {}", token.unseal())).ok());
 
         match header {
-            Some(header) => self.send(builder.header(AUTHORIZATION, header)).await,
+            Some(header) => {
+                tracing::trace!("Sending request");
+                let res = self.send(builder.header(AUTHORIZATION, header)).await;
+                tracing::trace!("Got response");
+                res
+            },
             None => Err(self.err_from_request(builder, DownloadServerError::AuthenticationFailed)),
         }
     }
