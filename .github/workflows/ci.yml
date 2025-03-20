@@ -33,6 +33,16 @@ jobs:
       glibc: ${{ matrix.glibc }}
       release: false
 
+  build-arm-temp:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      target: aarch64-unknown-linux-gnu
+      glibc: "2.32"
+      release: false
+      test: false
+
   integration-test:
     name: Test CriticalUp on GHA Runners
     needs: [build]
