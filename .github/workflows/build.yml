@@ -66,8 +66,7 @@ jobs:
             g++-aarch64-linux-gnu \
             gcc-aarch64-linux-gnu \
             binutils-aarch64-linux-gnu \
-            libc6-dev-arm64-cross \
-            gcc-multilib
+            libc6-dev-arm64-cross
 
       - uses: ./.github/actions/use-ferrocene/
         with:
