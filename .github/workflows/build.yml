@@ -29,9 +29,6 @@ on:
       glibc:
         type: string
         description: (Linux only) The glibc version to use
-      cross-compile:
-        type: boolean
-        description: (Linux only) Enable qemu/binfmt
     outputs:
       run-id:
         description: The id of the workflow run
@@ -56,17 +53,6 @@ jobs:
       sha256sum-id: ${{ steps.sha256sum.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        if: ${{ inputs.cross-compile }}
-        run: |
-          sudo apt install -y \
-            qemu-user-static \
-            binfmt-support \
-            g++-aarch64-linux-gnu \
-            gcc-aarch64-linux-gnu \
-            binutils-aarch64-linux-gnu \
-            libc6-dev-arm64-cross
 
       - uses: ./.github/actions/use-ferrocene/
         with:
@@ -94,7 +80,8 @@ jobs:
             gcc-aarch64-linux-gnu \
             binutils-aarch64-linux-gnu \
             libc6-dev-arm64-cross \
-            libc6-arm64-cross
+            libc6-arm64-cross \
+            qemu-system-aarch64
   
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
@@ -110,11 +97,15 @@ jobs:
 
       - name: Run the test suite (Without AWS KMS)
         if: ${{ runner.os != 'Linux' && inputs.test == true }}
-        run: cargo test --target ${{ inputs.target }} --workspace --locked
+        run: |
+          ${{ (runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu') && 'export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu' || '' }}
+          cargo test --target ${{ inputs.target }} --workspace --locked
 
       - name: Run the test suite (With AWS KMS)
         if: ${{ runner.os == 'Linux' && inputs.test == true }}
-        run: cargo test --target ${{ inputs.target }} --workspace --locked --features aws-kms -- --test-threads=1
+        run: |
+          ${{ (runner.os == 'Linux' && runner.arch == 'X64' && inputs.target == 'aarch64-unknown-linux-gnu') && 'export QEMU_LD_PREFIX=/usr/aarch64-linux-gnu' || '' }}
+          cargo test --target ${{ inputs.target }} --workspace --locked --features aws-kms -- --test-threads=1
 
       # Incompatible with Windows, insta snapshots output Windows paths
       # Incompatible with Mac, find does not have `-n`, diff does not have `--color`
