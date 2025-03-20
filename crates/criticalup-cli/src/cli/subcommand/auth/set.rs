@@ -39,10 +39,10 @@ impl CommandExecute for AuthSet {
         match download_server.get_current_token_data().await {
             Ok(_) => {
                 tracing::trace!("Got server response, persisting data");
-                let res = state.persist().await?;
+                state.persist().await?;
                 tracing::trace!("Persisted data");
-                Ok(res)
-            },
+                Ok(())
+            }
 
             Err(LibError::DownloadServerError {
                 kind: DownloadServerError::AuthenticationFailed,
