@@ -82,6 +82,9 @@ jobs:
             libc6-dev-arm64-cross \
             libc6-arm64-cross \
             qemu-system-aarch64
+          sudo update-binfmts --display
+          sudo update-binfmts --import qemu-aarch64
+          sudo update-binfmts --display
   
       - name: Cache Rust dependencies
         uses: ferrous-systems/shared-github-actions/cache-rust@main
