@@ -62,7 +62,7 @@ jobs:
         run: |
           sudo apt install -y \
             qemu-user-static \
-            qemu-binfmt-static \
+            binfmt-support \
             qemu-system-arm \
             gcc-multilib \
             g++-aarch64-linux-gnu \
