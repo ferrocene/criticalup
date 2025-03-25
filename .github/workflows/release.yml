@@ -15,40 +15,27 @@ permissions:
 
 jobs:
   # We don't matrix this so each job's outputs can be referred to individually without hacks
-  build-aarch64-apple-darwin:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            glibc: "2.32"
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            glibc: "2.32"
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      runner: macos-latest
-      target: aarch64-apple-darwin
+      runner: ${{ matrix.runner }}
+      target: ${{ matrix.target }}
+      glibc: ${{ matrix.glibc }}
       release: true
-
-  build-x86_64-pc-windows-msvc:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      runner: windows-latest
-      target: x86_64-pc-windows-msvc
-      release: true
-
-  build-x86_64-unknown-linux-gnu:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      runner: ubuntu-latest
-      target: x86_64-unknown-linux-gnu
-      glibc: "2.32"
-      release: true
-
-  build-aarch64-unknown-linux-gnu:
-    uses: ./.github/workflows/build.yml
-    secrets: inherit
-    with:
-      runner: ubuntu-latest
-      target: aarch64-unknown-linux-gnu
-      glibc: "2.32"
-      release: true
-      test: false
 
   package:
     secrets: inherit
@@ -57,10 +44,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs:
-      - build-aarch64-apple-darwin
-      - build-x86_64-pc-windows-msvc
-      - build-x86_64-unknown-linux-gnu
-      - build-aarch64-unknown-linux-gnu
+      - build
       - package
     steps:
       - uses: actions/checkout@v4
