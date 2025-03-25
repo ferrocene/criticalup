@@ -93,7 +93,7 @@ mod tests {
     use super::*;
     use aws_sdk_kms::config::Credentials;
     use aws_sdk_kms::types::KeyUsageType;
-    use rand_core::{OsRng, RngCore};
+    use rand::{rngs::OsRng, RngCore};
     use std::process::Command;
     use std::sync::Once;
     // We want to have tests for all of criticaltrust, which makes testing the integration with AWS
