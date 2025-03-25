@@ -46,7 +46,7 @@ impl Algorithm for EcdsaP256Sha256Asn1SpkiDer {
     }
 
     fn generate_private_key(&self) -> Result<PrivateKeyBytes<'static>, Error> {
-        let key = SecretKey::random(&mut rand_core::OsRng);
+        let key = SecretKey::random(&mut rand::rngs::OsRng);
         Ok(PrivateKeyBytes::owned(
             key.to_pkcs8_der()
                 .expect("generated private key cannot be encoded")

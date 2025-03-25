@@ -16,7 +16,7 @@ base64 = "0.22.1"
 elliptic-curve = { version = "0.13.8", features = ["pkcs8"]  }
 once_cell = "1.21.1"
 p256 = { version = "0.13.2", features = ["ecdsa-core"]  }
-rand_core = { version = "0.6.4", features = ["getrandom"] }
+rand = { version = "0.8.5", features = ["getrandom"] }
 serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
