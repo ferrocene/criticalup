@@ -38,6 +38,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 ] }
 walkdir = "2"
 xz2 = "0.1.7"
+hyper = { version = "1", features = ["tracing"] }
 
 [profile.release]
 lto = "thin"
