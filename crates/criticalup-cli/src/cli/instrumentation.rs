@@ -19,6 +19,9 @@ pub(crate) struct Instrumentation {
         conflicts_with = "log_level",
     )]
     pub(crate) verbose: u8,
+    /// Which logger to use
+    #[clap(long, default_value_t = Default::default(), global = true)]
+    pub log_format: Logger,
     /// Tracing directives
     #[clap(long, global = true, group = "verbosity", value_delimiter = ',', num_args = 0.., conflicts_with = "verbose")]
     pub(crate) log_level: Vec<Directive>,
@@ -37,39 +40,29 @@ impl Instrumentation {
     pub(crate) async fn setup(&self, binary_name: &str) -> Result<(), crate::Error> {
         let filter_layer = self.filter_layer(binary_name)?;
 
-        if self.verbose != 0 {
-            let fmt_layer = self.verbose_fmt_layer();
-            tracing_subscriber::registry()
-                .with(filter_layer)
-                .with(fmt_layer)
-                .try_init()?;
-        } else {
-            let fmt_layer = self.fmt_layer();
-            tracing_subscriber::registry()
-                .with(filter_layer)
-                .with(fmt_layer)
-                .try_init()?;
-        }
+        let registry = tracing_subscriber::registry().with(filter_layer);
 
+        match self.log_format {
+            Logger::Default => {
+                let fmt_layer = self.default_fmt_layer();
+                registry.with(fmt_layer).try_init()?
+            }
+            Logger::Pretty => {
+                let fmt_layer = self.pretty_fmt_layer();
+                registry.with(fmt_layer).try_init()?
+            }
+            Logger::Json => {
+                let fmt_layer = self.json_fmt_layer();
+                registry.with(fmt_layer).try_init()?
+            }
+        }
         tracing::trace!("Instrumentation initialized");
 
         Ok(())
     }
 
-    /// Set up a 'pretty' formatter that displays structure span information, timestamps,
-    /// line numbers/files, etc.
-    pub(crate) fn verbose_fmt_layer<S>(&self) -> impl tracing_subscriber::layer::Layer<S>
-    where
-        S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
-    {
-        tracing_subscriber::fmt::Layer::new()
-            .with_ansi(std::io::stderr().is_terminal())
-            .with_writer(std::io::stderr)
-            .pretty()
-    }
-
     /// Set up a basic, simple logger that doesn't emit more than it needs.
-    pub(crate) fn fmt_layer<S>(&self) -> impl tracing_subscriber::layer::Layer<S>
+    pub(crate) fn default_fmt_layer<S>(&self) -> impl tracing_subscriber::layer::Layer<S>
     where
         S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
     {
@@ -80,6 +73,29 @@ impl Instrumentation {
             .with_file(self.verbose != 0)
             .with_line_number(self.verbose != 0)
             .with_target(self.verbose != 0)
+    }
+
+    /// Set up a 'pretty' formatter that displays structure span information, timestamps,
+    /// line numbers/files, etc.
+    pub(crate) fn pretty_fmt_layer<S>(&self) -> impl tracing_subscriber::layer::Layer<S>
+    where
+        S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
+    {
+        tracing_subscriber::fmt::Layer::new()
+            .with_ansi(std::io::stderr().is_terminal())
+            .with_writer(std::io::stderr)
+            .pretty()
+    }
+
+    /// Set up a JSON formatter for machine parseable output    
+    pub fn json_fmt_layer<S>(&self) -> impl tracing_subscriber::layer::Layer<S>
+    where
+        S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
+    {
+        tracing_subscriber::fmt::Layer::new()
+            .with_ansi(std::io::stderr().is_terminal())
+            .with_writer(std::io::stderr)
+            .json()
     }
 
     pub(crate) fn filter_layer(&self, binary_name: &str) -> Result<EnvFilter, crate::Error> {
@@ -101,5 +117,24 @@ impl Instrumentation {
         }
 
         Ok(filter_layer)
+    }
+}
+
+#[derive(Clone, Default, Debug, clap::ValueEnum)]
+pub enum Logger {
+    #[default]
+    Default,
+    Pretty,
+    Json,
+}
+
+impl std::fmt::Display for Logger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let logger = match self {
+            Logger::Default => "default",
+            Logger::Pretty => "pretty",
+            Logger::Json => "json",
+        };
+        write!(f, "{}", logger)
     }
 }
