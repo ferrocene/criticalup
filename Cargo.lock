@@ -834,6 +834,7 @@ dependencies = [
  "criticalup-core",
  "dirs",
  "futures",
+ "hyper 1.6.0",
  "insta",
  "mock-download-server",
  "opener",
@@ -1474,6 +1475,7 @@ dependencies = [
  "pin-project-lite",
  "smallvec",
  "tokio",
+ "tracing",
  "want",
 ]
 

@@ -12,6 +12,12 @@ All notable changes to this project will be documented in this file.
 - Added a 90 second connect/idle timeouts in the download client, which should reduce the risk of long hangs
   in exotic networking situations.
 
+### Added
+
+- Added a `--log-format $FORMAT` flag, with the options of `default`, `pretty`, and `json`.
+  The `default` option preserves existing behavior, while `pretty` shows the previous `--verbose` format,
+  `json` outputs as JSON.
+
 ## [1.4.0] - 2025-03-05
 
 ### Fixed
