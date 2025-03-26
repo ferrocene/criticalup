@@ -5,6 +5,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Changed
+
+- Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
+  our team was unsatisfied with it's behavior and opted not to mature it.
+
 ## [1.4.0] - 2025-03-05
 
 ### Fixed
