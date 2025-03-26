@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use std::time::Duration;
+
 use crate::config::Config;
 use crate::envvars;
 use crate::errors::{DownloadServerError, Error};
@@ -31,6 +33,9 @@ impl DownloadServerClient {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(CLIENT_MAX_RETRIES);
         let client = reqwest::ClientBuilder::new()
             .user_agent(config.whitelabel.http_user_agent)
+            .read_timeout(Duration::from_secs(90))
+            .connect_timeout(Duration::from_secs(90))
+            .pool_idle_timeout(Duration::from_secs(90))
             .build()
             .expect("failed to configure http client");
         let client = ClientBuilder::new(client)
