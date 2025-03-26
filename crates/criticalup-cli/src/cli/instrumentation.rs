@@ -19,7 +19,7 @@ pub(crate) struct Instrumentation {
         conflicts_with = "log_level",
     )]
     pub(crate) verbose: u8,
-    /// Which logger to use (options are `compact`, `full`, `pretty`, and `json`)
+    /// Which logger to use
     #[clap(long, default_value_t = Default::default(), global = true)]
     pub log_format: Logger,
     /// Tracing directives

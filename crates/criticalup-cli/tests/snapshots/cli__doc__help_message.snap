@@ -17,6 +17,7 @@ Options:
       --project <PROJECT>           Path to the manifest `criticalup.toml`
       --path                        Only print the path to the documentation location
   -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-format <LOG_FORMAT>     Which logger to use [default: default] [possible values: default, pretty, json]
       --log-level [<LOG_LEVEL>...]  Tracing directives
   -h, --help                        Print help
 ------
