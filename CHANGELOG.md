@@ -5,6 +5,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Changed
+
+- Added a 90 second connect/idle timeouts in the download client, which should reduce the risk of long hangs
+  in exotic networking situations.
+
 ## [1.4.0] - 2025-03-05
 
 ### Fixed
