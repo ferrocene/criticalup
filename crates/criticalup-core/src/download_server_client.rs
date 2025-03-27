@@ -36,6 +36,10 @@ impl DownloadServerClient {
             .read_timeout(Duration::from_secs(90))
             .connect_timeout(Duration::from_secs(90))
             .pool_idle_timeout(Duration::from_secs(90))
+            // In rare cases we were encountering a hang in networking in Docker-in-Docker
+            // `docker buildx build` situations. This workaround seems to help.
+            // ref: https://github.com/hyperium/hyper/issues/2312#issuecomment-778005053
+            .pool_max_idle_per_host(0)
             .build()
             .expect("failed to configure http client");
         let client = ClientBuilder::new(client)
