@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 
 - Added a 90 second connect/idle timeouts in the download client, which should reduce the risk of long hangs
   in exotic networking situations.
+- Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
+  our team was unsatisfied with it's behavior and opted not to mature it.
 
 ## [1.4.0] - 2025-03-05
 

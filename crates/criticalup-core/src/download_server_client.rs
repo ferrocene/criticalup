@@ -127,14 +127,6 @@ impl DownloadServerClient {
         // If the token contains such chars treat the authentication as failed due to an invalid
         // token, as the server wouldn't be able to validate it either anyway.
 
-        // Get token from file path.
-        let token_from_file = if std::path::Path::new("/.dockerenv").exists() {
-            std::fs::read_to_string("/run/secrets/CRITICALUP_TOKEN")
-                .map_or(None, |item| Some(AuthenticationToken::from(item)))
-        } else {
-            None
-        };
-
         let token_from_env = envvars::EnvVars::new()
             .criticalup_token
             .map(|item| item.into());
@@ -142,10 +134,15 @@ impl DownloadServerClient {
         let token_from_state = self.state.authentication_token().await;
 
         // Set precedence for tokens.
-        let token = match (token_from_file, token_from_env, token_from_state) {
-            (Some(token), _, _) => Some(token),
-            (_, Some(token), _) => Some(token),
-            (_, _, Some(token)) => Some(token),
+        let token = match (token_from_env, token_from_state) {
+            (Some(token), _) => {
+                tracing::trace!("Using token from `CRITICALUP_TOKEN` environment variable");
+                Some(token)
+            }
+            (_, Some(token)) => {
+                tracing::trace!("Using token from state");
+                Some(token)
+            }
             _ => None,
         };
 
