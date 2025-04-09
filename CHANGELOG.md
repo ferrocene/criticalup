@@ -14,9 +14,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added a `--log-format $FORMAT` flag, with the options of `default`, `pretty`, and `json`.
+- Added a `--log-format $FORMAT` flag, with the options of `default`, `pretty`, `tree`, and `json`.
   The `default` option preserves existing behavior, while `pretty` shows the previous `--verbose` format,
-  `json` outputs as JSON.
+  `json` outputs as JSON, and `tree` displays logging span structure.
 
 ## [1.4.0] - 2025-03-05
 

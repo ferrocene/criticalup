@@ -20,7 +20,7 @@ Commands:
 
 Options:
   -v, --verbose...                  Enable debug logs, -vv for trace
-      --log-format <LOG_FORMAT>     Which logger to use [default: default] [possible values: default, pretty, json]
+      --log-format <LOG_FORMAT>     Which logger to use [default: default] [possible values: default, pretty, tree, json]
       --log-level [<LOG_LEVEL>...]  Tracing directives
   -h, --help                        Print help
 ------
