@@ -57,7 +57,7 @@ pub async fn update(
         .map_err(|e| BinaryProxyUpdateError::DirectoryCreationFailed(bin_dir.clone(), e))?;
 
     // Migrate to new proxy system
-    remove_deprecated_proxies(&config.paths.root.join("bin"), bin_dir).await?;
+    remove_deprecated_proxies(&config.paths.root.join("bin"), &config.paths.proxy_dir).await?;
 
     let list_dir_error = |e| BinaryProxyUpdateError::ListDirectoryFailed(bin_dir.into(), e);
     match tokio::fs::read_dir(bin_dir).await {
@@ -94,8 +94,8 @@ pub async fn update(
 async fn remove_deprecated_proxies(old: &PathBuf, new: &PathBuf) -> Result<(), BinaryProxyUpdateError> {
     let old_bin_dir = old;
     if old_bin_dir.exists() {
-        tracing::info!("Tidying deprecated binary proxies, they are now located at `{}`", new.display());
-        tracing::info!("You can also now use `rustup toolchain link +ferrocene {}` then use Ferrocene like any other Rust toolchain via `cargo +ferrocene build`", new.display());
+        tracing::info!("Tidying deprecated binary proxies, they are now located at `{}`", new.join("bin").display());
+        tracing::info!("You can also now use `rustup toolchain link ferrocene {}` then use Ferrocene like any other Rust toolchain via `cargo +ferrocene build`", new.display());
         tokio::fs::remove_dir_all(&old_bin_dir).await.map_err(|e| BinaryProxyUpdateError::DirectoryRemovalFailed(old_bin_dir.clone(), e))?;
     }
     Ok(())
