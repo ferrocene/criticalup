@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
   in exotic networking situations.
 - Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
   our team was unsatisfied with it's behavior and opted not to mature it.
+- Altered the location of the binary proxies to enable clean integration with `rustup toolchain link`.
 
 ### Added
 

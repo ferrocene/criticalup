@@ -12,12 +12,10 @@ const DEFAULT_INSTALLATION_DIR_NAME: &str = "toolchains";
 pub struct Paths {
     pub(crate) state_file: PathBuf,
 
-    pub proxies_dir: PathBuf,
+    pub proxy_dir: PathBuf,
     pub installation_dir: PathBuf,
     pub cache_dir: PathBuf,
-
-    #[cfg(test)]
-    pub(crate) root: PathBuf,
+    pub root: PathBuf,
 }
 
 impl Paths {
@@ -45,10 +43,9 @@ impl Paths {
 
         Ok(Paths {
             state_file: root.join("state.json"),
-            proxies_dir: root.join("bin"),
+            proxy_dir: root.join("proxy"),
             installation_dir: root.join(DEFAULT_INSTALLATION_DIR_NAME),
             cache_dir,
-            #[cfg(test)]
             root,
         })
     }
@@ -92,7 +89,7 @@ mod tests {
         assert_eq!(
             Paths {
                 state_file: "/opt/criticalup/state.json".into(),
-                proxies_dir: "/opt/criticalup/bin".into(),
+                proxy_dir: "/opt/criticalup/proxy".into(),
                 installation_dir: "/opt/criticalup/toolchains".into(),
                 cache_dir: "/cache/criticalup".into(),
                 root: "/opt/criticalup".into()

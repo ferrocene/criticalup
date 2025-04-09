@@ -57,21 +57,52 @@ binaries for a given workspace. These can be added to your shell path on any OS.
 
 It's important to note that these binaries share the same binary names as any Rust toolchain that
 may already be installed. If you already have Rust installed (for example, via ``rustup``) you
-may wish either to remove it, use Ferrocene via ``criticalup run``, or remove the upstream Rust
-toolchain from your path and use ``rustup run`` to access it.
+should either to remove it, use Ferrocene via ``criticalup run``, or add Ferrocene as a ``rustup``
+toolchain.
+
+Optionally, Ferrocene can be used as a ``rustup`` toolchain, after following platform specific instructions below.
+
+Example usage:
+
+.. code-block:: 
+   
+   cargo +ferrocene build --release
+   cargo +ferrocene test
+
+It's also possible to have ``rustup`` use the Ferrocene toolchain by default:
+
+.. code-block::
+
+   rustup default ferrocene
 
 Linux
 -----
 
-Proxies are located at ``$XDG_DATA_HOME/criticalup/bin``, typically this is
-``~/.local/share/criticalup/bin/``.
+Proxies are located at ``$XDG_DATA_HOME/criticalup/proxy/bin``, typically this is
+``~/.local/share/criticalup/proxy/bin/``.
+
+Via ``rustup``
+""""""""""""""
+
+Configure the proxy:
+
+.. code-block::
+   
+   rustup toolchain link ferrocene ~/.local/share/criticalup/proxy/
+
+Then try running ``rustc +ferrocene --version`` and ensure it says *'Ferrocene by Ferrous Systems'*.
+
+You can now use Ferrocene as a regular ``rustup`` toolchain.
+
+Directly
+""""""""
 
 You can add the following line to your ``~/.bashrc`` or ``~/.zshrc`` to add the binary proxies to
 your ``PATH``:
 
 .. code-block::
 
-   export PATH="$PATH:$HOME/.local/share/criticalup/bin"
+   export PATH="$PATH:$HOME/.local/share/criticalup/proxy/bin"
 
 If you're using a different shell, such as
 `nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
@@ -80,13 +111,30 @@ consult the shell's documentation on how to add to the path.
 macOS
 -----
 
-Proxies are located at ``~/Library/Application Support/criticalup/bin/``. 
+Proxies are located at ``~/Library/Application Support/criticalup/proxy/bin/``. 
+
+Via ``rustup``
+""""""""""""""
+
+Configure the proxy:
+
+.. code-block::
+
+   rustup toolchain link ferrocene ~/Library/Application Support/criticalup/proxy/
+
+Then try running ``rustc +ferrocene --version`` and ensure it says *'Ferrocene by Ferrous Systems'*.
+
+You can now use Ferrocene as a regular ``rustup`` toolchain.
+
+
+Directly
+""""""""
 
 You can add the following line to your ``~/.zshrc`` to add the binary proxies to your ``PATH``:
 
 .. code-block::
 
-   export PATH="$PATH:$HOME/Library/Application Support/criticalup/bin"
+   export PATH="$PATH:$HOME/Library/Application Support/criticalup/proxy/bin"
 
 If you're using a different shell, such as
 `nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
@@ -95,7 +143,23 @@ consult the shell's documentation on how to add to the path.
 Windows
 -------
 
-Proxies are located at ``%appdata%\criticalup\bin\``:
+Proxies are located at ``%appdata%\criticalup\proxy\bin\``.
+
+Via ``rustup`` (Powershell)
+"""""""""""""""""""""""""""
+
+Configure the proxy:
+
+.. code-block::
+
+   rustup toolchain link ferrocene "$($env:USERPROFILE)\AppData\Roaming\criticalup\proxy\"
+
+Then try running ``rustc +ferrocene --version`` and ensure it says *'Ferrocene by Ferrous Systems'*.
+
+You can now use Ferrocene as a regular ``rustup`` toolchain.
+
+Directly
+""""""""
 
 On Windows 11, you can add the folder to your system path by hitting the Windows key and searching 
 'Edit environment variables for your account', then selecting the control panel. If you can't find
@@ -109,7 +173,7 @@ Once there, edit the ``PATH`` variable to include the following entry:
 
 .. code-block::
 
-   %USERPROFILE%\AppData\Roaming\criticalup\bin\
+   %USERPROFILE%\AppData\Roaming\criticalup\proxy\bin\
 
 You'll then need to sign out, and back in for changes to take effect.
 
