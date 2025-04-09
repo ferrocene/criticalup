@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::config::Config;
 use crate::envvars;
 use crate::errors::{DownloadServerError, Error};
-use crate::state::{AuthenticationToken, State};
+use crate::state::State;
 use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
