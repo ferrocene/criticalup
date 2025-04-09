@@ -120,7 +120,7 @@ Configure the proxy:
 
 .. code-block::
 
-   rustup toolchain link ferrocene ~/Library/Application Support/criticalup/proxy/
+   rustup toolchain link ferrocene "~/Library/Application Support/criticalup/proxy/"
 
 Then try running ``rustc +ferrocene --version`` and ensure it says *'Ferrocene by Ferrous Systems'*.
 

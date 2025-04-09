@@ -95,7 +95,7 @@ async fn remove_deprecated_proxies(old: &PathBuf, new: &PathBuf) -> Result<(), B
     let old_bin_dir = old;
     if old_bin_dir.exists() {
         tracing::info!("Tidying deprecated binary proxies, they are now located at `{}`", new.join("bin").display());
-        tracing::info!("You can also now use `rustup toolchain link ferrocene {}` then use Ferrocene like any other Rust toolchain via `cargo +ferrocene build`", new.display());
+        tracing::info!("You can also now use `rustup toolchain link ferrocene \"{}\"` then use Ferrocene like any other Rust toolchain via `cargo +ferrocene build`", new.display());
         tokio::fs::remove_dir_all(&old_bin_dir).await.map_err(|e| BinaryProxyUpdateError::DirectoryRemovalFailed(old_bin_dir.clone(), e))?;
     }
     Ok(())
