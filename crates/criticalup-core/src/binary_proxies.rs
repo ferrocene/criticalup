@@ -22,6 +22,9 @@ use crate::state::State;
 ///   `proxy_binary`, to ensure they all point to the latest available version. This is likely to
 ///   occur after the user updates criticalup.
 ///
+#[tracing::instrument(level = "trace", skip_all, fields(
+    proxy_binary = %proxy_binary.display()
+))]
 pub async fn update(
     config: &Config,
     state: &State,
@@ -37,6 +40,11 @@ pub async fn update(
         .all_binary_proxy_names()
         .into_iter()
         .collect::<HashSet<_>>();
+
+    tracing::trace!(
+        expected_proxies = expected_proxies.len(),
+        "Updating binary proxies"
+    );
 
     let dir = &config.paths.proxies_dir;
     let list_dir_error = |e| BinaryProxyUpdateError::ListDirectoryFailed(dir.into(), e);
@@ -58,9 +66,13 @@ pub async fn update(
         Err(err) => return Err(list_dir_error(err)),
     }
 
-    for proxy in expected_proxies {
-        let target = &config.paths.proxies_dir.join(&proxy);
-        ensure_link(proxy_binary, target).await?;
+    if expected_proxies.is_empty() {
+        tracing::trace!("No new proxies to create")
+    } else {
+        for proxy in expected_proxies {
+            let target = &config.paths.proxies_dir.join(&proxy);
+            ensure_link(proxy_binary, target).await?;
+        }
     }
 
     Ok(())
@@ -104,6 +116,10 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
                 inner: e,
             }
         })?;
+
+        tracing::debug!(target = %target.display(), "Created binary proxy");
+    } else {
+        tracing::trace!(target = %target.display(), "Skipped creating binary proxy, already exists");
     }
 
     Ok(())
@@ -143,6 +159,8 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
         }
     })?;
 
+    tracing::debug!(target = %target.display(), "Created binary proxy");
+
     Ok(())
 }
 
@@ -153,7 +171,10 @@ async fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
         tokio::fs::remove_file(path).await
     };
     match result {
-        Ok(()) => Ok(()),
+        Ok(()) => {
+            tracing::trace!(path = %path.display(), "Removed binary proxy");
+            Ok(())
+        }
         Err(err) => Err(BinaryProxyUpdateError::UnexpectedPathRemovalFailed(
             path.into(),
             err,
