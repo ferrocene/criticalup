@@ -850,6 +850,7 @@ dependencies = [
  "toml_edit",
  "tracing",
  "tracing-subscriber",
+ "tracing-tree",
  "url",
  "walkdir",
  "winapi",
@@ -3344,6 +3345,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-log"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f751112709b4e791d8ce53e32c4ed2d353565a795ce84da2285393f41557bdf2"
+dependencies = [
+ "log",
+ "once_cell",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-serde"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3370,6 +3382,18 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-serde",
+]
+
+[[package]]
+name = "tracing-tree"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ec6adcab41b1391b08a308cc6302b79f8095d1673f6947c2dc65ffb028b0b2d"
+dependencies = [
+ "nu-ansi-term",
+ "tracing-core",
+ "tracing-log",
+ "tracing-subscriber",
 ]
 
 [[package]]

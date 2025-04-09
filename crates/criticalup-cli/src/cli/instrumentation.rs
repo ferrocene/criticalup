@@ -55,6 +55,10 @@ impl Instrumentation {
                 let fmt_layer = self.json_fmt_layer();
                 registry.with(fmt_layer).try_init()?
             }
+            Logger::Tree => {
+                let tree_layer = tracing_tree::HierarchicalLayer::new(2).with_indent_lines(true);
+                registry.with(tree_layer).try_init()?
+            }
         }
         tracing::trace!("Instrumentation initialized");
 
@@ -125,6 +129,7 @@ pub enum Logger {
     #[default]
     Default,
     Pretty,
+    Tree,
     Json,
 }
 
@@ -134,6 +139,7 @@ impl std::fmt::Display for Logger {
             Logger::Default => "default",
             Logger::Pretty => "pretty",
             Logger::Json => "json",
+            Logger::Tree => "tree",
         };
         write!(f, "{}", logger)
     }
