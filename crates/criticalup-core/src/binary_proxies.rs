@@ -93,7 +93,7 @@ pub async fn update(
 // Previously, proxies were located at `root/bin`, now they are at `root/proxy/bin`, remove any remains.
 async fn remove_deprecated_proxies(
     old: &PathBuf,
-    new: &PathBuf,
+    new: &Path,
 ) -> Result<(), BinaryProxyUpdateError> {
     let old_bin_dir = old;
     if old_bin_dir.exists() {
