@@ -14,12 +14,15 @@ All notable changes to this project will be documented in this file.
 - Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
   our team was unsatisfied with it's behavior and opted not to mature it.
 - Altered the location of the binary proxies to enable clean integration with `rustup toolchain link`.
+  Previously, binary proxies were in the `bin/` folder of the CriticalUp home, now they are in `proxy/bin/`.
 
 ### Added
 
 - Added a `--log-format $FORMAT` flag, with the options of `default`, `pretty`, `tree`, and `json`.
   The `default` option preserves existing behavior, while `pretty` shows the previous `--verbose` format,
   `json` outputs as JSON, and `tree` displays logging span structure.
+- Added support registering the CriticalUp binary proxies as a `rustup` toolchain. You can now run
+  `rustup toolchain link $TOOLCHAIN` (OS dependent, see docs) then use, for example, `cargo +ferrocene build`.
 
 ## [1.4.0] - 2025-03-05
 
