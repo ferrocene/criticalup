@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use criticaltrust::integrity::VerifiedPackage;
 use tokio::io::AsyncWriteExt;
+use tracing::{span, Level};
 
 use crate::config::Config;
 use crate::errors::Error::InstallationDoesNotExist;
@@ -188,20 +189,29 @@ impl State {
         Ref::map(self.inner.borrow(), |v| &v.repr.installations)
     }
 
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn all_binary_proxy_names(&self) -> Vec<PathBuf> {
-        let mut result: Vec<_> = self
-            .inner
-            .borrow()
-            .repr
-            .installations
-            .values()
-            .flat_map(|installation| installation.binary_proxies.keys())
-            .cloned()
-            .collect();
+        let state = self.inner.borrow();
 
-        result.sort();
-        result.dedup();
-        result
+        let mut all_proxies = vec![];
+        for (id, installation) in &state.repr.installations {
+            let span = span!(Level::TRACE, "all_binary_proxy_names::installation", %id);
+            let _entered = span.enter();
+
+            let installation_proxies = &installation.binary_proxies;
+            if installation_proxies.is_empty() {
+                tracing::trace!("No proxies for installation");
+            } else {
+                for proxy in installation_proxies.keys() {
+                    tracing::trace!(proxy = %proxy.display(), "Found proxy for installation");
+                    all_proxies.push(proxy.clone())
+                }
+            }
+        }
+
+        all_proxies.sort();
+        all_proxies.dedup();
+        all_proxies
     }
 
     pub async fn persist(&self) -> Result<(), Error> {
