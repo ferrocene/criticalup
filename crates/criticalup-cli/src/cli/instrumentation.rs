@@ -4,7 +4,7 @@
 use std::io::IsTerminal;
 
 use tracing_subscriber::{
-    filter::Directive, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter
+    filter::Directive, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
 #[derive(clap::Args, Debug)]
