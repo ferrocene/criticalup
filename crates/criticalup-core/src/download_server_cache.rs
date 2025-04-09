@@ -56,7 +56,7 @@ impl<'a> DownloadServerCache<'a> {
 
     /// Return the path to a package which either already existed in the cache, or is freshly
     /// downloaded.
-    #[tracing::instrument(level = "debug", skip_all, fields(
+    #[tracing::instrument(level = "trace", skip_all, fields(
         %product,
         %release,
         %package,
@@ -99,7 +99,7 @@ impl<'a> DownloadServerCache<'a> {
         Ok(cache_key)
     }
 
-    #[tracing::instrument(level = "debug", skip_all, fields(
+    #[tracing::instrument(level = "trace", skip_all, fields(
         %product,
         %release,
     ))]
@@ -147,7 +147,7 @@ impl<'a> DownloadServerCache<'a> {
         Ok(data)
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn keys(&self) -> Result<Keychain, Error> {
         let cache_key = self.keys_path();
 

@@ -62,7 +62,7 @@ impl DownloadServerClient {
         .await
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub async fn get_keys(&self) -> Result<Keychain, Error> {
         let resp: KeysManifest = self
             .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
@@ -72,7 +72,7 @@ impl DownloadServerClient {
         Ok(keychain)
     }
 
-    #[tracing::instrument(level = "debug", skip_all, fields(
+    #[tracing::instrument(level = "trace", skip_all, fields(
         %product,
         %release,
     ))]
@@ -89,7 +89,7 @@ impl DownloadServerClient {
         .await
     }
 
-    #[tracing::instrument(level = "debug", skip_all, fields(
+    #[tracing::instrument(level = "trace", skip_all, fields(
         %product,
         %release,
         %package,

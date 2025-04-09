@@ -195,7 +195,7 @@ impl State {
 
         let mut all_proxies = vec![];
         for (id, installation) in &state.repr.installations {
-            let span = span!(Level::TRACE, "all_binary_proxy_names::installation", %id);
+            let span = span!(Level::TRACE, "installation", %id);
             let _entered = span.enter();
 
             let installation_proxies = &installation.binary_proxies;

@@ -4,7 +4,7 @@
 use std::io::IsTerminal;
 
 use tracing_subscriber::{
-    filter::Directive, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
+    filter::Directive, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter
 };
 
 #[derive(clap::Args, Debug)]
@@ -67,12 +67,11 @@ impl Instrumentation {
         S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
     {
         tracing_subscriber::fmt::Layer::new()
+            .compact()
             .with_ansi(std::io::stderr().is_terminal())
             .with_writer(std::io::stderr)
             .without_time()
-            .with_file(self.verbose != 0)
-            .with_line_number(self.verbose != 0)
-            .with_target(self.verbose != 0)
+            .with_target(self.verbose >= 2)
     }
 
     /// Set up a 'pretty' formatter that displays structure span information, timestamps,

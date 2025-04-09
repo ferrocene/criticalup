@@ -22,7 +22,7 @@ use crate::state::State;
 ///   `proxy_binary`, to ensure they all point to the latest available version. This is likely to
 ///   occur after the user updates criticalup.
 ///
-#[tracing::instrument(skip_all, fields(
+#[tracing::instrument(level = "trace", skip_all, fields(
     proxy_binary = %proxy_binary.display()
 ))]
 pub async fn update(
@@ -41,7 +41,7 @@ pub async fn update(
         .into_iter()
         .collect::<HashSet<_>>();
 
-    tracing::debug!(
+    tracing::trace!(
         expected_proxies = expected_proxies.len(),
         "Updating binary proxies"
     );
@@ -119,7 +119,7 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
 
         tracing::debug!(target = %target.display(), "Created binary proxy");
     } else {
-        tracing::debug!(target = %target.display(), "Skipped creating binary proxy, already exists");
+        tracing::trace!(target = %target.display(), "Skipped creating binary proxy, already exists");
     }
 
     Ok(())
@@ -159,6 +159,8 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
         }
     })?;
 
+    tracing::debug!(target = %target.display(), "Created binary proxy");
+
     Ok(())
 }
 
@@ -170,7 +172,7 @@ async fn remove_unexpected(path: &Path) -> Result<(), BinaryProxyUpdateError> {
     };
     match result {
         Ok(()) => {
-            tracing::trace!(path = %path.display(), "Removed unexpected binary proxy");
+            tracing::trace!(path = %path.display(), "Removed binary proxy");
             Ok(())
         }
         Err(err) => Err(BinaryProxyUpdateError::UnexpectedPathRemovalFailed(
