@@ -35,6 +35,7 @@ tracing-subscriber.workspace = true
 url = "2.5.4"
 walkdir.workspace = true
 xz2.workspace = true
+hyper.workspace = true
 
 [dev-dependencies]
 dirs.workspace = true

@@ -23,12 +23,12 @@ serde_with.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 time.workspace = true
-tokio = { version = "1.44.1", features = ["rt", "rt-multi-thread", "macros"], optional = true }
+tokio = { workspace = true, optional = true }
 reqwest.workspace = true
 
 [dev-dependencies]
 itertools = "0.14.0"
-tokio = { version = "1.44.1", features = ["rt", "rt-multi-thread", "macros"] }
+tokio.workspace = true
 
 [features]
 aws-kms = ["aws-sdk-kms", "aws-config", "aws-smithy-runtime-api", "tokio"]

@@ -28,7 +28,7 @@ tar = "0.4.44"
 tempfile = "3"
 thiserror = "2.0.12"
 time = { version = "0.3.41", features = ["std", "serde", "serde-well-known", "macros"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "process", "tracing"] }
 toml_edit = { version = "0.22.24", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = [
@@ -38,6 +38,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 ] }
 walkdir = "2"
 xz2 = "0.1.7"
+hyper = { version = "1", features = ["tracing"] }
 
 [profile.release]
 lto = "thin"

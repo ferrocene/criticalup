@@ -17,6 +17,7 @@ Options:
       --release <RELEASE>           Release version of Ferrocene from https://releases.ferrocene.dev/ferrocene/index.html
       --print                       Only print the contents of manifest instead of saving to file
   -v, --verbose...                  Enable debug logs, -vv for trace
+      --log-format <LOG_FORMAT>     Which logger to use [default: default] [possible values: default, pretty, json]
       --log-level [<LOG_LEVEL>...]  Tracing directives
   -h, --help                        Print help
 ------
