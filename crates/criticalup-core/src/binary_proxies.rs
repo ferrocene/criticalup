@@ -91,12 +91,20 @@ pub async fn update(
 }
 
 // Previously, proxies were located at `root/bin`, now they are at `root/proxy/bin`, remove any remains.
-async fn remove_deprecated_proxies(old: &PathBuf, new: &PathBuf) -> Result<(), BinaryProxyUpdateError> {
+async fn remove_deprecated_proxies(
+    old: &PathBuf,
+    new: &PathBuf,
+) -> Result<(), BinaryProxyUpdateError> {
     let old_bin_dir = old;
     if old_bin_dir.exists() {
-        tracing::info!("Tidying deprecated binary proxies, they are now located at `{}`", new.join("bin").display());
+        tracing::info!(
+            "Tidying deprecated binary proxies, they are now located at `{}`",
+            new.join("bin").display()
+        );
         tracing::info!("You can also now use `rustup toolchain link ferrocene \"{}\"` then use Ferrocene like any other Rust toolchain via `cargo +ferrocene build`", new.display());
-        tokio::fs::remove_dir_all(&old_bin_dir).await.map_err(|e| BinaryProxyUpdateError::DirectoryRemovalFailed(old_bin_dir.clone(), e))?;
+        tokio::fs::remove_dir_all(&old_bin_dir)
+            .await
+            .map_err(|e| BinaryProxyUpdateError::DirectoryRemovalFailed(old_bin_dir.clone(), e))?;
     }
     Ok(())
 }
