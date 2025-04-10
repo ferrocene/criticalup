@@ -174,7 +174,7 @@ pub(crate) enum Error {
 
     #[error("Current directory not found.")]
     CurrentDirectoryNotFound,
- 
+
     #[error("No proxies have been created, it's likely `criticalup install` has not been run")]
     NoProxyDirectory,
 

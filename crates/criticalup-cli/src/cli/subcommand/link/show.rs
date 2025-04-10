@@ -16,9 +16,9 @@ impl CommandExecute for LinkShow {
         let proxy_dir = &ctx.config.paths.proxy_dir;
 
         if !proxy_dir.exists() {
-            return Err(Error::NoProxyDirectory)
+            return Err(Error::NoProxyDirectory);
         }
-        
+
         println!("{}", proxy_dir.display());
         Ok(())
     }

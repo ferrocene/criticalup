@@ -16,11 +16,11 @@ use which::Which;
 
 pub(crate) mod archive;
 pub(crate) mod auth;
-pub(crate) mod link;
 pub(crate) mod clean;
 pub(crate) mod doc;
 pub(crate) mod init;
 pub(crate) mod install;
+pub(crate) mod link;
 pub(crate) mod remove;
 pub(crate) mod run;
 pub(crate) mod verify;

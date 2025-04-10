@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-mod show;
 mod init;
 mod remove;
+mod show;
 
 use crate::cli::CommandExecute;
 use crate::errors::Error;
 use crate::Context;
 use clap::{Parser, Subcommand};
 
-use show::LinkShow;
 use init::LinkCreate;
 use remove::LinkRemove;
+use show::LinkShow;
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum LinkSubcommand {
