@@ -20,6 +20,7 @@ Commands:
   doc      Open the documentation for the current toolchain
   init     Create a manifest file (criticalup.toml) inside current directory
   install  Install the toolchain for the given project based on the manifest `criticalup.toml`
+  link     Show and change authentication with the download server
   remove   Delete all the products specified in the manifest `criticalup.toml`
   run      Run a command for a given toolchain
   verify   Verify a given toolchain
