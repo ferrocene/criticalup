@@ -41,7 +41,6 @@ pub async fn update(
         .into_iter()
         .collect::<HashSet<_>>();
 
-
     tracing::trace!(
         expected_proxies = expected_proxies.len(),
         "Updating binary proxies"
