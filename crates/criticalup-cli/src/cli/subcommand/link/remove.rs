@@ -29,23 +29,23 @@ impl CommandExecute for LinkRemove {
 
         tracing::debug!("Running `{:?}`", rustup_command.as_std());
         let res = rustup_command.output().await;
-        
+
         match res {
             Ok(output) if !output.status.success() => {
                 let command_string = format!("{:?}", rustup_command.as_std());
                 Err(Error::CommandExitNonzero(command_string, output))
             }
-            Err(err) if err.kind() == ErrorKind::NotFound => {
-                Err(Error::RustupMissing)
-            },
+            Err(err) if err.kind() == ErrorKind::NotFound => Err(Error::RustupMissing),
             Err(err) => {
                 let command_string = format!("{:?}", rustup_command.as_std());
                 Err(Error::CommandFailed(command_string, err))
             }
             Ok(_) => {
-                tracing::info!("The `ferrocene` rustup toolchain has been removed, or did not exist");
+                tracing::info!(
+                    "The `ferrocene` rustup toolchain has been removed, or did not exist"
+                );
                 Ok(())
-            },
+            }
         }
     }
 }

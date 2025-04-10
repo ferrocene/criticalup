@@ -30,15 +30,13 @@ impl CommandExecute for LinkCreate {
 
         tracing::debug!("Running `{:?}`", rustup_command.as_std());
         let res = rustup_command.output().await;
-        
+
         match res {
             Ok(output) if !output.status.success() => {
                 let command_string = format!("{:?}", rustup_command.as_std());
                 Err(Error::CommandExitNonzero(command_string, output))
             }
-            Err(err) if err.kind() == ErrorKind::NotFound => {
-                Err(Error::RustupMissing)
-            },
+            Err(err) if err.kind() == ErrorKind::NotFound => Err(Error::RustupMissing),
             Err(err) => {
                 let command_string = format!("{:?}", rustup_command.as_std());
                 Err(Error::CommandFailed(command_string, err))
@@ -46,7 +44,7 @@ impl CommandExecute for LinkCreate {
             Ok(_) => {
                 tracing::info!("You can now use `ferrocene` as a rustup toolchain, for example, `cargo +ferrocene build`");
                 Ok(())
-            },
+            }
         }
     }
 }
