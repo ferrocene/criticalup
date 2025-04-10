@@ -56,21 +56,25 @@ CriticalUp creates a number of 'binary proxies' which can be used to run the app
 binaries for a given workspace. These can be added to your shell path on any OS, or used as a ``rustup``
 toolchain.
 
-As a ``rustup`` toolchain
--------------------------
-
 It's important to note that these binaries share the same binary names as any Rust toolchain that
 may already be installed. If you already have Rust installed (for example, via ``rustup``) you
 should either to remove it, use Ferrocene via ``criticalup run``, or add Ferrocene as a ``rustup``
 toolchain.
 
 Optionally, Ferrocene can be used as a ``rustup`` toolchain that may feel familiar to some developers.
-To set up the toolchain:
+
+As a ``rustup`` toolchain
+-------------------------
+
+If you already have ``rustup`` installed, you can add a ``ferrocene`` toolchain:
 
 .. code-block::
 
    criticalup link create
-   # Or...
+
+Alternatively:
+
+.. code-block::
    rustup toolchain link ferrocene $(criticalup link show)
 
 To verify the link was created, validate there is a 'ferrocene' line in the toolchain list:
