@@ -8,6 +8,7 @@ use clean::Clean;
 use doc::Doc;
 use init::Init;
 use install::Install;
+use link::Link;
 use remove::Remove;
 use run::Run;
 use verify::Verify;
@@ -15,7 +16,7 @@ use which::Which;
 
 pub(crate) mod archive;
 pub(crate) mod auth;
-
+pub(crate) mod link;
 pub(crate) mod clean;
 pub(crate) mod doc;
 pub(crate) mod init;
@@ -33,6 +34,7 @@ pub(crate) enum CriticalupSubcommand {
     Doc(Doc),
     Init(Init),
     Install(Install),
+    Link(Link),
     Remove(Remove),
     Run(Run),
     Verify(Verify),
