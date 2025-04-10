@@ -6,6 +6,7 @@ pub(crate) use criticaltrust::Error as TrustError;
 pub(crate) use criticalup_core::errors::BinaryProxyUpdateError;
 pub(crate) use criticalup_core::errors::Error as LibError;
 use std::path::PathBuf;
+use std::process::Output;
 use std::string::FromUtf8Error as Utf8Error;
 use tokio::task::JoinError;
 
@@ -173,6 +174,19 @@ pub(crate) enum Error {
 
     #[error("Current directory not found.")]
     CurrentDirectoryNotFound,
+ 
+    #[error("No proxies have been created, it's likely `criticalup install` has not been run")]
+    NoProxyDirectory,
+
+    // Rather than a generic "not found" error here, we provide a nice breadcrumb
+    #[error("No `rustup` executable found, either install it from https://rustup.rs/, or add the ouptut of `criticalup link show` to your $PATH")]
+    RustupMissing,
+
+    #[error("Failed to run command `{}`", .0)]
+    CommandFailed(String, #[source] std::io::Error),
+
+    #[error("Non-successful exit for command `{}`, stderr: \n{}", .0, String::from_utf8_lossy(&.1.stderr))]
+    CommandExitNonzero(String, Output),
 
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
