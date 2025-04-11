@@ -75,6 +75,7 @@ If you already have ``rustup`` installed, you can add a ``ferrocene`` toolchain:
 Alternatively:
 
 .. code-block::
+   
    rustup toolchain link ferrocene $(criticalup link show)
 
 To verify the link was created, validate there is a 'ferrocene' line in the toolchain list:
