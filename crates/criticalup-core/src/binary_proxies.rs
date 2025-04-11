@@ -46,9 +46,20 @@ pub async fn update(
         "Updating binary proxies"
     );
 
-    let dir = &config.paths.proxies_dir;
-    let list_dir_error = |e| BinaryProxyUpdateError::ListDirectoryFailed(dir.into(), e);
-    match tokio::fs::read_dir(dir).await {
+    let bin_dir = &config.paths.proxy_dir.join("bin");
+    tokio::fs::create_dir_all(bin_dir)
+        .await
+        .map_err(|e| BinaryProxyUpdateError::DirectoryCreationFailed(bin_dir.clone(), e))?;
+    // Required for `rustup toolchain link`
+    tokio::fs::create_dir_all(config.paths.proxy_dir.join("lib"))
+        .await
+        .map_err(|e| BinaryProxyUpdateError::DirectoryCreationFailed(bin_dir.clone(), e))?;
+
+    // Migrate to new proxy system
+    remove_deprecated_proxies(&config.paths.root.join("bin"), &config.paths.proxy_dir).await?;
+
+    let list_dir_error = |e| BinaryProxyUpdateError::ListDirectoryFailed(bin_dir.into(), e);
+    match tokio::fs::read_dir(bin_dir).await {
         Ok(mut iter) => {
             while let Some(entry) = iter.next_entry().await.map_err(list_dir_error)? {
                 let entry_name = PathBuf::from(entry.file_name());
@@ -70,11 +81,30 @@ pub async fn update(
         tracing::trace!("No new proxies to create")
     } else {
         for proxy in expected_proxies {
-            let target = &config.paths.proxies_dir.join(&proxy);
+            let target = &config.paths.proxy_dir.join("bin").join(&proxy);
             ensure_link(proxy_binary, target).await?;
         }
     }
 
+    Ok(())
+}
+
+// Previously, proxies were located at `root/bin`, now they are at `root/proxy/bin`, remove any remains.
+async fn remove_deprecated_proxies(
+    old: &PathBuf,
+    new: &Path,
+) -> Result<(), BinaryProxyUpdateError> {
+    let old_bin_dir = old;
+    if old_bin_dir.exists() {
+        tracing::info!(
+            "Tidying deprecated binary proxies, they are now located at `{}`",
+            new.join("bin").display()
+        );
+        tracing::info!("You can also now use `rustup toolchain link ferrocene \"{}\"` then use Ferrocene like any other Rust toolchain via `cargo +ferrocene build`", new.display());
+        tokio::fs::remove_dir_all(&old_bin_dir)
+            .await
+            .map_err(|e| BinaryProxyUpdateError::DirectoryRemovalFailed(old_bin_dir.clone(), e))?;
+    }
     Ok(())
 }
 
@@ -105,9 +135,9 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
 
     if should_create {
         if let Some(parent) = target.parent() {
-            tokio::fs::create_dir_all(parent).await.map_err(|e| {
-                BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e)
-            })?;
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| BinaryProxyUpdateError::DirectoryCreationFailed(parent.into(), e))?;
         }
         std::os::unix::fs::symlink(proxy_binary, target).map_err(|e| {
             BinaryProxyUpdateError::SymlinkFailed {
@@ -143,7 +173,7 @@ async fn ensure_link(proxy_binary: &Path, target: &Path) -> Result<(), BinaryPro
     if let Some(parent) = target.parent() {
         tokio::fs::create_dir_all(parent)
             .await
-            .map_err(|e| BinaryProxyUpdateError::ParentDirectoryCreationFailed(parent.into(), e))?;
+            .map_err(|e| BinaryProxyUpdateError::DirectoryCreationFailed(parent.into(), e))?;
     }
 
     // We opt against symlinks on Windows. Many of our users are not on Windows 11 which does
@@ -303,7 +333,7 @@ mod tests {
             let expected_proxy_content = std::fs::read(expected_proxy).unwrap();
 
             let mut found_proxies = Vec::new();
-            for file in config.paths.proxies_dir.read_dir().unwrap() {
+            for file in config.paths.proxy_dir.join("bin").read_dir().unwrap() {
                 let file = file.unwrap().path();
                 found_proxies.push(file.file_name().unwrap().to_str().unwrap().to_string());
 
@@ -386,16 +416,16 @@ mod tests {
         let state = test_env.state();
 
         // If the directory does not exist, the `.is_dir()` method fails to recognize it's a dir.
-        tokio::fs::create_dir_all(&test_env.config().paths.proxies_dir)
+        tokio::fs::create_dir_all(&test_env.config().paths.proxy_dir.join("bin"))
             .await
             .unwrap();
-        assert!(test_env.config().paths.proxies_dir.exists());
+        assert!(test_env.config().paths.proxy_dir.join("bin").exists());
 
         assert!(matches!(
             update(
                 test_env.config(),
                 state,
-                &test_env.config().paths.proxies_dir
+                &test_env.config().paths.proxy_dir.join("bin")
             )
             .await,
             Err(BinaryProxyUpdateError::ProxyBinaryShouldNotBeDir(_))

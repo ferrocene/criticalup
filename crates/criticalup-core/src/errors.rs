@@ -192,8 +192,10 @@ pub enum BinaryProxyUpdateError {
         #[source]
         inner: std::io::Error,
     },
-    #[error("Failed to create the parent directory {}.", .0.display())]
-    ParentDirectoryCreationFailed(PathBuf, #[source] std::io::Error),
+    #[error("Failed to create the directory {}.", .0.display())]
+    DirectoryCreationFailed(PathBuf, #[source] std::io::Error),
+    #[error("Failed to remove the directory {}.", .0.display())]
+    DirectoryRemovalFailed(PathBuf, #[source] std::io::Error),
     #[error(
         "The path of the proxy binary provided is a directory but needs to be a file or symlink."
     )]

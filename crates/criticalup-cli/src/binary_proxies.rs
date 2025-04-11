@@ -70,7 +70,13 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
     // `PATH` themselves, but they:
     // 1) Shouldn't do that, and
     // 2) Can set `RUSTC` which `cargo` already supports.
-    let additional_bin_path = config.paths.proxies_dir.clone();
+    let additional_bin_path = config
+        .paths
+        .installation_dir
+        .clone()
+        .join(&installation_id)
+        .join("bin")
+        .clone();
     // We need to also set the library path according to
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html#dynamic-library-paths
     // Notably: On Windows this is the same as the binary path.
@@ -78,7 +84,7 @@ pub(crate) async fn proxy(whitelabel: WhitelabelConfig) -> Result<(), Error> {
         .paths
         .installation_dir
         .clone()
-        .join(installation_id)
+        .join(&installation_id)
         .join("lib");
 
     #[cfg(target_os = "macos")]
