@@ -6,32 +6,21 @@
 name: Docs
 run-name: Docs
 
-# Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-permissions:
-  pages: write      # to deploy to Pages
-  id-token: write   # to verify the deployment originates from an appropriate source
-
 on:
   workflow_call:
     inputs:
-      deploy:
-        type: boolean
-        default: false
-        description: If the docs should be uploaded as a pages artifact
-    outputs:
-      run-id:
-        description: The id of the workflow run
-        value: ${{ github.run_id }}
-  workflow_dispatch:
-    inputs:
-      deploy:
+      upload-pages-artifact:
         type: boolean
         default: false
         description: If the docs should be uploaded as a pages artifact
       ref:
         type: string
         required: false
-        description: The ref to deploy
+        description: The ref to build docs for
+    outputs:
+      run-id:
+        description: The id of the workflow run
+        value: ${{ github.run_id }}
 
 jobs:
   docs:
@@ -43,8 +32,6 @@ jobs:
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref || '' }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
@@ -62,25 +49,7 @@ jobs:
         run: uvx flake8 . --exclude .venv
 
       - name: Upload GitHub Pages artifact
-        if: ${{ inputs.deploy }}
+        if: ${{ inputs.upload-pages-artifact }}
         uses: actions/upload-pages-artifact@v3
         with:
             path: docs/build/html
-
-  deploy-docs:
-    name: Deploy documentation
-    runs-on: ubuntu-latest
-    if: ${{ inputs.deploy }}
-    needs:
-        - docs
-    environment:
-        name: github-pages
-        url: ${{ steps.github-pages.outputs.page_url }}
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-    permissions:
-        pages: write      # to deploy to Pages
-        id-token: write   # to verify the deployment originates from an appropriate source
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        id: github-pages
