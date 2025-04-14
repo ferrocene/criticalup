@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-mod init;
+mod create;
 mod remove;
 mod show;
 
@@ -10,7 +10,7 @@ use crate::errors::Error;
 use crate::Context;
 use clap::{Parser, Subcommand};
 
-use init::LinkCreate;
+use create::LinkCreate;
 use remove::LinkRemove;
 use show::LinkShow;
 
