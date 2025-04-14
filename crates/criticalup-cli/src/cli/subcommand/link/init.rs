@@ -9,7 +9,7 @@ use crate::Context;
 use clap::Parser;
 use tokio::process::Command;
 
-/// Remove the authentication token used to interact with the download server
+/// Run a `rustup toolchain link` command to create a `ferrocene` toolchain
 #[derive(Debug, Parser)]
 pub(crate) struct LinkCreate;
 

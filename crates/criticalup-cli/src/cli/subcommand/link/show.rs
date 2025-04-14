@@ -6,7 +6,7 @@ use crate::errors::Error;
 use crate::Context;
 use clap::Parser;
 
-/// Remove the authentication token used to interact with the download server
+/// Output the path of the binary proxies
 #[derive(Debug, Parser)]
 pub(crate) struct LinkShow;
 
