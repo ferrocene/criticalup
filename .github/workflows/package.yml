@@ -8,9 +8,10 @@ name: Package
 on:
   workflow_call:
     inputs:
-      glibc:
-        type: string
-        description: (Linux only) The glibc version to use
+      sign:
+        type: boolean
+        default: false
+        description: If we should sign the Windows binary
     outputs:
       run-id:
         description: The id of the workflow run
@@ -54,6 +55,7 @@ jobs:
 
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
+        if: ${{ inputs.sign }}
         with:
           # CodeSignTool Commands:
           # - get_credential_ids: Output the list of eSigner credential IDs associated with a particular user.

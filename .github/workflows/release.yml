@@ -40,6 +40,8 @@ jobs:
   package:
     secrets: inherit
     uses: ./.github/workflows/package.yml
+    with:
+      sign: true
 
   release:
     runs-on: ubuntu-latest
