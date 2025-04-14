@@ -147,7 +147,7 @@ jobs:
   docs:
     uses: ./.github/workflows/docs.yml
     secrets: inherit
-    
+
   build-finished:
     name: CI build successful
     runs-on: ubuntu-latest
@@ -156,6 +156,7 @@ jobs:
       - build
       - integration-test
       - docs
+      - license
     steps:
       - name: Mark the build as successful
         run: exit 0
