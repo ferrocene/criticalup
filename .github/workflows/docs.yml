@@ -6,6 +6,11 @@
 name: Docs
 run-name: Docs
 
+# Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+permissions:
+  pages: write      # to deploy to Pages
+  id-token: write   # to verify the deployment originates from an appropriate source
+
 on:
   workflow_call:
     inputs:
@@ -32,6 +37,9 @@ jobs:
   docs:
     name: Build documentation
     runs-on: ubuntu-22.04
+    permissions:
+      pages: none
+      id-token: none
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
@@ -61,6 +69,7 @@ jobs:
 
   deploy-docs:
     name: Deploy documentation
+    runs-on: ubuntu-latest
     if: ${{ inputs.deploy }}
     needs:
         - docs
@@ -71,7 +80,6 @@ jobs:
     permissions:
         pages: write      # to deploy to Pages
         id-token: write   # to verify the deployment originates from an appropriate source
-    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
