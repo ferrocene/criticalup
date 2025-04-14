@@ -104,15 +104,17 @@ jobs:
         run: |
           ./criticalup install
 
-      - name: Run test workflow
+      - name: Create toolchain link
+        working-directory: crab-boil
+        run: |
+          ./criticalup link create
+      
+      - name: Run `criticalup run` test workflow
         working-directory: crab-boil
         run: |
           ./criticalup run -- cargo init
-          
           ./criticalup run -- cargo build
-          
           ./criticalup run -- cargo run
-
           ./criticalup which rustc
 
       # Windows allows the `.exe` or not, at the users option.
@@ -124,11 +126,22 @@ jobs:
             ./criticalup run -- cargo.exe --version
             ./criticalup.exe run -- cargo.exe --version
 
+      - name: Run `cargo +ferrocene` test workflow
+        working-directory: crab-boil
+        run: |
+          cargo +ferrocene init
+          cargo +ferrocene build
+          cargo +ferrocene run
+
+      - name: Remove toolchain link
+        working-directory: crab-boil
+        run: |
+          ./criticalup link remove
+  
       - name: Run test cleanup workflow
         working-directory: crab-boil
         run: |
           ./criticalup remove
-
           ./criticalup clean
 
 
