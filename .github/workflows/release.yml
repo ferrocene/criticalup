@@ -43,11 +43,18 @@ jobs:
     with:
       sign: true
 
+  docs:
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
+    with:
+      deploy: true
+
   release:
     runs-on: ubuntu-latest
     needs:
       - build
       - package
+      - docs
     steps:
       - uses: actions/checkout@v4
       

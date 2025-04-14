@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: Docs
+run-name: Docs
+
+on:
+  workflow_call:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
+        description: If the docs should be uploaded as a pages artifact
+    outputs:
+      run-id:
+        description: The id of the workflow run
+        value: ${{ github.run_id }}
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
+        description: If the docs should be uploaded as a pages artifact
+
+jobs:
+  docs:
+    name: Build documentation
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build documentation and check links
+        working-directory: ./docs
+        run: ./make.py --check-links
+
+      - name: Verify Python code formatting
+        working-directory: ./docs
+        run: uvx black . --check --diff --color
+
+      - name: Lint Python code with flake8
+        working-directory: ./docs
+        run: uvx flake8 . --exclude .venv
+
+      - name: Upload GitHub Pages artifact
+        if: ${{ inputs.deploy }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+            path: docs/build/html
+
+  deploy-docs:
+    name: Deploy documentation
+    if: ${{ inputs.deploy }}
+    needs:
+        - docs
+    environment:
+        name: github-pages
+        url: ${{ steps.github-pages.outputs.page_url }}
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+        pages: write      # to deploy to Pages
+        id-token: write   # to verify the deployment originates from an appropriate source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        id: github-pages
