@@ -41,7 +41,6 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/package.yml
     with:
-      glibc: "2.32"
       sign: true
 
   release:
