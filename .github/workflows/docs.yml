@@ -32,6 +32,8 @@ jobs:
     steps:
       - name: Checkout the source code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || '' }}
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
