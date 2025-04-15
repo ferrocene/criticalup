@@ -21,7 +21,7 @@ pub(crate) enum LinkSubcommand {
     Remove(LinkRemove),
 }
 
-/// Show and change authentication with the download server
+/// Manage `rustup` toolchain linking support
 #[derive(Debug, Parser)]
 pub(crate) struct Link {
     #[command(subcommand)]
@@ -33,7 +33,7 @@ impl CommandExecute for Link {
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         match self.command {
             LinkSubcommand::Show(show) => return show.execute(ctx).await,
-            LinkSubcommand::Create(init) => return init.execute(ctx).await,
+            LinkSubcommand::Create(create) => return create.execute(ctx).await,
             LinkSubcommand::Remove(remove) => return remove.execute(ctx).await,
         }
     }
