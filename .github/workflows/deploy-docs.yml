@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: Docs
+run-name: Docs
+
+permissions:
+  pages: write      # to deploy to Pages
+  id-token: write   # to verify the deployment originates from an appropriate source
+
+on:
+  workflow_call: {}
+  workflow_dispatch:
+    inputs:
+      ref:
+        type: string
+        required: false
+        description: The ref to build docs for
+
+jobs:
+  docs:
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
+    with:
+      ref: ${{ inputs.ref }}
+      upload-pages-artifact: true
+
+  deploy-docs:
+    name: Deploy documentation
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.github-pages.outputs.page_url }}
+    steps:
+    - name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
+      id: github-pages

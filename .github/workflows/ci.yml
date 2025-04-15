@@ -145,48 +145,8 @@ jobs:
         run: reuse lint
 
   docs:
-    name: Build documentation
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout the source code
-        uses: actions/checkout@v4
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Build documentation and check links
-        working-directory: ./docs
-        run: ./make.py --check-links
-
-      - name: Verify Python code formatting
-        working-directory: ./docs
-        run: uvx black . --check --diff --color
-
-      - name: Lint Python code with flake8
-        working-directory: ./docs
-        run: uvx flake8 . --exclude .venv
-
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/build/html
-
-  deploy-docs:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    needs:
-      - docs
-    environment:
-      name: github-pages
-      url: ${{ steps.github-pages.outputs.page_url }}
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
-    permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
-        id: github-pages
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
 
   build-finished:
     name: CI build successful
@@ -196,7 +156,7 @@ jobs:
       - build
       - integration-test
       - docs
-      - deploy-docs
+      - license
     steps:
       - name: Mark the build as successful
         run: exit 0

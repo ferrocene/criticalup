@@ -10,8 +10,9 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 permissions:
-  # Allow write access to the source code to enable release publishing.
-  contents: write
+  contents: write   # Allow write access to the source code to enable release publishing.
+  pages: write      # to deploy to Pages
+  id-token: write   # to verify the deployment originates from an appropriate source
 
 jobs:
   # We don't matrix this so each job's outputs can be referred to individually without hacks
@@ -43,11 +44,16 @@ jobs:
     with:
       sign: true
 
+  deploy-docs:
+    secrets: inherit
+    uses: ./.github/workflows/deploy-docs.yml
+
   release:
     runs-on: ubuntu-latest
     needs:
       - build
       - package
+      - deploy-docs
     steps:
       - uses: actions/checkout@v4
       

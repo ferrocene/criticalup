@@ -1,0 +1,57 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: Docs
+run-name: Docs
+
+on:
+  workflow_call:
+    inputs:
+      upload-pages-artifact:
+        type: boolean
+        default: false
+        description: If the docs should be uploaded as a pages artifact
+      ref:
+        type: string
+        required: false
+        description: The ref to build docs for
+    outputs:
+      run-id:
+        description: The id of the workflow run
+        value: ${{ github.run_id }}
+
+jobs:
+  docs:
+    name: Build documentation
+    runs-on: ubuntu-22.04
+    permissions:
+      pages: none
+      id-token: none
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || '' }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build documentation and check links
+        working-directory: ./docs
+        run: ./make.py --check-links
+
+      - name: Verify Python code formatting
+        working-directory: ./docs
+        run: uvx black . --check --diff --color
+
+      - name: Lint Python code with flake8
+        working-directory: ./docs
+        run: uvx flake8 . --exclude .venv
+
+      - name: Upload GitHub Pages artifact
+        if: ${{ inputs.upload-pages-artifact }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+            path: docs/build/html
