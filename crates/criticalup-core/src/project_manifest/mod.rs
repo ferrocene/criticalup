@@ -253,7 +253,7 @@ fn load_inner(path: &Path) -> Result<ProjectManifest, ProjectManifestLoadingErro
 
     // We must fail if the project manifest contains empty packages list for any product.
     for product in &products {
-        if product.packages.len() == 0 {
+        if product.packages.is_empty() {
             return Err(
                 ProjectManifestLoadingError::MissingPackagesInManifestProduct {
                     product_name: product.name.to_string(),
