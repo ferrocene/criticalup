@@ -129,7 +129,6 @@ jobs:
       - name: Run `cargo +ferrocene` test workflow
         working-directory: crab-boil
         run: |
-          cargo +ferrocene init
           cargo +ferrocene build
           cargo +ferrocene run
 
