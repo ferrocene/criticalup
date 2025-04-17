@@ -4,15 +4,19 @@
 ---
 
 name: "Use Ferrocene"
-description: "Use Ferrocene instead of Rustup"
+description: "Use Ferrocene"
 inputs:
   token:
     description: The CriticalUp token to use (use a GHA Secret)
     required: true
-  uninstall-rust:
-    description: If Rust should be uninstalled as well, ensuring only Ferrocene is used.
+  uninstall-rustup:
+    description: "If `rustup` should be uninstalled as well, ensuring only Ferrocene can be used (conflicts with `toolchain-link: true`)"
     required: false
     default: "false"
+  toolchain-link:
+    description: "If a `rustup` toolchain should be configured, allowing, for example `cargo +ferrocene build` (conflicts with `uninstall-rustup: true`)"
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -23,6 +27,7 @@ runs:
       run: |
         rm -rf ~/.rustup
         rm -rf ~/.cargo
+
     - name: Install Ferrocene
       shell: bash
       run: |
@@ -30,21 +35,27 @@ runs:
         criticalup auth set ${{ inputs.token }}
         criticalup install
 
+    - name: Link `ferrocene` toolchain in `rustup`
+      if: ${{ inputs.toolchain-link == 'true' }}
+      shell: bash
+      run: |
+        criticalup link create
+
     - name: Add Ferrocene to path
       shell: bash
       run: |
-        ${{ runner.os == 'Linux' && 'echo "Adding to bash path: $HOME/.local/share/criticalup/bin"' || '' }}
-        ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/bin" >> $GITHUB_PATH' || '' }}
+        ${{ runner.os == 'Linux' && 'echo "Adding to bash path: $HOME/.local/share/criticalup/proxy/bin"' || '' }}
+        ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
         
-        ${{ runner.os == 'Windows' && 'echo "Adding to bash path: $HOME/AppData/Roaming/criticalup/bin"' || '' }}
-        ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/bin" >> $GITHUB_PATH' || '' }}
+        ${{ runner.os == 'Windows' && 'echo "Adding to bash path: $HOME/AppData/Roaming/criticalup/proxy/bin"' || '' }}
+        ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
         
-        ${{ runner.os == 'macOS' && 'echo "Adding to bash path: $HOME/Library/Application Support/criticalup/bin"' || '' }}
-        ${{ runner.os == 'macOS' && 'echo "$HOME/Library/Application Support/criticalup/bin" >> $GITHUB_PATH' || '' }}
+        ${{ runner.os == 'macOS' && 'echo "Adding to bash path: $HOME/Library/Application Support/criticalup/proxy/bin"' || '' }}
+        ${{ runner.os == 'macOS' && 'echo "$HOME/Library/Application Support/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
 
     - name: Add Ferrocene to path
       shell: pwsh
       if: ${{ runner.os == 'Windows' }}
       run: |
-        echo "Adding to Powershell path: $HOME/AppData/Roaming/criticalup/bin"
-        echo "$HOME/AppData/Roaming/criticalup/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        echo "Adding to Powershell path: $HOME/AppData/Roaming/criticalup/proxy/bin"
+        echo "$HOME/AppData/Roaming/criticalup/proxy/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
