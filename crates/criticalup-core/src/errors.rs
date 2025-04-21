@@ -26,6 +26,9 @@ pub enum Error {
         kind: DownloadServerError,
     },
 
+    #[error("Invalid authentication token provided.")]
+    InvalidAuthenicationToken,
+
     #[error("Network access required, but in offline mode.")]
     OfflineMode,
 
@@ -130,9 +133,17 @@ pub enum DownloadServerError {
     #[error("The contents in the response from the download server were not expected.")]
     UnexpectedResponseData(#[source] serde_json::Error),
     #[error("Failed to send the network request.")]
-    Network(#[source] reqwest::Error),
+    Network(
+        #[source]
+        #[from]
+        reqwest::Error,
+    ),
     #[error("Failed to send the network request.")]
-    NetworkWithMiddleware(#[source] reqwest_middleware::Error),
+    NetworkWithMiddleware(
+        #[source]
+        #[from]
+        reqwest_middleware::Error,
+    ),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,35 +1,41 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use std::fmt::Display;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::config::Config;
 use crate::envvars;
 use crate::errors::{DownloadServerError, Error};
-use crate::state::State;
+use crate::state::{AuthenticationToken, State};
 use criticaltrust::keys::PublicKey;
+use criticaltrust::manifests::ReleaseArtifactFormat;
 use criticaltrust::manifests::ReleaseManifest;
-use criticaltrust::manifests::{KeysManifest, ReleaseArtifactFormat};
 use criticaltrust::signatures::Keychain;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::StatusCode;
-use reqwest::{Response, Url};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder};
+use reqwest::{IntoUrl, Request, Response};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
+use sha2::Digest;
+use tokio::fs::{self, create_dir_all};
 
 const CLIENT_MAX_RETRIES: u32 = 5;
 
 pub struct DownloadServerClient {
+    cache_dir: PathBuf,
     base_url: String,
     client: ClientWithMiddleware,
     state: State,
     trust_root: PublicKey,
+    connectivity: Connectivity,
 }
 
 impl DownloadServerClient {
-    pub fn new(config: &Config, state: &State) -> Self {
+    pub fn new(config: &Config, state: &State, connectivity: Connectivity) -> Self {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(CLIENT_MAX_RETRIES);
         let client = reqwest::ClientBuilder::new()
             .user_agent(config.whitelabel.http_user_agent)
@@ -51,24 +57,153 @@ impl DownloadServerClient {
             client,
             state: state.clone(),
             trust_root: config.whitelabel.trust_root.clone(),
+            cache_dir: config.paths.cache_dir.clone(),
+            connectivity,
         }
     }
 
     pub async fn get_current_token_data(&self) -> Result<CurrentTokenData, Error> {
-        self.json(
-            self.send_with_auth(self.client.get(self.url("/v1/tokens/current")))
-                .await?,
-        )
-        .await
+        let url = self.url("/v1/tokens/current");
+
+        let mut req = self.client.get(&url);
+        if let Some(auth_token) = self.auth_token().await? {
+            req = req.header(AUTHORIZATION, auth_token);
+        } else {
+            return Err(Error::DownloadServerError {
+                url: url.clone(),
+                kind: DownloadServerError::AuthenticationFailed,
+            });
+        }
+
+        let resp = req.send().await.map_err(|e| Error::DownloadServerError {
+            url: url.clone(),
+            kind: DownloadServerError::NetworkWithMiddleware(e),
+        })?;
+        match resp.status() {
+            StatusCode::OK => {
+                let data = resp.bytes().await?;
+                let token_data = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
+                Ok(token_data)
+            }
+            _ => Err(unexpected_status(url, resp)),
+        }
+    }
+
+    fn keys_cache_path(&self) -> PathBuf {
+        self.cache_dir.join("keys.json")
+    }
+
+    fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
+        self.product_release_cache_path(product, release)
+            .join("manifest.json")
+    }
+
+    fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
+        self.cache_dir.join("artifacts").join(product).join(release)
+    }
+
+    fn package_cache_path(
+        &self,
+        product: &str,
+        release: &str,
+        package: &str,
+        format: ReleaseArtifactFormat,
+    ) -> PathBuf {
+        self.product_release_cache_path(product, release).join({
+            let mut file_name = PathBuf::from(package);
+            file_name.set_extension(format.to_string());
+            file_name
+        })
+    }
+
+    async fn cacheable(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
+        let cache_hit = cache_key.exists();
+
+        let data = if self.connectivity == Connectivity::Offline {
+            if cache_hit {
+                fs::read(&cache_key)
+                    .await
+                    .map_err(|e| Error::Read(cache_key, e))?
+            } else {
+                return Err(Error::OfflineMode);
+            }
+        } else {
+            let req = self.cacheable_request(&url, &cache_key, cache_hit).await?;
+
+            let resp = self
+                .client
+                .execute(req)
+                .await
+                .map_err(|e| Error::DownloadServerError {
+                    url: url.clone(),
+                    kind: DownloadServerError::NetworkWithMiddleware(e),
+                })?;
+
+            match resp.status() {
+                StatusCode::OK => {
+                    tracing::trace!(status = %resp.status(), "Downloading");
+                    let data = resp.bytes().await?;
+                    if let Some(parent) = cache_key.parent() {
+                        create_dir_all(parent)
+                            .await
+                            .map_err(|e| Error::Create(parent.to_path_buf(), e))?;
+                    }
+                    fs::write(&cache_key, &data)
+                        .await
+                        .map_err(|e| Error::Write(cache_key, e))?;
+                    data.to_vec()
+                }
+                StatusCode::NOT_MODIFIED => {
+                    tracing::trace!(status = %resp.status(), "Cache is fresh & valid");
+                    fs::read(&cache_key)
+                        .await
+                        .map_err(|e| Error::Read(cache_key, e))?
+                }
+                _ => {
+                    tracing::trace!(status = %resp.status(), "Unexpected status");
+                    return Err(unexpected_status(url, resp));
+                }
+            }
+        };
+
+        Ok(data)
+    }
+
+    async fn cacheable_request(
+        &self,
+        url: impl IntoUrl,
+        cache_key: impl AsRef<Path>,
+        cache_hit: bool,
+    ) -> Result<Request, Error> {
+        let cache_key = cache_key.as_ref();
+        let mut req = self.client.get(url);
+        if let Some(auth_token) = self.auth_token().await? {
+            req = req.header(AUTHORIZATION, auth_token);
+        }
+        if cache_hit {
+            let cache_content = fs::read(cache_key)
+                .await
+                .map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
+            let mut hasher = md5::Md5::new();
+            hasher.update(cache_content);
+            let etag_md5 = format!(r#""{:x}""#, hasher.finalize());
+            req = req.header("If-None-Match", HeaderValue::from_str(&etag_md5).unwrap());
+            tracing::trace!(cache_key = %cache_key.display(), etag = %etag_md5, "Got cached");
+        }
+        let req_built = req.build()?;
+        Ok(req_built)
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
-    pub async fn get_keys(&self) -> Result<Keychain, Error> {
-        let resp: KeysManifest = self
-            .json(self.send(self.client.get(self.url("/v1/keys"))).await?)
-            .await?;
+    pub async fn keys(&self) -> Result<Keychain, Error> {
+        let url = self.url("/v1/keys");
+        let cache_key = self.keys_cache_path();
+
+        let data = self.cacheable(url, cache_key).await?;
+        let keys_manifest = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
+
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
-        let _ = keychain.load_all(&resp);
+        let _ = keychain.load_all(&keys_manifest);
         Ok(keychain)
     }
 
@@ -76,17 +211,17 @@ impl DownloadServerClient {
         %product,
         %release,
     ))]
-    pub async fn get_product_release_manifest(
+    pub async fn product_release_manifest(
         &self,
         product: &str,
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
-        let p = format!("/v1/releases/{product}/{release}");
-        self.json(
-            self.send_with_auth(self.client.get(self.url(p.as_str())))
-                .await?,
-        )
-        .await
+        let url = self.url(&format!("/v1/releases/{product}/{release}"));
+        let cache_key = self.product_release_manifest_cache_path(product, release);
+
+        let data = self.cacheable(url, cache_key).await?;
+
+        serde_json::from_slice(&data).map_err(Error::JsonSerialization)
     }
 
     #[tracing::instrument(level = "trace", skip_all, fields(
@@ -95,7 +230,7 @@ impl DownloadServerClient {
         %package,
         %format
     ))]
-    pub async fn download_package(
+    pub async fn package(
         &self,
         product: &str,
         release: &str,
@@ -103,31 +238,23 @@ impl DownloadServerClient {
         format: ReleaseArtifactFormat,
     ) -> Result<Vec<u8>, Error> {
         let artifact_format = format.to_string();
-
-        let download_url =
-            format!("/v1/releases/{product}/{release}/download/{package}/{artifact_format}");
+        let url = self.url(&format!(
+            "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
+        ));
+        let cache_key = self.package_cache_path(product, release, package, format);
 
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
-        let response = self
-            .send_with_auth(self.client.get(self.url(download_url.as_str())))
-            .await?;
-        let resp_body = response.bytes().await?.to_vec();
-        Ok(resp_body)
+        let data = self.cacheable(url, cache_key).await?;
+
+        Ok(data)
     }
 
     fn url(&self, path: &str) -> String {
         format!("{}{path}", self.base_url)
     }
 
-    async fn send_with_auth(&self, builder: RequestBuilder) -> Result<Response, Error> {
-        // We're constructing the `HeaderValue` manually instead of using the `bearer_token` method
-        // of `RequestBuilder` as the latter panics when it receives a token not representable
-        // inside HTTP headers (for example containing the `\r` byte).
-        //
-        // If the token contains such chars treat the authentication as failed due to an invalid
-        // token, as the server wouldn't be able to validate it either anyway.
-
-        let token_from_env = envvars::EnvVars::new()
+    async fn auth_token(&self) -> Result<Option<HeaderValue>, Error> {
+        let token_from_env: Option<AuthenticationToken> = envvars::EnvVars::new()
             .criticalup_token
             .map(|item| item.into());
 
@@ -146,66 +273,42 @@ impl DownloadServerClient {
             _ => None,
         };
 
-        let header = token
-            .as_ref()
-            .and_then(|token| HeaderValue::from_str(&format!("Bearer {}", token.unseal())).ok());
-
-        match header {
-            Some(header) => self.send(builder.header(AUTHORIZATION, header)).await,
-            None => Err(self.err_from_request(builder, DownloadServerError::AuthenticationFailed)),
+        if let Some(token) = token {
+            Ok(Some(
+                HeaderValue::from_str(&format!("Bearer {}", token.unseal()))
+                    .map_err(|_| Error::InvalidAuthenicationToken)?,
+            ))
+        } else {
+            Ok(None)
         }
     }
+}
 
-    async fn send(&self, builder: RequestBuilder) -> Result<Response, Error> {
-        let req = builder.build().expect("failed to prepare the http request");
-        let url = req.url().to_string();
+fn unexpected_status(url: String, response: Response) -> Error {
+    let kind = match response.status() {
+        StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
+        StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
+        StatusCode::NOT_FOUND => DownloadServerError::NotFound,
+        StatusCode::TOO_MANY_REQUESTS => DownloadServerError::RateLimited,
 
-        let response_result = self.client.execute(req).await;
+        s if s.is_server_error() => DownloadServerError::InternalServerError(s),
+        s => DownloadServerError::UnexpectedResponseStatus(s),
+    };
+    Error::DownloadServerError { url, kind }
+}
 
-        let response = response_result.map_err(|e| Error::DownloadServerError {
-            kind: DownloadServerError::NetworkWithMiddleware(e),
-            url,
-        })?;
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
+pub enum Connectivity {
+    #[default]
+    Online,
+    Offline,
+}
 
-        Err(self.err_from_response(
-            response.url(),
-            match response.status() {
-                StatusCode::OK => return Ok(response),
-
-                StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
-                StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
-                StatusCode::NOT_FOUND => DownloadServerError::NotFound,
-                StatusCode::TOO_MANY_REQUESTS => DownloadServerError::RateLimited,
-
-                s if s.is_server_error() => DownloadServerError::InternalServerError(s),
-                s => DownloadServerError::UnexpectedResponseStatus(s),
-            },
-        ))
-    }
-
-    async fn json<T: for<'de> Deserialize<'de>>(&self, response: Response) -> Result<T, Error> {
-        let url = response.url().clone();
-        response
-            .json()
-            .await
-            .map_err(|e| self.err_from_response(&url, DownloadServerError::Network(e)))
-    }
-
-    fn err_from_request(&self, builder: RequestBuilder, kind: DownloadServerError) -> Error {
-        Error::DownloadServerError {
-            kind,
-            url: builder
-                .build()
-                .expect("failed to prepare the http request")
-                .url()
-                .to_string(),
-        }
-    }
-
-    fn err_from_response(&self, url: &Url, kind: DownloadServerError) -> Error {
-        Error::DownloadServerError {
-            kind,
-            url: url.to_string(),
+impl Display for Connectivity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Connectivity::Offline => f.write_str("Offline"),
+            Connectivity::Online => f.write_str("Online"),
         }
     }
 }
@@ -229,6 +332,41 @@ mod tests {
     };
     use criticaltrust::keys::KeyPair;
     use criticaltrust::signatures::PublicKeysRepository;
+    use md5::Md5;
+    use reqwest::header::IF_NONE_MATCH;
+    use tokio::fs::write;
+
+    #[tokio::test]
+    async fn test_cacheable_requests_set_if_none_match() {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+
+        let test_path = test_env.config().paths.cache_dir.join("tester");
+        let test_url = test_env.download_server().url("/tester");
+
+        // Does not yet exist
+        let req = test_env
+            .download_server()
+            .cacheable_request(&test_url, &test_path, false)
+            .await
+            .unwrap();
+        assert!(req.headers().get(IF_NONE_MATCH).is_none());
+
+        // Create it, so we should include the header
+        let test_slug = "Cute dogs with boopable snoots";
+        let mut hasher = Md5::new();
+        hasher.update(test_slug);
+        let test_hash = HeaderValue::from_str(&format!(r#""{:x}""#, hasher.finalize())).unwrap();
+        if let Some(parent) = test_path.parent() {
+            create_dir_all(parent).await.unwrap()
+        }
+        write(&test_path, test_slug).await.unwrap();
+        let req = test_env
+            .download_server()
+            .cacheable_request(&test_url, &test_path, true)
+            .await
+            .unwrap();
+        assert_eq!(req.headers().get(IF_NONE_MATCH), Some(&test_hash));
+    }
 
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
@@ -255,7 +393,15 @@ mod tests {
         test_env
             .state()
             .set_authentication_token(Some(AuthenticationToken::seal("wrong\0")));
-        assert_auth_failed(&test_env).await;
+
+        assert!(matches!(
+            test_env
+                .download_server()
+                .get_current_token_data()
+                .await
+                .unwrap_err(),
+            Error::InvalidAuthenicationToken,
+        ));
 
         // No request was actually made since the authentication token can't be represented in
         // HTTP headers.
@@ -289,7 +435,15 @@ mod tests {
         test_env.state().set_authentication_token(None); // The endpoint requires no authentication.
 
         let keys = test_env.keys();
-        let keychain = test_env.download_server().get_keys().await.unwrap();
+
+        let keychain = test_env.download_server().keys().await.unwrap();
+        assert_eq!(
+            *test_env
+                .response_status_codes_by_mock_download_server()
+                .last()
+                .unwrap(),
+            200,
+        );
 
         for expected_present in &[
             // Trust root included from the whitelabel config
@@ -316,6 +470,15 @@ mod tests {
                 .get(&expected_missing.public().calculate_id())
                 .is_none());
         }
+
+        let _ = test_env.download_server().keys().await.unwrap();
+        assert_eq!(
+            *test_env
+                .response_status_codes_by_mock_download_server()
+                .last()
+                .unwrap(),
+            304,
+        );
     }
 
     async fn assert_auth_failed(test_env: &TestEnvironment) {

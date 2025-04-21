@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::config::Config;
-use crate::download_server_client::DownloadServerClient;
+use crate::download_server_client::{Connectivity, DownloadServerClient};
 use crate::state::{AuthenticationToken, State};
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use criticaltrust::signatures::SignedPayload;
@@ -66,6 +66,15 @@ impl TestEnvironment {
             .as_ref()
             .expect("download server not prepared")
             .served_requests_count()
+    }
+
+    pub(crate) fn response_status_codes_by_mock_download_server(
+        &self,
+    ) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
+        self.mock_server
+            .as_ref()
+            .expect("download server not prepared")
+            .response_status_codes()
     }
 }
 
@@ -149,7 +158,11 @@ impl TestEnvironmentBuilder {
         };
 
         let download_server = if self.download_server {
-            Some(DownloadServerClient::new(&config, state.as_ref().unwrap()))
+            Some(DownloadServerClient::new(
+                &config,
+                state.as_ref().unwrap(),
+                Connectivity::Online,
+            ))
         } else {
             None
         };
@@ -165,6 +178,7 @@ impl TestEnvironmentBuilder {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct TestKeys {
     pub(crate) trust_root: EphemeralKeyPair,
     pub(crate) root: EphemeralKeyPair,

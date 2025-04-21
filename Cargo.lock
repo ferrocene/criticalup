@@ -864,6 +864,7 @@ version = "0.0.0"
 dependencies = [
  "criticaltrust",
  "dirs",
+ "md-5",
  "mock-download-server",
  "reqwest",
  "reqwest-middleware",
@@ -1916,6 +1917,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "md-5"
+version = "0.10.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
+dependencies = [
+ "cfg-if",
+ "digest",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1959,6 +1970,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "criticaltrust",
+ "md-5",
  "serde",
  "serde_json",
  "sha2",

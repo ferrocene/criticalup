@@ -7,6 +7,7 @@ use subcommand::CriticalupSubcommand;
 
 use crate::{Context, Error};
 
+pub(crate) mod connectivity;
 pub(crate) mod instrumentation;
 pub(crate) mod subcommand;
 

@@ -8,7 +8,7 @@ use crate::cli::CommandExecute;
 use crate::errors::{Error, LibError};
 use crate::Context;
 use clap::Parser;
-use criticalup_core::download_server_client::DownloadServerClient;
+use criticalup_core::download_server_client::{Connectivity, DownloadServerClient};
 use criticalup_core::errors::DownloadServerError;
 use criticalup_core::state::{AuthenticationToken, State};
 
@@ -23,7 +23,8 @@ impl CommandExecute for AuthSet {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let state = State::load(&ctx.config).await?;
-        let download_server = DownloadServerClient::new(&ctx.config, &state);
+
+        let download_server = DownloadServerClient::new(&ctx.config, &state, Connectivity::Online);
 
         let token = if let Some(token) = self.token {
             token
