@@ -13,7 +13,7 @@ use std::{
 use clap::Parser;
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
-    download_server_cache::DownloadServerCache, download_server_client::DownloadServerClient,
+    download_server_client::DownloadServerClient,
     project_manifest::ProjectManifest, state::State,
 };
 use tempfile::TempDir;
@@ -54,17 +54,12 @@ impl CommandExecute for Archive {
         span.record("project", tracing::field::display(project.display()));
 
         let state = State::load(&ctx.config).await?;
-        let maybe_client = if !self.offline {
-            Some(DownloadServerClient::new(&ctx.config, &state))
-        } else {
-            None
-        };
-        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
-        let keys = cache.keys().await?;
+        let client = DownloadServerClient::new(&ctx.config, &state, self.offline);
+        let keys = client.keys().await?;
 
         let project_manifest = ProjectManifest::load(&project)?;
 
-        archive(cache, &keys, &project_manifest, self.out.as_ref()).await?;
+        archive(client, &keys, &project_manifest, self.out.as_ref()).await?;
 
         Ok(())
     }
@@ -72,7 +67,7 @@ impl CommandExecute for Archive {
 
 #[tracing::instrument(level = "debug", skip_all, fields(product_path))]
 async fn archive(
-    cache: DownloadServerCache<'_>,
+    client: DownloadServerClient,
     keys: &Keychain,
     project_manifest: &ProjectManifest,
     out: Option<&PathBuf>,
@@ -88,7 +83,7 @@ async fn archive(
         let release = product.release();
 
         for package in product.packages() {
-            let package_path = cache
+            let package_path = client
                 .package(
                     product_name,
                     release,
@@ -105,8 +100,7 @@ async fn archive(
     for installable in installables {
         let working_path = working_dir.path().to_path_buf();
         spawn_blocking(move || {
-            let file = std::fs::OpenOptions::new().read(true).open(installable)?;
-            let decoder = xz2::read::XzDecoder::new(file);
+            let decoder = xz2::read::XzDecoder::new(installable.as_slice());
             let mut archive = tar::Archive::new(decoder);
             archive.set_preserve_permissions(true);
             archive.set_preserve_mtime(true);

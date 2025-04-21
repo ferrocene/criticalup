@@ -149,7 +149,7 @@ impl TestEnvironmentBuilder {
         };
 
         let download_server = if self.download_server {
-            Some(DownloadServerClient::new(&config, state.as_ref().unwrap()))
+            Some(DownloadServerClient::new(&config, state.as_ref().unwrap(), false))
         } else {
             None
         };
