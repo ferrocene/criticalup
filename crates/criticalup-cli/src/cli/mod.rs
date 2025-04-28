@@ -35,6 +35,7 @@ impl CommandExecute for Criticalup {
             CriticalupSubcommand::Doc(doc) => doc.execute(ctx).await,
             CriticalupSubcommand::Init(init) => init.execute(ctx).await,
             CriticalupSubcommand::Install(install) => install.execute(ctx).await,
+            CriticalupSubcommand::Link(link) => link.execute(ctx).await,
             CriticalupSubcommand::Remove(remove) => remove.execute(ctx).await,
             CriticalupSubcommand::Run(run) => run.execute(ctx).await,
             CriticalupSubcommand::Verify(verify) => verify.execute(ctx).await,
