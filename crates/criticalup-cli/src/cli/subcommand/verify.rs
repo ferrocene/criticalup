@@ -47,7 +47,8 @@ impl CommandExecute for Verify {
         span.record("project", tracing::field::display(project.display()));
 
         let state = State::load(&ctx.config).await?;
-        let client: DownloadServerClient = DownloadServerClient::new(&ctx.config, &state, self.offline);
+        let client: DownloadServerClient =
+            DownloadServerClient::new(&ctx.config, &state, self.offline);
         let keys = client.keys().await?;
 
         let project_manifest = ProjectManifest::load(&project)?;

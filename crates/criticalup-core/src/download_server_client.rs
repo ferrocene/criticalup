@@ -9,16 +9,16 @@ use crate::envvars;
 use crate::errors::{DownloadServerError, Error};
 use crate::state::{AuthenticationToken, State};
 use criticaltrust::keys::PublicKey;
-use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::manifests::ReleaseArtifactFormat;
+use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::signatures::Keychain;
-use reqwest::StatusCode;
 use reqwest::Response;
+use reqwest::StatusCode;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use tokio::fs::{self, create_dir_all};
 
 const CLIENT_MAX_RETRIES: u32 = 5;
@@ -67,17 +67,23 @@ impl DownloadServerClient {
         if let Some(auth_token) = self.auth_token().await {
             req = req.bearer_auth(auth_token.unseal());
         } else {
-            return Err(Error::DownloadServerError { url: url.clone(), kind: DownloadServerError::AuthenticationFailed })
+            return Err(Error::DownloadServerError {
+                url: url.clone(),
+                kind: DownloadServerError::AuthenticationFailed,
+            });
         }
 
-        let resp = req.send().await.map_err(|e| Error::DownloadServerError { url: url.clone(), kind: DownloadServerError::NetworkWithMiddleware(e) })?;
+        let resp = req.send().await.map_err(|e| Error::DownloadServerError {
+            url: url.clone(),
+            kind: DownloadServerError::NetworkWithMiddleware(e),
+        })?;
         match resp.status() {
             StatusCode::OK => {
                 let data = resp.bytes().await?;
-                let token_data = serde_json::from_slice(&data).map_err(|e| Error::JsonSerialization(e))?;
+                let token_data =
+                    serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
                 Ok(token_data)
-
-            },
+            }
             _ => Err(unexpected_status(url, resp)),
         }
     }
@@ -87,7 +93,8 @@ impl DownloadServerClient {
     }
 
     fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.release_cache_path(product, release).join("manifest.json")
+        self.release_cache_path(product, release)
+            .join("manifest.json")
     }
 
     fn release_cache_path(&self, product: &str, release: &str) -> PathBuf {
@@ -108,46 +115,55 @@ impl DownloadServerClient {
         })
     }
 
-
     async fn cacheable_request(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
         let cache_hit = cache_key.exists();
         tracing::trace!(%cache_hit, cache_key = %cache_key.display());
 
         let data = if self.offline {
             if cache_hit {
-                fs::read(&cache_key).await.map_err(|e| Error::Read(cache_key, e))?
+                fs::read(&cache_key)
+                    .await
+                    .map_err(|e| Error::Read(cache_key, e))?
             } else {
-                return Err(Error::OfflineMode)
+                return Err(Error::OfflineMode);
             }
         } else {
             let mut req = self.client.get(&url);
-            
+
             if let Some(auth_token) = self.auth_token().await {
                 req = req.bearer_auth(auth_token.unseal());
-            } 
+            }
 
             if cache_hit {
-                let cache_content = fs::read(&cache_key).await
+                let cache_content = fs::read(&cache_key)
+                    .await
                     .map_err(|e| Error::Read(cache_key.clone(), e))?;
                 let mut hasher = Sha256::new();
                 hasher.update(cache_content);
                 req = req.header("If-None-Match", format!("{:X}", hasher.finalize()));
             }
-    
-            let resp = req.send().await.map_err(|e| Error::DownloadServerError { url: url.clone(), kind: DownloadServerError::NetworkWithMiddleware(e) })?;
-    
+
+            let resp = req.send().await.map_err(|e| Error::DownloadServerError {
+                url: url.clone(),
+                kind: DownloadServerError::NetworkWithMiddleware(e),
+            })?;
+
             match resp.status() {
                 StatusCode::OK => {
                     let data = resp.bytes().await?;
                     if let Some(parent) = cache_key.parent() {
-                        create_dir_all(parent).await.map_err(|e| Error::Create(parent.to_path_buf(), e))?;
+                        create_dir_all(parent)
+                            .await
+                            .map_err(|e| Error::Create(parent.to_path_buf(), e))?;
                     }
-                    fs::write(&cache_key, &data).await.map_err(|e| Error::Write(cache_key, e))?;
+                    fs::write(&cache_key, &data)
+                        .await
+                        .map_err(|e| Error::Write(cache_key, e))?;
                     data.to_vec()
-                },
-                StatusCode::NOT_MODIFIED => {
-                    fs::read(&cache_key).await.map_err(|e| Error::Read(cache_key, e))?
-                },
+                }
+                StatusCode::NOT_MODIFIED => fs::read(&cache_key)
+                    .await
+                    .map_err(|e| Error::Read(cache_key, e))?,
                 _ => return Err(unexpected_status(url, resp)),
             }
         };
@@ -159,9 +175,10 @@ impl DownloadServerClient {
     pub async fn keys(&self) -> Result<Keychain, Error> {
         let url = self.url("/v1/keys");
         let cache_key = self.keys_cache_path();
-        
+
         let data = self.cacheable_request(url, cache_key).await?;
-        let keys_manifest = serde_json::from_slice(&data).map_err(|e| Error::JsonSerialization(e))?;
+        let keys_manifest =
+            serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
 
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
         let _ = keychain.load_all(&keys_manifest);
@@ -182,7 +199,7 @@ impl DownloadServerClient {
 
         let data = self.cacheable_request(url, cache_key).await?;
 
-        serde_json::from_slice(&data).map_err(|e| Error::JsonSerialization(e))
+        serde_json::from_slice(&data).map_err(Error::JsonSerialization)
     }
 
     #[tracing::instrument(level = "trace", skip_all, fields(
@@ -199,13 +216,14 @@ impl DownloadServerClient {
         format: ReleaseArtifactFormat,
     ) -> Result<Vec<u8>, Error> {
         let artifact_format = format.to_string();
-        let url =
-            self.url(&format!("/v1/releases/{product}/{release}/download/{package}/{artifact_format}"));
+        let url = self.url(&format!(
+            "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
+        ));
         let cache_key = self.package_cache_path(product, release, package, format);
 
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
         let data = self.cacheable_request(url, cache_key).await?;
-        
+
         Ok(data)
     }
 
@@ -221,7 +239,7 @@ impl DownloadServerClient {
         let token_from_state = self.state.authentication_token().await;
 
         // Set precedence for tokens.
-        let token = match (token_from_env, token_from_state) {
+        match (token_from_env, token_from_state) {
             (Some(token), _) => {
                 tracing::trace!("Using token from `CRITICALUP_TOKEN` environment variable");
                 Some(token)
@@ -231,14 +249,12 @@ impl DownloadServerClient {
                 Some(token)
             }
             _ => None,
-        };
-
-        token
+        }
     }
 }
 
 fn unexpected_status(url: String, response: Response) -> Error {
-    let kind= match response.status() {
+    let kind = match response.status() {
         StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
         StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
         StatusCode::NOT_FOUND => DownloadServerError::NotFound,
@@ -303,7 +319,9 @@ mod tests {
                 .await
                 .unwrap_err(),
             Error::DownloadServerError {
-                kind: DownloadServerError::NetworkWithMiddleware(reqwest_middleware::Error::Reqwest(..)),
+                kind: DownloadServerError::NetworkWithMiddleware(
+                    reqwest_middleware::Error::Reqwest(..)
+                ),
                 ..
             },
         ));

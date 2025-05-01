@@ -13,8 +13,7 @@ use std::{
 use clap::Parser;
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
-    download_server_client::DownloadServerClient,
-    project_manifest::ProjectManifest, state::State,
+    download_server_client::DownloadServerClient, project_manifest::ProjectManifest, state::State,
 };
 use tempfile::TempDir;
 use tokio::task::spawn_blocking;
