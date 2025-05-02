@@ -12,6 +12,7 @@ use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseArtifactFormat;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::signatures::Keychain;
+use reqwest::header::HeaderValue;
 use reqwest::Response;
 use reqwest::StatusCode;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -117,7 +118,6 @@ impl DownloadServerClient {
 
     async fn cacheable_request(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
         let cache_hit = cache_key.exists();
-        tracing::trace!(%cache_hit, cache_key = %cache_key.display());
 
         let data = if self.offline {
             if cache_hit {
@@ -140,7 +140,9 @@ impl DownloadServerClient {
                     .map_err(|e| Error::Read(cache_key.clone(), e))?;
                 let mut hasher = Sha256::new();
                 hasher.update(cache_content);
-                req = req.header("If-None-Match", format!("{:X}", hasher.finalize()));
+                let etag_sha256 = format!("{:X}", hasher.finalize());
+                req = req.header("If-None-Match", HeaderValue::from_str(&etag_sha256).unwrap());
+                tracing::trace!(cache_key = %cache_key.display(), etag = %etag_sha256, "Got cached");
             }
 
             let resp = req.send().await.map_err(|e| Error::DownloadServerError {
@@ -150,6 +152,7 @@ impl DownloadServerClient {
 
             match resp.status() {
                 StatusCode::OK => {
+                    tracing::trace!(status = %resp.status(), "Downloading");
                     let data = resp.bytes().await?;
                     if let Some(parent) = cache_key.parent() {
                         create_dir_all(parent)
@@ -161,10 +164,16 @@ impl DownloadServerClient {
                         .map_err(|e| Error::Write(cache_key, e))?;
                     data.to_vec()
                 }
-                StatusCode::NOT_MODIFIED => fs::read(&cache_key)
+                StatusCode::NOT_MODIFIED => {
+                    tracing::trace!(status = %resp.status(), "Cache is fresh & valid");
+                    fs::read(&cache_key)
                     .await
-                    .map_err(|e| Error::Read(cache_key, e))?,
-                _ => return Err(unexpected_status(url, resp)),
+                    .map_err(|e| Error::Read(cache_key, e))?
+                },
+                _ => {
+                    tracing::trace!(status = %resp.status(), "Unexpected status");
+                    return Err(unexpected_status(url, resp))
+                },
             }
         };
 
