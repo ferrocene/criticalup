@@ -86,8 +86,6 @@ pub enum KeyRole {
     Packages,
     /// `redirects` key role, used to sign dynamic server redirects.
     Redirects,
-    /// `revocation` key role, used to sign revoked content hashes.
-    Revocation,
     /// `root` key role, used to sign other keys.
     Root,
     #[serde(other)]
