@@ -60,10 +60,6 @@ impl Keychain {
             let _ = self.load(key)?;
         }
 
-        // Special case: verify and load only RevocationInfo.
-        let revocation_info = keys_manifest.revoked_signatures.get_verified(self)?;
-        self.revocation_info = Some(revocation_info.clone());
-
         Ok(())
     }
 
@@ -96,13 +92,7 @@ impl PublicKeysRepository for Keychain {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair};
-    use crate::manifests::ManifestVersion;
     use crate::signatures::{Signable, SignedPayload};
-    use time::macros::datetime;
-    use time::{Duration, OffsetDateTime};
-
-    // Make sure there is enough number of days for expiration so tests don't need constant updates.
-    const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
     #[test]
     fn test_new_with_root_key_as_trust_root() {
@@ -206,95 +196,6 @@ mod tests {
 
     impl Signable for Vec<u8> {
         const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
-    }
-
-    // Test `load_all` method with RevocationInfo being an empty list.
-    #[tokio::test]
-    async fn test_load_all_revoked_content_empty() {
-        let root = generate_key(KeyRole::Root);
-        let (revocation_keypair, signed_public_revocation_key) =
-            generate_trusted_key(KeyRole::Revocation, &root).await;
-
-        let revoked_content = RevocationInfo::new(vec![], datetime!(2400-10-10 00:00 UTC));
-        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
-        signed_revoked_content
-            .add_signature(&revocation_keypair)
-            .await
-            .unwrap();
-
-        let mut keychain = Keychain::new(root.public()).unwrap();
-
-        let keys_manifest = KeysManifest {
-            version: ManifestVersion,
-            keys: vec![signed_public_revocation_key],
-            revoked_signatures: signed_revoked_content,
-        };
-
-        keychain.load_all(&keys_manifest).unwrap();
-        assert_eq!(
-            keychain.revocation_info.unwrap().expires_at,
-            datetime!(2400-10-10 00:00 UTC)
-        )
-    }
-
-    // Test `load_all` method with RevocationInfo but with one item in the list. The call
-    // to `load_all` should not fail in verifying the revocation key.
-    #[tokio::test]
-    async fn test_load_all_revoked_content_one_item() {
-        let root = generate_key(KeyRole::Root);
-        let (revocation_keypair, signed_public_revocation_key) =
-            generate_trusted_key(KeyRole::Revocation, &root).await;
-        let revoked_content = RevocationInfo::new(
-            vec![vec![1, 2, 3]],
-            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
-        );
-        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
-        signed_revoked_content
-            .add_signature(&revocation_keypair)
-            .await
-            .unwrap();
-
-        let mut keychain = Keychain::new(root.public()).unwrap();
-
-        let keys_manifest = KeysManifest {
-            version: ManifestVersion,
-            keys: vec![signed_public_revocation_key],
-            revoked_signatures: signed_revoked_content,
-        };
-
-        keychain.load_all(&keys_manifest).unwrap();
-        let binding = keychain.revocation_info.unwrap();
-        let actual = binding.revoked_content_sha256.first().unwrap();
-        let expected: &Vec<u8> = &vec![1, 2, 3];
-        assert_eq!(actual, expected);
-    }
-
-    #[tokio::test]
-    async fn test_error_on_load_all_when_revocation_info_is_some() {
-        let root = generate_key(KeyRole::Root);
-        let (revocation_keypair, signed_public_revocation_key) =
-            generate_trusted_key(KeyRole::Revocation, &root).await;
-        let revoked_content = RevocationInfo::new(
-            vec![vec![1, 2, 3]],
-            OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
-        );
-        let mut signed_revoked_content = SignedPayload::new(&revoked_content).unwrap();
-        signed_revoked_content
-            .add_signature(&revocation_keypair)
-            .await
-            .unwrap();
-        let mut keychain = Keychain::new(root.public()).unwrap();
-        let keys_manifest = KeysManifest {
-            version: ManifestVersion,
-            keys: vec![signed_public_revocation_key],
-            revoked_signatures: signed_revoked_content,
-        };
-        keychain.load_all(&keys_manifest).unwrap();
-        assert!(keychain.revocation_info.is_some());
-        assert!(matches!(
-            keychain.load_all(&keys_manifest),
-            Err(Error::RevocationInfoOverwriting)
-        ));
     }
 
     // Utilities
