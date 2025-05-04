@@ -152,6 +152,8 @@ pub trait PublicKeysRepository {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, PublicKey};
+    use crate::manifests::{KeysManifest, ManifestVersion};
+    use crate::signatures::Keychain;
     use crate::test_utils::{base64_encode, TestEnvironment};
 
     const SAMPLE_DATA: &str = r#"{"answer":42}"#;
@@ -325,6 +327,34 @@ mod tests {
             payload.into_verified(test_env.keychain()),
             Err(Error::DeserializationFailed(_))
         ));
+    }
+
+    #[test]
+    fn test_verify_deserialized() {
+        let root_key: PublicKey = serde_json::from_str(
+            r#"{"role":"root","algorithm":"ecdsa-p256-sha256-asn1-spki-der","expiry":null,"public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE4LmlE8W7eDS6WOI9Czcl+SPtoG+7SeLLCFDfYs/sP+TvOtEtYWJo8LZgI/uZu25o5qswadqPYCP3n45luTjJWg=="}"#,
+        ).unwrap();
+
+        let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"
+            {"signatures":[{"key_sha256":"jnAhbVxJNB1iHDtxQ9npLMDc1Erl4UU3RhHbgp331Yw=","signature":"MEQCIAw6+8erSIsGFKVwsjke1IRpKGBNXYR1iCM7SvUvUR8LAiBBC4+FRmTVaH7o+3J8DiRxifhsAjnLz4YoqtDxhe+CmA=="}],"signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAETGvokaoXbOGIb9E55ee/NTGGnBSJME/odqhy9XIGwOJJ4P0oP3upA14m6c7+/qJ7qAWueVc+4V/fAnx0KAyzAw==\"}"}
+            "#
+        ).unwrap();
+
+        let payload: SignedPayload<TestData> = serde_json::from_str(
+            r#"
+            {"signatures":[{"key_sha256":"unhy/0hUU3DDAIQzd7x5+BM4l1kDcztuALcVOfjo2yw=","signature":"MEUCIChTmjgHZiZ3O7lZiknoQXkFnOOJsBrUMDZieAMB39yeAiEAjFR6fBXGMQrGdqemPzQlgN8FIACRrlw+tfSbdxCFi9Y="}],"signed":"{\"answer\":42}"}
+            "#,
+        ).unwrap();
+
+        let km = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![packages_key],
+        };
+
+        let mut keychain = Keychain::new(&root_key).unwrap();
+        keychain.load_all(&km).unwrap();
+        assert_eq!(42, payload.get_verified(&keychain).unwrap().answer);
     }
 
     // Utilities
