@@ -60,9 +60,6 @@ pub(crate) enum Error {
     )]
     IntegrityErrorsWhileArchiving(Vec<IntegrityError>),
 
-    #[error(transparent)]
-    MissingRevocationInfo(#[from] IntegrityError),
-
     #[error("arg0 is not encoded in UTF-8")]
     NonUtf8Arg0,
     #[error("Failed to invoke proxied command {}.", .0.display())]
@@ -148,11 +145,6 @@ pub(crate) enum Error {
     'ferrocene-docs' to the project manifest and run 'criticalup install' again."
     )]
     MissingDocPackage(),
-
-    #[error("Failed to run install command.")]
-    RevocationSignatureExpired(#[source] criticaltrust::Error),
-    #[error("Failed to install package '{}'.", .0)]
-    RevocationCheckFailed(String, #[source] criticaltrust::Error),
 
     #[error("Manifest serialization failed.")]
     TomlSerializationFailed(#[from] toml_edit::ser::Error),
