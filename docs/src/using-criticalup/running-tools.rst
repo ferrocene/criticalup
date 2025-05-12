@@ -103,6 +103,18 @@ It's also possible to have ``rustup`` use the Ferrocene toolchain by default:
 
    rustup default ferrocene
 
+You can configure your project to use the ``ferrocene`` toolchain by default
+by creating a ``rust-toolchain.toml``:
+
+.. code-block::
+
+   [toolchain]
+   channel = "ferrocene"
+
+Then, by default, the Ferrocene toolchain created above should be used. Other
+``rustup`` toolchains can still be used, for example, ``cargo +stable run``.
+
+
 On your shell path
 ------------------
 
