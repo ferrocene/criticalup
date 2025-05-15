@@ -138,9 +138,9 @@ impl DownloadServerClient {
                 let cache_content = fs::read(&cache_key)
                     .await
                     .map_err(|e| Error::Read(cache_key.clone(), e))?;
-                let mut hasher = Sha256::new();
+                let mut hasher = md5::Md5::new();
                 hasher.update(cache_content);
-                let etag_sha256 = format!(r#""{:X}""#, hasher.finalize());
+                let etag_sha256 = format!(r#""{:x}""#, hasher.finalize());
                 req = req.header("If-None-Match", HeaderValue::from_str(&etag_sha256).unwrap());
                 tracing::trace!(cache_key = %cache_key.display(), etag = %etag_sha256, "Got cached");
             }
