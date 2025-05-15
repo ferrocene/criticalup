@@ -16,11 +16,9 @@ use clap::Parser;
 use criticaltrust::integrity::{IntegrityError, IntegrityVerifier};
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticaltrust::revocation_info::RevocationInfo;
-use criticalup_core::download_server_cache::DownloadServerCache;
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
-use tokio::fs::read;
 use tracing::Span;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
@@ -57,12 +55,7 @@ impl CommandExecute for Install {
         span.record("project", tracing::field::display(project.display()));
 
         let state = State::load(&ctx.config).await?;
-        let maybe_client = if !self.offline {
-            Some(DownloadServerClient::new(&ctx.config, &state))
-        } else {
-            None
-        };
-        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
+        let client = DownloadServerClient::new(&ctx.config, &state, self.offline);
 
         // Parse and serialize the project manifest.
         let project_manifest = ProjectManifest::load(&project)?;
@@ -73,7 +66,7 @@ impl CommandExecute for Install {
             let abs_installation_dir_path = installation_dir.join(product.installation_id());
 
             if !abs_installation_dir_path.exists() {
-                install_product_afresh(ctx, &state, &cache, &project, product, self.offline)
+                install_product_afresh(ctx, &state, &client, &project, product, self.offline)
                     .await?;
             } else {
                 // Check if the state file has no mention of this installation.
@@ -83,7 +76,7 @@ impl CommandExecute for Install {
                 if !does_this_installation_exist_in_state || self.reinstall {
                     // If the installation directory exists, but the State has no installation of that
                     // InstallationId, then re-run the install command and go through installation.
-                    install_product_afresh(ctx, &state, &cache, &project, product, self.offline)
+                    install_product_afresh(ctx, &state, &client, &project, product, self.offline)
                         .await?;
                 } else {
                     // If the installation directory exists AND there is an existing installation with
@@ -116,7 +109,7 @@ impl CommandExecute for Install {
 async fn install_product_afresh(
     ctx: &Context,
     state: &State,
-    cache: &DownloadServerCache<'_>,
+    client: &DownloadServerClient,
     manifest_path: &Path,
     product: &ProjectManifestProduct,
     offline: bool,
@@ -125,14 +118,14 @@ async fn install_product_afresh(
     let release = product.release();
     let installation_dir = &ctx.config.paths.installation_dir;
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
-    let keys = cache.keys().await?;
+    let keys = client.keys().await?;
 
     tracing::info!("Installing product '{product_name}' ({release})",);
 
     let mut integrity_verifier = IntegrityVerifier::new(&keys);
 
     // Get the release manifest for the product from the server and verify it.
-    let release_manifest_from_server = cache
+    let release_manifest_from_server = client
         .product_release_manifest(product_name, product.release())
         .await?;
     let verified_release_manifest = release_manifest_from_server.signed.into_verified(&keys)?;
@@ -155,7 +148,7 @@ async fn install_product_afresh(
         .await?;
 
     for package in product.packages() {
-        let package_path = cache
+        let package_data = client
             .package(
                 product_name,
                 release_name,
@@ -165,7 +158,6 @@ async fn install_product_afresh(
             .await?;
 
         tracing::info!("Installing component '{package}' for '{product_name}' ({release})",);
-        let package_data = read(package_path).await?;
 
         let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
         let mut archive = tar::Archive::new(decoder);
