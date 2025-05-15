@@ -40,7 +40,7 @@ CriticalUp understands ``${rustc-host}`` to mean the target triple of the host o
    Options for ``criticalup.toml`` are detailed in :ref:`the reference <criticalup_toml>`.
 
 Creating a ``criticalup.toml``
------------------------------------
+------------------------------
 
 You can create a ``criticalup.toml`` using the ``init`` command.
 
