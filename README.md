@@ -52,7 +52,7 @@ cargo build -p criticalup --release
 To test CriticalUp from workspace root:
 
 ```bash
-cargo test --timings --workspace --locked
+cargo test --timings --locked
 ```
 
 To test a CriticalUp specific package from workspace root:
@@ -76,7 +76,7 @@ To cut a release:
       Update this test to match the correct version (`X.Y.Z`).
     - [CHANGELOG.md](./CHANGELOG.md): Make `[Unreleased]` the correct version (`[X.Y.Z]`). Add correct links metadata at
       the bottom.
-- Run `cargo test --workspace` and `cargo clippy --workspace --tests --locked -- -Dwarnings` to make sure there no
+- Run `cargo test` and `cargo clippy --tests --locked -- -Dwarnings` to make sure there no
   failures.
 - Commit and push this branch and open a PR against `main`, on GitHub.
 - Wait for approval(s) from reviewer(s).
