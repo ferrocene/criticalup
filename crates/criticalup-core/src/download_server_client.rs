@@ -19,7 +19,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
 use tokio::fs::{self, create_dir_all};
 
 const CLIENT_MAX_RETRIES: u32 = 5;
@@ -368,6 +368,10 @@ mod tests {
 
         let keys = test_env.keys();
         let keychain = test_env.download_server().keys().await.unwrap();
+        assert_eq!(
+            *test_env.response_status_codes_by_mock_download_server().last().unwrap(),
+            200,
+        );
 
         for expected_present in &[
             // Trust root included from the whitelabel config
@@ -395,6 +399,12 @@ mod tests {
                 .get(&expected_missing.public().calculate_id())
                 .is_none());
         }
+
+        let _ = test_env.download_server().keys().await.unwrap();
+        assert_eq!(
+            *test_env.response_status_codes_by_mock_download_server().last().unwrap(),
+            304,
+        );
     }
 
     async fn assert_auth_failed(test_env: &TestEnvironment) {
