@@ -244,7 +244,11 @@ impl Drop for MockServer {
     }
 }
 
-fn server_thread(data: Arc<Mutex<Data>>, server: Arc<Server>, response_status_codes: Arc<RwLock<Vec<u16>>>) {
+fn server_thread(
+    data: Arc<Mutex<Data>>,
+    server: Arc<Server>,
+    response_status_codes: Arc<RwLock<Vec<u16>>>,
+) {
     for request in server.incoming_requests() {
         let response = handle_request(&data.lock().unwrap(), &request);
         let status_code = response.status_code();

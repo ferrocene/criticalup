@@ -81,8 +81,7 @@ impl DownloadServerClient {
         match resp.status() {
             StatusCode::OK => {
                 let data = resp.bytes().await?;
-                let token_data =
-                    serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
+                let token_data = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
                 Ok(token_data)
             }
             _ => Err(unexpected_status(url, resp)),
@@ -141,7 +140,10 @@ impl DownloadServerClient {
                 let mut hasher = md5::Md5::new();
                 hasher.update(cache_content);
                 let etag_sha256 = format!(r#""{:x}""#, hasher.finalize());
-                req = req.header("If-None-Match", HeaderValue::from_str(&etag_sha256).unwrap());
+                req = req.header(
+                    "If-None-Match",
+                    HeaderValue::from_str(&etag_sha256).unwrap(),
+                );
                 tracing::trace!(cache_key = %cache_key.display(), etag = %etag_sha256, "Got cached");
             }
 
@@ -167,13 +169,13 @@ impl DownloadServerClient {
                 StatusCode::NOT_MODIFIED => {
                     tracing::trace!(status = %resp.status(), "Cache is fresh & valid");
                     fs::read(&cache_key)
-                    .await
-                    .map_err(|e| Error::Read(cache_key, e))?
-                },
+                        .await
+                        .map_err(|e| Error::Read(cache_key, e))?
+                }
                 _ => {
                     tracing::trace!(status = %resp.status(), "Unexpected status");
-                    return Err(unexpected_status(url, resp))
-                },
+                    return Err(unexpected_status(url, resp));
+                }
             }
         };
 
@@ -186,8 +188,7 @@ impl DownloadServerClient {
         let cache_key = self.keys_cache_path();
 
         let data = self.cacheable_request(url, cache_key).await?;
-        let keys_manifest =
-            serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
+        let keys_manifest = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
 
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
         let _ = keychain.load_all(&keys_manifest);
@@ -261,8 +262,10 @@ impl DownloadServerClient {
         };
 
         if let Some(token) = token {
-            Ok(Some(HeaderValue::from_str(&format!("Bearer {}", token.unseal()))
-                    .map_err(|_| Error::InvalidAuthenicationToken)?))
+            Ok(Some(
+                HeaderValue::from_str(&format!("Bearer {}", token.unseal()))
+                    .map_err(|_| Error::InvalidAuthenicationToken)?,
+            ))
         } else {
             Ok(None)
         }
@@ -334,12 +337,7 @@ mod tests {
                 .get_current_token_data()
                 .await
                 .unwrap_err(),
-            Error::DownloadServerError {
-                kind: DownloadServerError::NetworkWithMiddleware(
-                    reqwest_middleware::Error::Reqwest(..)
-                ),
-                ..
-            },
+            Error::InvalidAuthenicationToken,
         ));
 
         // No request was actually made since the authentication token can't be represented in
@@ -377,7 +375,10 @@ mod tests {
 
         let keychain = test_env.download_server().keys().await.unwrap();
         assert_eq!(
-            *test_env.response_status_codes_by_mock_download_server().last().unwrap(),
+            *test_env
+                .response_status_codes_by_mock_download_server()
+                .last()
+                .unwrap(),
             200,
         );
 
@@ -410,7 +411,10 @@ mod tests {
 
         let _ = test_env.download_server().keys().await.unwrap();
         assert_eq!(
-            *test_env.response_status_codes_by_mock_download_server().last().unwrap(),
+            *test_env
+                .response_status_codes_by_mock_download_server()
+                .last()
+                .unwrap(),
             304,
         );
     }

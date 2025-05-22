@@ -3,8 +3,8 @@
 
 use crate::Serialize;
 use crate::{AuthenticationToken, Data};
+use criticaltrust::manifests::ManifestVersion;
 use md5::Digest;
-use criticaltrust::manifests::{ManifestVersion};
 use tiny_http::{Header, Method, Request, Response, ResponseBox, StatusCode};
 
 pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
@@ -87,7 +87,7 @@ fn handle_v1_keys(data: &Data, req: &Request) -> Result<Resp, Resp> {
             return Ok(Resp::NotModified);
         }
     }
-    
+
     Ok(Resp::json(&manifest))
 }
 

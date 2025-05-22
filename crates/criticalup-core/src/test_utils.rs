@@ -68,7 +68,9 @@ impl TestEnvironment {
             .served_requests_count()
     }
 
-    pub(crate) fn response_status_codes_by_mock_download_server(&self) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
+    pub(crate) fn response_status_codes_by_mock_download_server(
+        &self,
+    ) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
         self.mock_server
             .as_ref()
             .expect("download server not prepared")
