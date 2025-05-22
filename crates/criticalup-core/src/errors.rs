@@ -26,6 +26,9 @@ pub enum Error {
         kind: DownloadServerError,
     },
 
+    #[error("Invalid authentication token provided.")]
+    InvalidAuthenicationToken,
+
     #[error("Network access required, but in offline mode.")]
     OfflineMode,
 

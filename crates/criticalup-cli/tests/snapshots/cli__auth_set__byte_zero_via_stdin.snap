@@ -8,8 +8,5 @@ empty stdout
 
 stderr
 ------
-error: Failed to download http://127.0.0.1:43323/v1/tokens/current.
-  caused by: Failed to send the network request.
-  caused by: builder error
-  caused by: failed to parse header value
+error: Invalid authentication token provided.
 ------

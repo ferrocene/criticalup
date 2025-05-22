@@ -12,7 +12,7 @@ use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::ReleaseArtifactFormat;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::signatures::Keychain;
-use reqwest::header::HeaderValue;
+use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::Response;
 use reqwest::StatusCode;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
@@ -65,8 +65,8 @@ impl DownloadServerClient {
         let url = self.url("/v1/tokens/current");
 
         let mut req = self.client.get(&url);
-        if let Some(auth_token) = self.auth_token().await {
-            req = req.bearer_auth(auth_token.unseal());
+        if let Some(auth_token) = self.auth_token().await? {
+            req = req.header(AUTHORIZATION, auth_token);
         } else {
             return Err(Error::DownloadServerError {
                 url: url.clone(),
@@ -130,8 +130,8 @@ impl DownloadServerClient {
         } else {
             let mut req = self.client.get(&url);
 
-            if let Some(auth_token) = self.auth_token().await {
-                req = req.bearer_auth(auth_token.unseal());
+            if let Some(auth_token) = self.auth_token().await? {
+                req = req.header(AUTHORIZATION, auth_token);
             }
 
             if cache_hit {
@@ -240,15 +240,15 @@ impl DownloadServerClient {
         format!("{}{path}", self.base_url)
     }
 
-    async fn auth_token(&self) -> Option<AuthenticationToken> {
-        let token_from_env = envvars::EnvVars::new()
+    async fn auth_token(&self) -> Result<Option<HeaderValue>, Error> {
+        let token_from_env: Option<AuthenticationToken> = envvars::EnvVars::new()
             .criticalup_token
             .map(|item| item.into());
 
         let token_from_state = self.state.authentication_token().await;
 
         // Set precedence for tokens.
-        match (token_from_env, token_from_state) {
+        let token = match (token_from_env, token_from_state) {
             (Some(token), _) => {
                 tracing::trace!("Using token from `CRITICALUP_TOKEN` environment variable");
                 Some(token)
@@ -258,6 +258,13 @@ impl DownloadServerClient {
                 Some(token)
             }
             _ => None,
+        };
+
+        if let Some(token) = token {
+            Ok(Some(HeaderValue::from_str(&format!("Bearer {}", token.unseal()))
+                    .map_err(|_| Error::InvalidAuthenicationToken)?))
+        } else {
+            Ok(None)
         }
     }
 }
