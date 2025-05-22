@@ -14,9 +14,9 @@ async fn no_args() {
 async fn help_flags() {
     let test_env = TestEnvironment::prepare().await;
 
-    let no_args = test_env.cmd().output().unwrap();
-    let help_short = test_env.cmd().arg("-h").output().unwrap();
-    let help_long = test_env.cmd().arg("--help").output().unwrap();
+    let no_args = test_env.cmd().output().await.unwrap();
+    let help_short = test_env.cmd().arg("-h").output().await.unwrap();
+    let help_long = test_env.cmd().arg("--help").output().await.unwrap();
 
     assert_eq!(&no_args.stdout, &help_short.stdout);
     assert_eq!(&no_args.stdout, &help_long.stdout);
@@ -32,8 +32,8 @@ async fn help_flags() {
 async fn version_flags() {
     let test_env = TestEnvironment::prepare().await;
 
-    let version_short = test_env.cmd().arg("-V").output().unwrap();
-    let version_long = test_env.cmd().arg("--version").output().unwrap();
+    let version_short = test_env.cmd().arg("-V").output().await.unwrap();
+    let version_long = test_env.cmd().arg("--version").output().await.unwrap();
     assert_eq!(version_long, version_short);
 
     assert_output!(test_env.cmd().arg("--version"));

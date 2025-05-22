@@ -1,164 +1,106 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use crate::Serialize;
+use std::str::FromStr;
+use std::sync::Arc;
+
 use crate::{AuthenticationToken, Data};
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::Json;
+use axum_extra::headers::authorization::Bearer;
+use axum_extra::headers::{self, IfNoneMatch};
+use axum_extra::{headers::Authorization, TypedHeader};
 use criticaltrust::manifests::ManifestVersion;
 use md5::Digest;
-use tiny_http::{Header, Method, Request, Response, ResponseBox, StatusCode};
+use tokio::sync::Mutex;
 
-pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
-    let url_parts = req
-        .url()
-        .split('/')
-        .filter(|c| !c.is_empty())
-        .collect::<Vec<_>>();
+pub(crate) async fn handle_v1_package(
+    State(data): State<Arc<Mutex<Data>>>,
+    if_none_match: Option<TypedHeader<IfNoneMatch>>,
+    Path((product, release, package, _format)): Path<(String, String, String, String)>,
+) -> impl IntoResponse {
+    let data = data.lock().await;
 
-    let resp = match (req.method(), url_parts.as_slice()) {
-        (Method::Get, ["v1", "tokens", "current"]) => handle_v1_tokens_current(data, req),
-        (Method::Get, ["v1", "keys"]) => handle_v1_keys(data, req),
-        (Method::Get, ["v1", "releases", product, release]) => {
-            handle_v1_release(data, product, release)
-        }
-        // GET `/v1/releases/:product/:release/download/:package/:format`
-        (Method::Get, ["v1", "releases", product, release, "download", package, _]) => {
-            handle_v1_package(data, product, release, package)
-        }
-        _ => handle_404(),
-    };
+    let bytes = data
+        .release_packages
+        .get(&(
+            product.to_string(),
+            release.to_string(),
+            package.to_string(),
+        ))
+        .unwrap()
+        .clone();
 
-    // Handlers use `Result<Resp, Resp>` to be able to use `?` to propagate error responses. There
-    // is no other difference between returning `Ok` or `Err`.
-    match resp {
-        Ok(resp) => resp.into_tiny_http(),
-        Err(resp) => resp.into_tiny_http(),
-    }
-}
-
-fn handle_v1_package(
-    data: &Data,
-    product: &str,
-    release: &str,
-    package: &str,
-) -> Result<Resp, Resp> {
-    Ok(Resp::File(
-        data.release_packages
-            .get(&(
-                product.to_string(),
-                release.to_string(),
-                package.to_string(),
-            ))
-            .unwrap()
-            .clone(),
-    ))
-}
-
-fn handle_v1_tokens_current(data: &Data, req: &Request) -> Result<Resp, Resp> {
-    let token = authorize(data, req)?;
-    Ok(Resp::json(token))
-}
-
-fn handle_v1_keys(data: &Data, req: &Request) -> Result<Resp, Resp> {
-    let manifest = criticaltrust::manifests::KeysManifest {
-        version: ManifestVersion,
-        keys: data.keys.clone(),
-    };
-
-    let if_none_match = req.headers().iter().find_map(|v| {
-        if v.field.as_str() == "if-none-match" {
-            Some(v.value.to_string())
-        } else {
-            None
-        }
-    });
-
-    if let Some(client_etag) = if_none_match {
+    if let Some(if_none_match) = if_none_match {
         // If the user already has the item downloaded, they at one point were permitted to download it.
         // We only validate that it is correct. This is not a license check.
         let mut hasher = md5::Md5::new();
-        let json = serde_json::to_vec_pretty(&manifest).unwrap();
-        hasher.update(&json);
+
+        hasher.update(&bytes);
         let etag_string = format!("{:x}", hasher.finalize());
 
-        let etag = format!(r#""{etag_string}""#);
+        let etag = headers::ETag::from_str(&format!(r#""{etag_string}""#)).unwrap();
 
-        if client_etag == etag {
-            return Ok(Resp::NotModified);
+        // This does not behave how you might think.
+        // ```
+        // let aaa_etag = headers::ETag::from_str(r#""aaa""#).unwrap();
+        // let bbb_etag = headers::ETag::from_str(r#""bbb""#).unwrap();
+        // let aaa_if_none_match = IfNoneMatch::from(aaa_etag.clone());
+        // println!("{aaa_if_none_match:?}");
+        // println!("{aaa_etag:?}");
+        // println!("{bbb_etag:?}");
+        // assert!(aaa_if_none_match.precondition_passes(&bbb_etag));
+        // assert!(!aaa_if_none_match.precondition_passes(&aaa_etag));
+        // ```
+        if !if_none_match.precondition_passes(&etag) {
+            return axum::http::StatusCode::NOT_MODIFIED.into_response();
         }
-    }
+    };
 
-    Ok(Resp::json(&manifest))
+    bytes.into_response()
 }
 
-fn handle_v1_release(data: &Data, product: &str, release: &str) -> Result<Resp, Resp> {
+pub(crate) async fn handle_v1_tokens_current(
+    State(data): State<Arc<Mutex<Data>>>,
+    TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
+) -> Result<Json<AuthenticationToken>, StatusCode> {
+    let data = data.lock().await;
+    let token = authorize(&data, bearer)?;
+    Ok(Json(token.clone()))
+}
+
+pub(crate) async fn handle_v1_keys(State(data): State<Arc<Mutex<Data>>>) -> impl IntoResponse {
+    let data = data.lock().await;
+    Json(criticaltrust::manifests::KeysManifest {
+        version: ManifestVersion,
+        keys: data.keys.clone(),
+    })
+}
+
+pub(crate) async fn handle_v1_release(
+    State(data): State<Arc<Mutex<Data>>>,
+    Path((product, release)): Path<(String, String)>,
+) -> impl IntoResponse {
+    let data = data.lock().await;
     let rm = data
         .release_manifests
-        .get(&(product.to_string(), release.to_string()));
-    let resp = Resp::json(rm.expect("Did not get a release manifest"));
-    Ok(resp)
+        .get(&(product.to_string(), release.to_string()))
+        .expect("Did not get a release manifest")
+        .to_owned();
+    Json(rm)
 }
 
-fn handle_404() -> Result<Resp, Resp> {
-    Ok(Resp::NotFound)
-}
+fn authorize(
+    data: &Data,
+    bearer: Authorization<Bearer>,
+) -> Result<&AuthenticationToken, StatusCode> {
+    let token = bearer.token();
 
-fn authorize<'a>(data: &'a Data, req: &Request) -> Result<&'a AuthenticationToken, Resp> {
-    let header = req
-        .headers()
-        .iter()
-        .find(|h| h.field.equiv("authorization"))
-        .ok_or(Resp::Forbidden)?;
-
-    let without_prefix = header
-        .value
-        .as_str()
-        .strip_prefix("Bearer ")
-        .ok_or(Resp::Forbidden)?;
-
-    if let Some(token) = data.tokens.get(without_prefix) {
+    if let Some(token) = data.tokens.get(token) {
         Ok(token)
     } else {
-        Err(Resp::Forbidden)
-    }
-}
-
-#[derive(Debug)]
-enum Resp {
-    Forbidden,
-    NotFound,
-    NotModified,
-    Json(Vec<u8>),
-    File(Vec<u8>),
-}
-
-impl Resp {
-    fn json<T: Serialize>(data: &T) -> Resp {
-        let serialized = serde_json::to_vec_pretty(data).unwrap();
-        Resp::Json(serialized)
-    }
-
-    fn into_tiny_http(self) -> ResponseBox {
-        match self {
-            Resp::Json(data) => Response::from_data(data)
-                .with_status_code(StatusCode(200))
-                .with_header(
-                    Header::from_bytes(&b"Content-Type"[..], &b"application/json"[..]).unwrap(),
-                )
-                .boxed(),
-
-            Resp::File(data) => Response::from_data(data)
-                .with_status_code(StatusCode(200))
-                .with_header(
-                    Header::from_bytes(&b"Content-Type"[..], &b"application/octet-stream"[..])
-                        .unwrap(),
-                )
-                .with_header(
-                    Header::from_bytes(&b"Content-Disposition"[..], &b"attachment"[..]).unwrap(),
-                )
-                .boxed(),
-            Resp::NotModified => Response::empty(StatusCode(304)).boxed(),
-            Resp::Forbidden => Response::empty(StatusCode(403)).boxed(),
-            Resp::NotFound => Response::empty(StatusCode(404)).boxed(),
-        }
+        Err(StatusCode::FORBIDDEN)
     }
 }

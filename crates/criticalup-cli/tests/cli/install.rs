@@ -3,6 +3,7 @@
 
 use crate::assert_output;
 use crate::utils::{auth_set_with_valid_token, construct_toolchains_product_path, TestEnvironment};
+use hyper::StatusCode;
 use mock_download_server::MockServer;
 use serde_json::json;
 use std::io::Write;
@@ -127,21 +128,37 @@ async fn run_install_successfully() {
     let manifest_path = work_dir.join("criticalup.toml");
     tokio::fs::write(&manifest_path, manifest).await.unwrap();
 
-    // Cache must be deleted, otherwise the install command will get keys only from cache which
-    // will be stale.
-    test_env.cmd().args(["clean"]).output().unwrap();
+    run_install_cmd(&test_env, manifest_path.to_str().unwrap(), false).await;
 
-    run_install_cmd(&test_env, manifest_path.to_str().unwrap());
+    run_install_cmd(&test_env, manifest_path.to_str().unwrap(), true).await;
+    assert_eq!(
+        {
+            let history = test_env.server().history().await;
+            let downloads = history
+                .iter()
+                .filter(|(req, _)| {
+                    req.uri() == "/v1/releases/ferrocene/25.02.0/download/rustc/tar.xz"
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(downloads.len(), 2);
+            let (_, res) = downloads.last().unwrap();
+            res.status()
+        },
+        StatusCode::NOT_MODIFIED,
+    );
 }
 
-fn run_install_cmd(test_env: &TestEnvironment, manifest_path: &str) {
-    auth_set_with_valid_token(test_env); // we need auth set before install command
+async fn run_install_cmd(test_env: &TestEnvironment, manifest_path: &str, reinstall: bool) {
+    auth_set_with_valid_token(test_env).await; // we need auth set before install command
 
-    let output = test_env
-        .cmd()
-        .args(["install", "--project", manifest_path])
-        .output()
-        .unwrap();
+    let mut command = test_env.cmd();
+    command.args(["install", "--project", manifest_path]);
+
+    if reinstall {
+        command.arg("--reinstall");
+    }
+
+    let output = command.output().await.unwrap();
 
     assert!(
         output.status.success(),

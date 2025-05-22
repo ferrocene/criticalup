@@ -4,11 +4,13 @@
 use crate::config::Config;
 use crate::download_server_client::{Connectivity, DownloadServerClient};
 use crate::state::{AuthenticationToken, State};
+use axum::http::{Request, Response};
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use criticaltrust::signatures::SignedPayload;
 use mock_download_server::MockServer;
 use std::path::Path;
 use tempfile::TempDir;
+use tokio::sync::MappedMutexGuard;
 
 pub(crate) const SAMPLE_AUTH_TOKEN: &str = "criticalup_token_foo";
 pub(crate) const SAMPLE_AUTH_TOKEN_NAME: &str = "token name";
@@ -61,20 +63,26 @@ impl TestEnvironment {
             .expect("download server not prepared")
     }
 
-    pub(crate) fn requests_served_by_mock_download_server(&self) -> usize {
+    pub(crate) async fn requests_served_by_mock_download_server(&self) -> usize {
         self.mock_server
             .as_ref()
             .expect("download server not prepared")
             .served_requests_count()
+            .await
     }
 
-    pub(crate) fn response_status_codes_by_mock_download_server(
+    /// Get the history of the download server.
+    ///
+    /// Make sure to `drop()` the value or wrap it in a scope if you have a function
+    /// that calls it multiple times.
+    pub(crate) async fn history(
         &self,
-    ) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
+    ) -> MappedMutexGuard<'_, [(Request<axum::body::Body>, Response<axum::body::Body>)]> {
         self.mock_server
             .as_ref()
             .expect("download server not prepared")
-            .response_status_codes()
+            .history()
+            .await
     }
 }
 
@@ -240,7 +248,7 @@ impl TestKeys {
 async fn start_mock_server(keys: Vec<SignedPayload<PublicKey>>) -> MockServer {
     use mock_download_server::AuthenticationToken;
 
-    let mut builder = mock_download_server::new();
+    let mut builder = mock_download_server::Builder::new();
     builder = builder.add_token(
         SAMPLE_AUTH_TOKEN,
         AuthenticationToken {
@@ -254,5 +262,5 @@ async fn start_mock_server(keys: Vec<SignedPayload<PublicKey>>) -> MockServer {
         builder = builder.add_key(key);
     }
 
-    builder.start()
+    builder.start().await
 }
