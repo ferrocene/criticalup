@@ -367,6 +367,7 @@ mod tests {
         test_env.state().set_authentication_token(None); // The endpoint requires no authentication.
 
         let keys = test_env.keys();
+
         let keychain = test_env.download_server().keys().await.unwrap();
         assert_eq!(
             *test_env.response_status_codes_by_mock_download_server().last().unwrap(),

@@ -18,7 +18,7 @@ use std::os::windows::prelude::MetadataExt;
 use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
-use tiny_http::{Server, StatusCode};
+use tiny_http::Server;
 use walkdir::WalkDir;
 use xz2::write::XzEncoder;
 

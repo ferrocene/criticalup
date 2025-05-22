@@ -176,6 +176,7 @@ impl TestEnvironmentBuilder {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct TestKeys {
     pub(crate) trust_root: EphemeralKeyPair,
     pub(crate) root: EphemeralKeyPair,

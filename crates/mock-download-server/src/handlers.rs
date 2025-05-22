@@ -4,9 +4,8 @@
 use crate::Serialize;
 use crate::{AuthenticationToken, Data};
 use md5::Digest;
-use criticaltrust::manifests::ManifestVersion;
+use criticaltrust::manifests::{ManifestVersion};
 use tiny_http::{Header, Method, Request, Response, ResponseBox, StatusCode};
-use xz2::stream::Status;
 
 pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
     let url_parts = req
@@ -78,17 +77,17 @@ fn handle_v1_keys(data: &Data, req: &Request) -> Result<Resp, Resp> {
         // If the user already has the item downloaded, they at one point were permitted to download it.
         // We only validate that it is correct. This is not a license check.
         let mut hasher = md5::Md5::new();
-        let json = serde_json::to_vec(&manifest).unwrap();
+        let json = serde_json::to_vec_pretty(&manifest).unwrap();
         hasher.update(&json);
         let etag_string = format!("{:x}", hasher.finalize());
 
         let etag = format!(r#""{etag_string}""#);
 
-        panic!("{if_none_match} == {etag}");
         if if_none_match == etag {
             return Ok(Resp::NotModified);
         }
     }
+    
     Ok(Resp::json(&manifest))
 }
 
