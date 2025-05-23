@@ -9,7 +9,7 @@ async fn main() {
     let whitelabel = criticalup_cli::WhitelabelConfig {
         name: "criticalup-dev",
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION"), " (dev)"),
-        download_server_url: "http://127.0.0.1:3000".into(),
+        download_server_url: "https://criticalup-downloads-dev.ferrocene.dev".into(),
         customer_portal_url: "https://customers-dev.ferrocene.dev".into(),
         trust_root: PublicKey {
             role: KeyRole::Root,

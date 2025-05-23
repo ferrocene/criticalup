@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::config::Config;
@@ -13,8 +13,8 @@ use criticaltrust::manifests::ReleaseArtifactFormat;
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::signatures::Keychain;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
-use reqwest::Response;
 use reqwest::StatusCode;
+use reqwest::{IntoUrl, Request, Response};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
@@ -115,7 +115,7 @@ impl DownloadServerClient {
         })
     }
 
-    async fn cacheable_request(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
+    async fn cacheable(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
         let cache_hit = cache_key.exists();
 
         let data = if self.offline {
@@ -127,30 +127,16 @@ impl DownloadServerClient {
                 return Err(Error::OfflineMode);
             }
         } else {
-            let mut req = self.client.get(&url);
+            let req = self.cacheable_request(&url, &cache_key, cache_hit).await?;
 
-            if let Some(auth_token) = self.auth_token().await? {
-                req = req.header(AUTHORIZATION, auth_token);
-            }
-
-            if cache_hit {
-                let cache_content = fs::read(&cache_key)
-                    .await
-                    .map_err(|e| Error::Read(cache_key.clone(), e))?;
-                let mut hasher = md5::Md5::new();
-                hasher.update(cache_content);
-                let etag_sha256 = format!(r#""{:x}""#, hasher.finalize());
-                req = req.header(
-                    "If-None-Match",
-                    HeaderValue::from_str(&etag_sha256).unwrap(),
-                );
-                tracing::trace!(cache_key = %cache_key.display(), etag = %etag_sha256, "Got cached");
-            }
-
-            let resp = req.send().await.map_err(|e| Error::DownloadServerError {
-                url: url.clone(),
-                kind: DownloadServerError::NetworkWithMiddleware(e),
-            })?;
+            let resp = self
+                .client
+                .execute(req)
+                .await
+                .map_err(|e| Error::DownloadServerError {
+                    url: url.clone(),
+                    kind: DownloadServerError::NetworkWithMiddleware(e),
+                })?;
 
             match resp.status() {
                 StatusCode::OK => {
@@ -182,12 +168,40 @@ impl DownloadServerClient {
         Ok(data)
     }
 
+    async fn cacheable_request(
+        &self,
+        url: impl IntoUrl,
+        cache_key: impl AsRef<Path>,
+        cache_hit: bool,
+    ) -> Result<Request, Error> {
+        let cache_key = cache_key.as_ref();
+        let mut req = self.client.get(url);
+        if let Some(auth_token) = self.auth_token().await? {
+            req = req.header(AUTHORIZATION, auth_token);
+        }
+        if cache_hit {
+            let cache_content = fs::read(cache_key)
+                .await
+                .map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
+            let mut hasher = md5::Md5::new();
+            hasher.update(cache_content);
+            let etag_sha256 = format!(r#""{:x}""#, hasher.finalize());
+            req = req.header(
+                "If-None-Match",
+                HeaderValue::from_str(&etag_sha256).unwrap(),
+            );
+            tracing::trace!(cache_key = %cache_key.display(), etag = %etag_sha256, "Got cached");
+        }
+        let req_built = req.build()?;
+        Ok(req_built)
+    }
+
     #[tracing::instrument(level = "trace", skip_all)]
     pub async fn keys(&self) -> Result<Keychain, Error> {
         let url = self.url("/v1/keys");
         let cache_key = self.keys_cache_path();
 
-        let data = self.cacheable_request(url, cache_key).await?;
+        let data = self.cacheable(url, cache_key).await?;
         let keys_manifest = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
 
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
@@ -207,7 +221,7 @@ impl DownloadServerClient {
         let url = self.url(&format!("/v1/releases/{product}/{release}"));
         let cache_key = self.product_release_manifest_cache_path(product, release);
 
-        let data = self.cacheable_request(url, cache_key).await?;
+        let data = self.cacheable(url, cache_key).await?;
 
         serde_json::from_slice(&data).map_err(Error::JsonSerialization)
     }
@@ -232,7 +246,7 @@ impl DownloadServerClient {
         let cache_key = self.package_cache_path(product, release, package, format);
 
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
-        let data = self.cacheable_request(url, cache_key).await?;
+        let data = self.cacheable(url, cache_key).await?;
 
         Ok(data)
     }
@@ -304,6 +318,41 @@ mod tests {
     };
     use criticaltrust::keys::KeyPair;
     use criticaltrust::signatures::PublicKeysRepository;
+    use md5::Md5;
+    use reqwest::header::IF_NONE_MATCH;
+    use tokio::fs::write;
+
+    #[tokio::test]
+    async fn test_cachable_requests_set_if_none_match() {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+
+        let test_path = test_env.config().paths.cache_dir.join("tester");
+        let test_url = test_env.download_server().url("/tester");
+
+        // Does not yet exist
+        let req = test_env
+            .download_server()
+            .cacheable_request(&test_url, &test_path, false)
+            .await
+            .unwrap();
+        assert!(req.headers().get(IF_NONE_MATCH).is_none());
+
+        // Create it, so we should include the header
+        let test_slug = "Cute dogs with boopable snoots";
+        let mut hasher = Md5::new();
+        hasher.update(test_slug);
+        let test_hash = HeaderValue::from_str(&format!(r#""{:x}""#, hasher.finalize())).unwrap();
+        if let Some(parent) = test_path.parent() {
+            create_dir_all(parent).await.unwrap()
+        }
+        write(&test_path, test_slug).await.unwrap();
+        let req = test_env
+            .download_server()
+            .cacheable_request(&test_url, &test_path, true)
+            .await
+            .unwrap();
+        assert_eq!(req.headers().get(IF_NONE_MATCH), Some(&test_hash));
+    }
 
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
