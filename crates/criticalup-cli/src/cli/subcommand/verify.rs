@@ -11,7 +11,6 @@ use std::{
 use clap::Parser;
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
-    download_server_cache::DownloadServerCache,
     download_server_client::DownloadServerClient,
     project_manifest::{ProjectManifest, ProjectManifestProduct},
     state::State,
@@ -48,13 +47,9 @@ impl CommandExecute for Verify {
         span.record("project", tracing::field::display(project.display()));
 
         let state = State::load(&ctx.config).await?;
-        let maybe_client = if !self.offline {
-            Some(DownloadServerClient::new(&ctx.config, &state))
-        } else {
-            None
-        };
-        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
-        let keys = cache.keys().await?;
+        let client: DownloadServerClient =
+            DownloadServerClient::new(&ctx.config, &state, self.offline);
+        let keys = client.keys().await?;
 
         let project_manifest = ProjectManifest::load(&project)?;
 

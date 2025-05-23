@@ -67,6 +67,15 @@ impl TestEnvironment {
             .expect("download server not prepared")
             .served_requests_count()
     }
+
+    pub(crate) fn response_status_codes_by_mock_download_server(
+        &self,
+    ) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
+        self.mock_server
+            .as_ref()
+            .expect("download server not prepared")
+            .response_status_codes()
+    }
 }
 
 pub(crate) struct TestEnvironmentBuilder {
@@ -149,7 +158,11 @@ impl TestEnvironmentBuilder {
         };
 
         let download_server = if self.download_server {
-            Some(DownloadServerClient::new(&config, state.as_ref().unwrap()))
+            Some(DownloadServerClient::new(
+                &config,
+                state.as_ref().unwrap(),
+                false,
+            ))
         } else {
             None
         };
@@ -165,6 +178,7 @@ impl TestEnvironmentBuilder {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct TestKeys {
     pub(crate) trust_root: EphemeralKeyPair,
     pub(crate) root: EphemeralKeyPair,
