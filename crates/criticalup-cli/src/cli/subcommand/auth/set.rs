@@ -23,7 +23,9 @@ impl CommandExecute for AuthSet {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let state = State::load(&ctx.config).await?;
-        let download_server = DownloadServerClient::new(&ctx.config, &state, false);
+
+        let is_offline = false;
+        let download_server = DownloadServerClient::new(&ctx.config, &state, is_offline);
 
         let token = if let Some(token) = self.token {
             token

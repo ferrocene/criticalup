@@ -37,7 +37,8 @@ impl CommandExecute for Auth {
         };
 
         let state = State::load(&ctx.config).await?;
-        let download_server = DownloadServerClient::new(&ctx.config, &state, false);
+        let is_offline = false;
+        let download_server = DownloadServerClient::new(&ctx.config, &state, is_offline);
 
         match download_server.get_current_token_data().await {
             Ok(data) => {
