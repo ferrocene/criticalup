@@ -19,4 +19,4 @@ time.workspace = true
 tokio.workspace = true
 walkdir.workspace = true
 xz2.workspace = true
-md-5 = "0.10.6"
+md-5.workspace = true
