@@ -34,6 +34,14 @@ pub struct DownloadServerClient {
 }
 
 impl DownloadServerClient {
+    pub fn new_offline(config: &Config, state: &State) -> Self {
+        Self::new(config, state, true)
+    }
+
+    pub fn new_online(config: &Config, state: &State) -> Self {
+        Self::new(config, state, false)
+    }
+
     pub fn new(config: &Config, state: &State, offline: bool) -> Self {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(CLIENT_MAX_RETRIES);
         let client = reqwest::ClientBuilder::new()

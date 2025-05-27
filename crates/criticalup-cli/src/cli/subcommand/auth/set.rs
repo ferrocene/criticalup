@@ -24,8 +24,7 @@ impl CommandExecute for AuthSet {
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let state = State::load(&ctx.config).await?;
 
-        let is_offline = false;
-        let download_server = DownloadServerClient::new(&ctx.config, &state, is_offline);
+        let download_server = DownloadServerClient::new_online(&ctx.config, &state);
 
         let token = if let Some(token) = self.token {
             token
