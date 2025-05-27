@@ -19,6 +19,10 @@ in [each release](https://github.com/ferrocene/criticalup/releases) as well as t
 CriticalUp only requires a working Rust and C toolchain to build. [Installation instructions][rust-install] for Rust
 typically include installing a C toolchain as well.
 
+## Structure
+
+Criticalup uses a [Cargo Virtual Workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html#virtual-workspace)
+
 ### Build
 
 #### Debug
@@ -45,10 +49,16 @@ cargo build -p criticalup --release
 
 ### Test
 
-To test CriticalUp:
+To test CriticalUp from workspace root:
 
 ```bash
-cargo test
+cargo test --timings --locked
+```
+
+To test a CriticalUp specific package from workspace root:
+
+```bash
+cargo test -p criticalup-cli --timings --locked
 ```
 
 ## Releasing a new version
@@ -66,7 +76,7 @@ To cut a release:
       Update this test to match the correct version (`X.Y.Z`).
     - [CHANGELOG.md](./CHANGELOG.md): Make `[Unreleased]` the correct version (`[X.Y.Z]`). Add correct links metadata at
       the bottom.
-- Run `cargo test --workspace` and `cargo clippy --workspace --tests --locked -- -Dwarnings` to make sure there no
+- Run `cargo test` and `cargo clippy --tests --locked -- -Dwarnings` to make sure there no
   failures.
 - Commit and push this branch and open a PR against `main`, on GitHub.
 - Wait for approval(s) from reviewer(s).
