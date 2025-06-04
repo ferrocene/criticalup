@@ -21,6 +21,7 @@ thiserror.workspace = true
 toml_edit.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+md-5.workspace = true
 
 [dev-dependencies]
 mock-download-server = { path = "../mock-download-server" }

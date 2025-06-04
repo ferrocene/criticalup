@@ -4,6 +4,7 @@
 use crate::Serialize;
 use crate::{AuthenticationToken, Data};
 use criticaltrust::manifests::ManifestVersion;
+use md5::Digest;
 use tiny_http::{Header, Method, Request, Response, ResponseBox, StatusCode};
 
 pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
@@ -15,7 +16,7 @@ pub(crate) fn handle_request(data: &Data, req: &Request) -> ResponseBox {
 
     let resp = match (req.method(), url_parts.as_slice()) {
         (Method::Get, ["v1", "tokens", "current"]) => handle_v1_tokens_current(data, req),
-        (Method::Get, ["v1", "keys"]) => handle_v1_keys(data),
+        (Method::Get, ["v1", "keys"]) => handle_v1_keys(data, req),
         (Method::Get, ["v1", "releases", product, release]) => {
             handle_v1_release(data, product, release)
         }
@@ -57,11 +58,36 @@ fn handle_v1_tokens_current(data: &Data, req: &Request) -> Result<Resp, Resp> {
     Ok(Resp::json(token))
 }
 
-fn handle_v1_keys(data: &Data) -> Result<Resp, Resp> {
-    Ok(Resp::json(&criticaltrust::manifests::KeysManifest {
+fn handle_v1_keys(data: &Data, req: &Request) -> Result<Resp, Resp> {
+    let manifest = criticaltrust::manifests::KeysManifest {
         version: ManifestVersion,
         keys: data.keys.clone(),
-    }))
+    };
+
+    let if_none_match = req.headers().iter().find_map(|v| {
+        if v.field.as_str() == "if-none-match" {
+            Some(v.value.to_string())
+        } else {
+            None
+        }
+    });
+
+    if let Some(client_etag) = if_none_match {
+        // If the user already has the item downloaded, they at one point were permitted to download it.
+        // We only validate that it is correct. This is not a license check.
+        let mut hasher = md5::Md5::new();
+        let json = serde_json::to_vec_pretty(&manifest).unwrap();
+        hasher.update(&json);
+        let etag_string = format!("{:x}", hasher.finalize());
+
+        let etag = format!(r#""{etag_string}""#);
+
+        if client_etag == etag {
+            return Ok(Resp::NotModified);
+        }
+    }
+
+    Ok(Resp::json(&manifest))
 }
 
 fn handle_v1_release(data: &Data, product: &str, release: &str) -> Result<Resp, Resp> {
@@ -100,6 +126,7 @@ fn authorize<'a>(data: &'a Data, req: &Request) -> Result<&'a AuthenticationToke
 enum Resp {
     Forbidden,
     NotFound,
+    NotModified,
     Json(Vec<u8>),
     File(Vec<u8>),
 }
@@ -129,7 +156,7 @@ impl Resp {
                     Header::from_bytes(&b"Content-Disposition"[..], &b"attachment"[..]).unwrap(),
                 )
                 .boxed(),
-
+            Resp::NotModified => Response::empty(StatusCode(304)).boxed(),
             Resp::Forbidden => Response::empty(StatusCode(403)).boxed(),
             Resp::NotFound => Response::empty(StatusCode(404)).boxed(),
         }

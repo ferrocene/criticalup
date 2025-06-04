@@ -16,8 +16,7 @@ use std::os::unix::prelude::MetadataExt;
 #[cfg(windows)]
 use std::os::windows::prelude::MetadataExt;
 use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread::JoinHandle;
 use tiny_http::Server;
 use walkdir::WalkDir;
@@ -27,7 +26,8 @@ pub struct MockServer {
     data: Arc<Mutex<Data>>,
     server: Arc<Server>,
     handle: Option<JoinHandle<()>>,
-    served_requests: Arc<AtomicUsize>,
+    // This should be a `StatusCode` but they are not cloneable in `tiny_http`.
+    response_status_codes: Arc<RwLock<Vec<u16>>>,
 }
 
 impl MockServer {
@@ -41,20 +41,20 @@ impl MockServer {
         // The real port can be then retrieved by checking the address of the bound server.
         let server = Arc::new(Server::http("127.0.0.1:0").unwrap());
 
-        let served_requests = Arc::new(AtomicUsize::new(0));
+        let response_status_codes = Arc::new(RwLock::new(Vec::new()));
 
         let data_clone = data.clone();
         let server_clone = server.clone();
-        let served_requests_clone = served_requests.clone();
+        let response_status_codes_clone = response_status_codes.clone();
         let handle = std::thread::spawn(move || {
-            server_thread(data_clone, server_clone, served_requests_clone);
+            server_thread(data_clone, server_clone, response_status_codes_clone);
         });
 
         Self {
             data,
             server,
             handle: Some(handle),
-            served_requests,
+            response_status_codes,
         }
     }
 
@@ -63,7 +63,11 @@ impl MockServer {
     }
 
     pub fn served_requests_count(&self) -> usize {
-        self.served_requests.load(Ordering::SeqCst)
+        self.response_status_codes.read().unwrap().len()
+    }
+
+    pub fn response_status_codes(&self) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
+        self.response_status_codes.read().unwrap()
     }
 
     pub fn edit_data(&self, f: impl FnOnce(&mut Data)) {
@@ -240,12 +244,18 @@ impl Drop for MockServer {
     }
 }
 
-fn server_thread(data: Arc<Mutex<Data>>, server: Arc<Server>, served_requests: Arc<AtomicUsize>) {
+fn server_thread(
+    data: Arc<Mutex<Data>>,
+    server: Arc<Server>,
+    response_status_codes: Arc<RwLock<Vec<u16>>>,
+) {
     for request in server.incoming_requests() {
         let response = handle_request(&data.lock().unwrap(), &request);
+        let status_code = response.status_code();
         request.respond(response).unwrap();
 
-        served_requests.fetch_add(1, Ordering::SeqCst);
+        let mut response_status_codes = response_status_codes.write().unwrap();
+        response_status_codes.push(status_code.0)
     }
 }
 

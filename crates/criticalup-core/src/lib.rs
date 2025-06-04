@@ -3,7 +3,6 @@
 
 pub mod binary_proxies;
 pub mod config;
-pub mod download_server_cache;
 pub mod download_server_client;
 pub mod envvars;
 pub mod errors;

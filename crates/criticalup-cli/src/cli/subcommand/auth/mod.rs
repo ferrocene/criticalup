@@ -8,7 +8,7 @@ use crate::cli::CommandExecute;
 use crate::errors::{Error, LibError};
 use crate::Context;
 use clap::{Parser, Subcommand};
-use criticalup_core::download_server_client::DownloadServerClient;
+use criticalup_core::download_server_client::{Connectivity, DownloadServerClient};
 use criticalup_core::errors::DownloadServerError;
 use criticalup_core::state::State;
 use remove::AuthRemove;
@@ -37,7 +37,7 @@ impl CommandExecute for Auth {
         };
 
         let state = State::load(&ctx.config).await?;
-        let download_server = DownloadServerClient::new(&ctx.config, &state);
+        let download_server = DownloadServerClient::new(&ctx.config, &state, Connectivity::Online);
 
         match download_server.get_current_token_data().await {
             Ok(data) => {

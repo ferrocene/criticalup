@@ -11,7 +11,6 @@ use std::{
 use clap::Parser;
 use criticaltrust::{integrity::IntegrityVerifier, signatures::Keychain};
 use criticalup_core::{
-    download_server_cache::DownloadServerCache,
     download_server_client::DownloadServerClient,
     project_manifest::{ProjectManifest, ProjectManifestProduct},
     state::State,
@@ -19,14 +18,17 @@ use criticalup_core::{
 use tracing::Span;
 use walkdir::WalkDir;
 
-use crate::{cli::CommandExecute, errors::Error, Context};
+use crate::{
+    cli::{connectivity::Network, CommandExecute},
+    errors::Error,
+    Context,
+};
 
 /// Verify a given toolchain
 #[derive(Debug, Parser)]
 pub(crate) struct Verify {
-    /// Don't download from the server, only use previously cached artifacts
-    #[arg(long)]
-    offline: bool,
+    #[clap(flatten)]
+    network: Network,
 
     /// Path to the manifest `criticalup.toml`
     #[arg(long)]
@@ -36,7 +38,7 @@ pub(crate) struct Verify {
 impl CommandExecute for Verify {
     #[tracing::instrument(level = "debug", skip_all, fields(
         project,
-        %offline = self.offline
+        %connectivity = self.network.connectivity
     ))]
     async fn execute(self, ctx: &Context) -> Result<(), Error> {
         let span = Span::current();
@@ -48,13 +50,9 @@ impl CommandExecute for Verify {
         span.record("project", tracing::field::display(project.display()));
 
         let state = State::load(&ctx.config).await?;
-        let maybe_client = if !self.offline {
-            Some(DownloadServerClient::new(&ctx.config, &state))
-        } else {
-            None
-        };
-        let cache = DownloadServerCache::new(&ctx.config.paths.cache_dir, &maybe_client).await?;
-        let keys = cache.keys().await?;
+        let client: DownloadServerClient =
+            DownloadServerClient::new(&ctx.config, &state, self.network.connectivity);
+        let keys = client.keys().await?;
 
         let project_manifest = ProjectManifest::load(&project)?;
 
