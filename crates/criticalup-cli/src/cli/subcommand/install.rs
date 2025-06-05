@@ -142,7 +142,22 @@ async fn install_product_afresh(
     product
         .create_product_dir(&ctx.config.paths.installation_dir)
         .await?;
+    let (finish_tx, mut finish_rx) = mpsc::channel(product.packages().len());
+    let (product_name_clone, release_clone): (String, String) =
+        (product_name.to_owned(), release.to_owned());
+
     let (install_tx, mut install_rx) = mpsc::channel(product.packages().len());
+    tokio::spawn(async move {
+        while let Some((package_name, package_data)) = install_rx.recv().await {
+            tracing::info!(
+                "Installing component '{package_name}' for '{product_name_clone}' ({release_clone})",
+            );
+            // l            tracing::info!("Installing product '{product_name_clone}' ({release_clone})",);
+            let files = install_one_package(&abs_installation_dir_path, package_data).await;
+            finish_tx.send(files).await.unwrap();
+        }
+        drop(finish_tx);
+    });
 
     for package in product.packages() {
         let package_data = client
@@ -154,17 +169,12 @@ async fn install_product_afresh(
             )
             .await
             .unwrap();
-        install_tx.send(package_data).await.unwrap();
+        install_tx
+            .send((package.to_owned(), package_data))
+            .await
+            .unwrap();
     }
     drop(install_tx);
-    let (finish_tx, mut finish_rx) = mpsc::channel(product.packages().len());
-    tokio::spawn(async move {
-        while let Some(package_data) = install_rx.recv().await {
-            let files = install_one_package(&abs_installation_dir_path, package_data).await;
-            finish_tx.send(files).await.unwrap();
-        }
-        drop(finish_tx);
-    });
 
     while let Some(res) = finish_rx.recv().await {
         let files = res?;
@@ -213,6 +223,7 @@ async fn install_one_package(
         let mut entry = each?;
 
         let p = entry.path()?.into_owned();
+
         let entry_path_on_disk = abs_installation_dir_path.join(p);
         entry.unpack(&entry_path_on_disk)?;
 
