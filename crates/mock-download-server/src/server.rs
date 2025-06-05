@@ -57,7 +57,7 @@ impl MockServer {
         };
         let router = Router::new()
             .route("/", get(StatusCode::IM_A_TEAPOT))
-            .route("/health", get(StatusCode::IM_A_TEAPOT))
+            .route("/health", get(StatusCode::OK))
             .nest("/v1", v1_routes())
             .layer(middleware::from_fn_with_state(
                 Arc::clone(&data),
