@@ -144,29 +144,13 @@ async fn install_product_afresh(
             .await?;
 
         tracing::info!("Installing component '{package}' for '{product_name}' ({release})",);
-
-        let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
-        let mut archive = tar::Archive::new(decoder);
-        archive.set_preserve_permissions(true);
-        archive.set_preserve_mtime(true);
-        archive.set_unpack_xattrs(true);
-
-        let entries = archive.entries()?;
-        for each in entries {
-            let mut entry = each?;
-
-            let p = entry.path()?.into_owned();
-            let entry_path_on_disk = abs_installation_dir_path.join(p);
-            entry.unpack(&entry_path_on_disk)?;
-
-            if entry_path_on_disk.is_file() {
-                integrity_verifier.add(
-                    &entry_path_on_disk,
-                    entry.header().mode()?,
-                    &tokio::fs::read(&entry_path_on_disk).await?,
-                );
-            }
-        }
+        // iiuc the paths are added inside the integrity verifier, so we should not need to return a vector
+        install_one_release(
+            &mut integrity_verifier,
+            &abs_installation_dir_path,
+            package_data,
+        )
+        .await?;
     }
 
     let verified_packages = integrity_verifier
@@ -188,6 +172,37 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
             return Err(PackageDependenciesNotSupported(package.package.clone()));
         }
     }
+    Ok(())
+}
+
+async fn install_one_release(
+    integrity_verifier: &mut IntegrityVerifier<'_>,
+    abs_installation_dir_path: &PathBuf,
+    package_data: Vec<u8>,
+) -> Result<(), Error> {
+    let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
+    let mut archive = tar::Archive::new(decoder);
+    archive.set_preserve_permissions(true);
+    archive.set_preserve_mtime(true);
+    archive.set_unpack_xattrs(true);
+
+    let entries = archive.entries()?;
+    for each in entries {
+        let mut entry = each?;
+
+        let p = entry.path()?.into_owned();
+        let entry_path_on_disk = abs_installation_dir_path.join(p);
+        entry.unpack(&entry_path_on_disk)?;
+
+        if entry_path_on_disk.is_file() {
+            integrity_verifier.add(
+                &entry_path_on_disk,
+                entry.header().mode()?,
+                &tokio::fs::read(&entry_path_on_disk).await?,
+            );
+        }
+    }
+
     Ok(())
 }
 
