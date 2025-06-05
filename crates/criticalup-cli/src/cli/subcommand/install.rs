@@ -3,6 +3,7 @@
 
 use std::env::current_dir;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::cli::connectivity::Network;
 use crate::cli::CommandExecute;
@@ -15,7 +16,9 @@ use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
+use tokio::sync::{mpsc, Mutex};
 use tracing::Span;
+use xz2::stream::Mode;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
@@ -30,6 +33,13 @@ pub(crate) struct Install {
     reinstall: bool,
     #[clap(flatten)]
     network: Network,
+}
+
+// make a Command for channels, one will be Install, one will be Confirm
+#[derive(Debug)]
+pub enum ChannelCommand {
+    Install,
+    Confirm,
 }
 
 impl CommandExecute for Install {
@@ -132,6 +142,7 @@ async fn install_product_afresh(
     product
         .create_product_dir(&ctx.config.paths.installation_dir)
         .await?;
+    let (install_tx, mut install_rx) = mpsc::channel(product.packages().len());
 
     for package in product.packages() {
         let package_data = client
@@ -141,16 +152,26 @@ async fn install_product_afresh(
                 package,
                 DEFAULT_RELEASE_ARTIFACT_FORMAT,
             )
-            .await?;
+            .await
+            .unwrap();
+        install_tx.send(package_data).await.unwrap();
+    }
+    drop(install_tx);
+    let (finish_tx, mut finish_rx) = mpsc::channel(product.packages().len());
+    tokio::spawn(async move {
+        while let Some(package_data) = install_rx.recv().await {
+            let files = install_one_package(&abs_installation_dir_path, package_data).await;
+            finish_tx.send(files).await.unwrap();
+        }
+        drop(finish_tx);
+    });
 
-        tracing::info!("Installing component '{package}' for '{product_name}' ({release})",);
-        // iiuc the paths are added inside the integrity verifier, so we should not need to return a vector
-        install_one_release(
-            &mut integrity_verifier,
-            &abs_installation_dir_path,
-            package_data,
-        )
-        .await?;
+    while let Some(res) = finish_rx.recv().await {
+        let files = res?;
+        for (path, mode) in files {
+            let buffer = &tokio::fs::read(&path).await?;
+            integrity_verifier.add(path.as_ref(), mode, buffer);
+        }
     }
 
     let verified_packages = integrity_verifier
@@ -175,16 +196,17 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
     Ok(())
 }
 
-async fn install_one_release(
-    integrity_verifier: &mut IntegrityVerifier<'_>,
+async fn install_one_package(
     abs_installation_dir_path: &PathBuf,
     package_data: Vec<u8>,
-) -> Result<(), Error> {
+) -> Result<Vec<(PathBuf, u32)>, Error> {
     let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
     let mut archive = tar::Archive::new(decoder);
     archive.set_preserve_permissions(true);
     archive.set_preserve_mtime(true);
     archive.set_unpack_xattrs(true);
+
+    let mut files = Vec::new();
 
     let entries = archive.entries()?;
     for each in entries {
@@ -195,15 +217,11 @@ async fn install_one_release(
         entry.unpack(&entry_path_on_disk)?;
 
         if entry_path_on_disk.is_file() {
-            integrity_verifier.add(
-                &entry_path_on_disk,
-                entry.header().mode()?,
-                &tokio::fs::read(&entry_path_on_disk).await?,
-            );
+            files.push((entry_path_on_disk, entry.header().mode().unwrap()));
         }
     }
 
-    Ok(())
+    Ok(files)
 }
 
 #[cfg(test)]
