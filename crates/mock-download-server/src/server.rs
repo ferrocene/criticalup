@@ -56,7 +56,7 @@ impl MockServer {
             handle: None,
         };
         let router = Router::new()
-            .route("/", get(StatusCode::IM_A_TEAPOT))
+            .route("/", get(StatusCode::NOT_IMPLEMENTED))
             .route("/health", get(StatusCode::OK))
             .nest("/v1", v1_routes())
             .layer(middleware::from_fn_with_state(
