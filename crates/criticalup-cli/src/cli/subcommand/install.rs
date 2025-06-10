@@ -3,7 +3,6 @@
 
 use std::env::current_dir;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use crate::cli::connectivity::Network;
 use crate::cli::CommandExecute;
@@ -16,9 +15,8 @@ use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
 use tracing::Span;
-use xz2::stream::Mode;
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
@@ -33,13 +31,6 @@ pub(crate) struct Install {
     reinstall: bool,
     #[clap(flatten)]
     network: Network,
-}
-
-// make a Command for channels, one will be Install, one will be Confirm
-#[derive(Debug)]
-pub enum ChannelCommand {
-    Install,
-    Confirm,
 }
 
 impl CommandExecute for Install {
@@ -142,6 +133,7 @@ async fn install_product_afresh(
     product
         .create_product_dir(&ctx.config.paths.installation_dir)
         .await?;
+    // Finish channel must be opened in advance and be ready to rx; if not, the code remains sequential.
     let (finish_tx, mut finish_rx) = mpsc::channel(product.packages().len());
     let (product_name_clone, release_clone): (String, String) =
         (product_name.to_owned(), release.to_owned());
@@ -152,10 +144,10 @@ async fn install_product_afresh(
             tracing::info!(
                 "Installing component '{package_name}' for '{product_name_clone}' ({release_clone})",
             );
-            // l            tracing::info!("Installing product '{product_name_clone}' ({release_clone})",);
             let files = install_one_package(&abs_installation_dir_path, package_data).await;
             finish_tx.send(files).await.unwrap();
         }
+        // Tx must be dropped to indicate the end of the operation.
         drop(finish_tx);
     });
 
@@ -174,6 +166,7 @@ async fn install_product_afresh(
             .await
             .unwrap();
     }
+    // Same as finish_tx, we send None to indicate the end of the operation.
     drop(install_tx);
 
     while let Some(res) = finish_rx.recv().await {
@@ -207,7 +200,7 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
 }
 
 async fn install_one_package(
-    abs_installation_dir_path: &PathBuf,
+    abs_installation_dir_path: &Path,
     package_data: Vec<u8>,
 ) -> Result<Vec<(PathBuf, u32)>, Error> {
     let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
