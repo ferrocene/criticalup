@@ -5,7 +5,7 @@ use crate::assert_output;
 use crate::utils::{stdin, TestEnvironment, MOCK_AUTH_TOKENS};
 use regex::Regex;
 use serde::Deserialize;
-use std::process::Command;
+use tokio::process::Command;
 
 const TOKEN_A: &str = MOCK_AUTH_TOKENS[0].0;
 const TOKEN_B: &str = MOCK_AUTH_TOKENS[1].0;
@@ -24,7 +24,7 @@ async fn byte_zero_via_stdin() {
     // Byte zero is not allowed in HTTP headers: we should get a proper error message instead of a
     // panic, and no requests should be made to the server.
     assert_output!(test_env.cmd().args(["auth", "set"]).stdin(stdin("\0")));
-    assert_eq!(0, test_env.requests_served_by_mock_download_server());
+    assert_eq!(0, test_env.requests_served_by_mock_download_server().await);
 }
 
 // This is a macro instead of a function because otherwise insta detects the name of the helper
@@ -33,6 +33,7 @@ macro_rules! run_cmd {
     ($expected:ident, $env:ident, $variant:ident, $token:ident) => {
         let out = build_command(&$env, $variant, $token)
             .output()
+            .await
             .expect("failed to execute command");
         match &$expected {
             Some(expected) => {
@@ -74,7 +75,7 @@ macro_rules! test_matrix {
                     assert_token(&test_env, Some(TOKEN_A));
 
                     // The download server was called to validate the token.
-                    assert_eq!(1, test_env.requests_served_by_mock_download_server());
+                    assert_eq!(1, test_env.requests_served_by_mock_download_server().await);
                 }
             }
 
@@ -83,14 +84,14 @@ macro_rules! test_matrix {
                 let mut expected: Option<Output>  = None;
                 for variant in [$($variant,)*] {
                     let test_env = TestEnvironment::prepare().await;
-                    set_token(&test_env, TOKEN_A);
+                    set_token(&test_env, TOKEN_A).await;
 
                     run_cmd!(expected, test_env, variant, TOKEN_B);
                     assert_token(&test_env, Some(TOKEN_B));
 
                     // The download server was called by both the `set_token` function and what we want
                     // to test (to validate the token).
-                    assert_eq!(2, test_env.requests_served_by_mock_download_server());
+                    assert_eq!(2, test_env.requests_served_by_mock_download_server().await);
                 }
             }
 
@@ -105,7 +106,7 @@ macro_rules! test_matrix {
                     assert_token(&test_env, None);
 
                     // The download server was called to validate the token.
-                    assert_eq!(1, test_env.requests_served_by_mock_download_server());
+                    assert_eq!(1, test_env.requests_served_by_mock_download_server().await);
                 }
             }
 
@@ -115,13 +116,13 @@ macro_rules! test_matrix {
                 for variant in [$($variant,)*] {
                     let test_env = TestEnvironment::prepare().await;
 
-                    set_token(&test_env, TOKEN_A);
+                    set_token(&test_env, TOKEN_A).await;
                     run_cmd!(expected, test_env, variant, TOKEN_INVALID);
                     assert_token(&test_env, Some(TOKEN_A));
 
                     // The download server was called by both the `set_token` function and what we want
                     // to test (to validate the token).
-                    assert_eq!(2, test_env.requests_served_by_mock_download_server());
+                    assert_eq!(2, test_env.requests_served_by_mock_download_server().await);
                 }
             }
         })*
@@ -197,7 +198,7 @@ fn assert_token(test_env: &TestEnvironment, expected: Option<&str>) {
     assert_eq!(expected, actual.as_deref());
 }
 
-fn set_token(test_env: &TestEnvironment, token: &str) {
+async fn set_token(test_env: &TestEnvironment, token: &str) {
     assert_token(test_env, None);
 
     // We shouldn't write directly to state.json, as in the test we don't know which other params
@@ -206,6 +207,7 @@ fn set_token(test_env: &TestEnvironment, token: &str) {
         .cmd()
         .args(["auth", "set", token])
         .output()
+        .await
         .unwrap();
     assert!(out.status.success());
     assert_token(test_env, Some(token));

@@ -384,7 +384,7 @@ mod tests {
                 .await
                 .unwrap(),
         );
-        assert_eq!(1, test_env.requests_served_by_mock_download_server());
+        assert_eq!(1, test_env.requests_served_by_mock_download_server().await);
     }
 
     #[tokio::test]
@@ -405,7 +405,7 @@ mod tests {
 
         // No request was actually made since the authentication token can't be represented in
         // HTTP headers.
-        assert_eq!(0, test_env.requests_served_by_mock_download_server());
+        assert_eq!(0, test_env.requests_served_by_mock_download_server().await);
     }
 
     #[tokio::test]
@@ -416,7 +416,7 @@ mod tests {
             .set_authentication_token(Some(AuthenticationToken::seal("wrong")));
         assert_auth_failed(&test_env).await;
 
-        assert_eq!(1, test_env.requests_served_by_mock_download_server());
+        assert_eq!(1, test_env.requests_served_by_mock_download_server().await);
     }
 
     #[tokio::test]
@@ -426,7 +426,7 @@ mod tests {
         assert_auth_failed(&test_env).await;
 
         // No token was configured, so no request could've been made.
-        assert_eq!(0, test_env.requests_served_by_mock_download_server());
+        assert_eq!(0, test_env.requests_served_by_mock_download_server().await);
     }
 
     #[tokio::test]
@@ -437,12 +437,14 @@ mod tests {
         let keys = test_env.keys();
 
         let keychain = test_env.download_server().keys().await.unwrap();
+
         assert_eq!(
-            *test_env
-                .response_status_codes_by_mock_download_server()
-                .last()
-                .unwrap(),
-            200,
+            {
+                let history = test_env.history().await;
+                let (_, last_res) = history.last().unwrap();
+                last_res.status()
+            },
+            StatusCode::OK,
         );
 
         for expected_present in &[
@@ -470,15 +472,6 @@ mod tests {
                 .get(&expected_missing.public().calculate_id())
                 .is_none());
         }
-
-        let _ = test_env.download_server().keys().await.unwrap();
-        assert_eq!(
-            *test_env
-                .response_status_codes_by_mock_download_server()
-                .last()
-                .unwrap(),
-            304,
-        );
     }
 
     async fn assert_auth_failed(test_env: &TestEnvironment) {

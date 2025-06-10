@@ -8,8 +8,9 @@ use mock_download_server::{AuthenticationToken, Builder, MockServer};
 use std::borrow::Cow;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 use tempfile::TempDir;
+use tokio::process::Command;
 
 pub(crate) const MOCK_AUTH_TOKENS: &[(&str, AuthenticationToken)] = &[
     (
@@ -108,14 +109,16 @@ impl TestEnvironment {
         command
     }
 
-    pub(crate) fn requests_served_by_mock_download_server(&self) -> usize {
-        self.server.served_requests_count()
+    pub(crate) async fn requests_served_by_mock_download_server(&self) -> usize {
+        self.server.served_requests_count().await
     }
 
-    pub(crate) fn revoke_token(&self, token: &str) {
-        self.server.edit_data(|data| {
-            data.tokens.remove(token);
-        });
+    pub(crate) async fn revoke_token(&self, token: &str) {
+        self.server
+            .edit_data(|mut data| {
+                data.tokens.remove(token);
+            })
+            .await;
     }
 
     // Beware of the consumption.
@@ -133,7 +136,7 @@ pub(crate) fn stdin(content: &str) -> Stdio {
 }
 
 async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
-    let mut server_builder = mock_download_server::new();
+    let mut server_builder = mock_download_server::Builder::new();
     for (token, data) in MOCK_AUTH_TOKENS {
         server_builder = server_builder.add_token(token, data.clone());
     }
@@ -161,21 +164,21 @@ async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
             manifest.clone(),
         );
     }
-    server_builder.start()
+    server_builder.start().await
 }
 
 pub(crate) trait IntoOutput {
-    fn into_output(&mut self) -> Output;
+    async fn into_output(&mut self) -> Output;
 }
 
 impl IntoOutput for Command {
-    fn into_output(&mut self) -> Output {
-        self.output().expect("failed to execute command")
+    async fn into_output(&mut self) -> Output {
+        self.output().await.expect("failed to execute command")
     }
 }
 
 impl IntoOutput for Output {
-    fn into_output(&mut self) -> Output {
+    async fn into_output(&mut self) -> Output {
         self.clone()
     }
 }
@@ -185,7 +188,7 @@ macro_rules! assert_output {
     ($out:expr) => {{
         use $crate::utils::IntoOutput;
 
-        let repr = $crate::utils::output_repr(&$out.into_output());
+        let repr = $crate::utils::output_repr(&$out.into_output().await);
         let mut settings = insta::Settings::clone_current();
         settings.set_snapshot_path("../snapshots");
 
@@ -309,13 +312,14 @@ pub(crate) fn construct_toolchains_product_path(env: &TestEnvironment, sha: &str
     root
 }
 
-pub(crate) fn auth_set_with_valid_token(env: &TestEnvironment) {
+pub(crate) async fn auth_set_with_valid_token(env: &TestEnvironment) {
     let second_token = MOCK_AUTH_TOKENS[0].0;
 
     assert!(env
         .cmd()
         .args(["auth", "set", second_token])
         .output()
+        .await
         .expect("sssss")
         .status
         .success());

@@ -12,7 +12,6 @@ criticaltrust = { path = "../criticaltrust" }
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
-tiny_http = { version = "0.12.0", default-features = false, features = ["rustls"] }
 tar.workspace = true
 tempfile.workspace = true
 time.workspace = true
@@ -20,3 +19,6 @@ tokio.workspace = true
 walkdir.workspace = true
 xz2.workspace = true
 md-5.workspace = true
+axum.workspace = true
+axum-extra.workspace = true
+http-body-util.workspace = true

@@ -1,9 +1,15 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use crate::handlers::handle_request;
-use crate::Data;
+use crate::{v1_routes, Data};
 use anyhow::Result;
+use axum::body::Body;
+use axum::extract::{Request, State};
+use axum::http::{Response, StatusCode};
+use axum::middleware::Next;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::{middleware, Router};
 use criticaltrust::manifests::{
     ManifestVersion, Package, PackageFile, PackageManifest, Release, ReleaseArtifact,
     ReleaseArtifactFormat, ReleaseManifest, ReleasePackage,
@@ -11,67 +17,81 @@ use criticaltrust::manifests::{
 use criticaltrust::signatures::SignedPayload;
 use sha2::{Digest, Sha256};
 use std::fs::File;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
 #[cfg(windows)]
 use std::os::windows::prelude::MetadataExt;
 use std::path::Path;
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread::JoinHandle;
-use tiny_http::Server;
+use std::sync::Arc;
+use tokio::net::TcpListener;
+use tokio::sync::{MappedMutexGuard, Mutex, MutexGuard};
+use tokio::task::JoinHandle;
 use walkdir::WalkDir;
 use xz2::write::XzEncoder;
 
 pub struct MockServer {
     data: Arc<Mutex<Data>>,
-    server: Arc<Server>,
+    address: SocketAddr,
     handle: Option<JoinHandle<()>>,
-    // This should be a `StatusCode` but they are not cloneable in `tiny_http`.
-    response_status_codes: Arc<RwLock<Vec<u16>>>,
 }
 
 impl MockServer {
-    pub(crate) fn spawn(data: Data) -> Self {
+    pub(crate) async fn spawn(data: Data) -> Self {
         let data = Arc::new(Mutex::new(data));
+        let data_clone = data.clone();
 
         // Binding on port 0 results in the operative system picking a random available port,
         // without the need of generating a random port ourselves and validating the port is not
         // being used by another process.
         //
         // The real port can be then retrieved by checking the address of the bound server.
-        let server = Arc::new(Server::http("127.0.0.1:0").unwrap());
+        let address = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 0);
+        let listener = TcpListener::bind(&address).await.unwrap();
+        let address = listener.local_addr().unwrap();
 
-        let response_status_codes = Arc::new(RwLock::new(Vec::new()));
+        let mut this = Self {
+            data: data_clone,
+            address,
+            handle: None,
+        };
+        let router = Router::new()
+            .route("/", get(StatusCode::NOT_IMPLEMENTED))
+            .route("/health", get(StatusCode::OK))
+            .nest("/v1", v1_routes())
+            .layer(middleware::from_fn_with_state(
+                Arc::clone(&data),
+                update_history,
+            ))
+            .fallback(StatusCode::NOT_FOUND)
+            .with_state(Arc::clone(&data));
 
-        let data_clone = data.clone();
-        let server_clone = server.clone();
-        let response_status_codes_clone = response_status_codes.clone();
-        let handle = std::thread::spawn(move || {
-            server_thread(data_clone, server_clone, response_status_codes_clone);
+        let handle = tokio::spawn(async move {
+            axum::serve(listener, router)
+                .await
+                .expect("failed to start server");
         });
 
-        Self {
-            data,
-            server,
-            handle: Some(handle),
-            response_status_codes,
-        }
+        this.handle = Some(handle);
+
+        this
     }
 
     pub fn url(&self) -> String {
-        format!("http://{}", self.server.server_addr())
+        format!("http://{}", self.address)
     }
 
-    pub fn served_requests_count(&self) -> usize {
-        self.response_status_codes.read().unwrap().len()
+    pub async fn served_requests_count(&self) -> usize {
+        self.data.lock().await.history.len()
     }
 
-    pub fn response_status_codes(&self) -> std::sync::RwLockReadGuard<'_, Vec<u16>> {
-        self.response_status_codes.read().unwrap()
+    pub async fn history(&self) -> MappedMutexGuard<'_, [(Request<Body>, Response<Body>)]> {
+        let guard = self.data.lock().await;
+        MutexGuard::map(guard, |v| v.history.as_mut_slice())
     }
 
-    pub fn edit_data(&self, f: impl FnOnce(&mut Data)) {
-        f(&mut self.data.lock().unwrap());
+    pub async fn edit_data(&self, f: impl FnOnce(MutexGuard<'_, Data>)) {
+        f(self.data.lock().await);
     }
 
     /// Creates a package, signs it and then tarballs it.
@@ -103,7 +123,7 @@ impl MockServer {
 
         let mut signed = SignedPayload::new(&package).unwrap();
         let keypair = {
-            let keypair_lock = self.data.lock().unwrap();
+            let keypair_lock = self.data.lock().await;
             keypair_lock.keypairs.get("packages").unwrap().clone()
         };
         signed.add_signature(&keypair).await.unwrap();
@@ -183,7 +203,7 @@ impl MockServer {
             });
 
             {
-                let mut data_grabbed = self.data.lock().unwrap();
+                let mut data_grabbed = self.data.lock().await;
                 data_grabbed.release_packages.insert(
                     (
                         product_name.to_string(),
@@ -203,7 +223,7 @@ impl MockServer {
         })
         .unwrap();
         let keypair = {
-            let keypair_lock = self.data.lock().unwrap();
+            let keypair_lock = self.data.lock().await;
             keypair_lock.keypairs.get("releases").unwrap().clone()
         };
         signed.add_signature(&keypair).await.unwrap();
@@ -221,7 +241,7 @@ impl MockServer {
         .unwrap();
 
         {
-            let mut data_grabbed = self.data.lock().unwrap();
+            let mut data_grabbed = self.data.lock().await;
             data_grabbed.release_manifests.insert(
                 (product_name.to_string(), release_name.to_string()),
                 release_manifest_content.clone(),
@@ -229,33 +249,6 @@ impl MockServer {
         }
 
         Ok(())
-    }
-}
-
-impl Drop for MockServer {
-    fn drop(&mut self) {
-        self.server.unblock();
-        if let Some(handle) = self.handle.take() {
-            match handle.join() {
-                Ok(_) => (),
-                Err(err) => eprintln!("{err:?}"),
-            }
-        }
-    }
-}
-
-fn server_thread(
-    data: Arc<Mutex<Data>>,
-    server: Arc<Server>,
-    response_status_codes: Arc<RwLock<Vec<u16>>>,
-) {
-    for request in server.incoming_requests() {
-        let response = handle_request(&data.lock().unwrap(), &request);
-        let status_code = response.status_code();
-        request.respond(response).unwrap();
-
-        let mut response_status_codes = response_status_codes.write().unwrap();
-        response_status_codes.push(status_code.0)
     }
 }
 
@@ -284,4 +277,38 @@ fn hash_file(path: &Path) -> Vec<u8> {
     let mut contents = File::open(path).unwrap();
     std::io::copy(&mut contents, &mut sha256).unwrap();
     sha256.finalize().to_vec()
+}
+
+async fn update_history(
+    State(data): State<Arc<Mutex<Data>>>,
+    req: Request,
+    next: Next,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    // Body does not implment Clone, that would be inefficient.
+    // But, we're in a test, and having a history is actually very useful.
+
+    let (req_parts, req_body) = req.into_parts();
+    let body_bytes = axum::body::to_bytes(req_body, usize::MAX).await.unwrap();
+    eprintln!("-> {} {}", req_parts.method, req_parts.uri);
+    let req_for_history = Request::from_parts(req_parts.clone(), Body::from(body_bytes.clone()));
+    let req_for_next = Request::from_parts(req_parts, Body::from(body_bytes));
+
+    let res = next.run(req_for_next).await;
+
+    let (res_parts, res_body) = res.into_parts();
+    let body_bytes = axum::body::to_bytes(res_body, usize::MAX).await.unwrap();
+    eprintln!(
+        "<- {} {}",
+        res_parts.status,
+        String::from_utf8(body_bytes.to_vec()).unwrap_or_else(|_| "<bytes>".to_string())
+    );
+    let res_for_history = Response::from_parts(res_parts.clone(), Body::from(body_bytes.clone()));
+    let res_for_next = Response::from_parts(res_parts, Body::from(body_bytes));
+
+    data.lock()
+        .await
+        .history
+        .push((req_for_history, res_for_history));
+
+    Ok(res_for_next)
 }
