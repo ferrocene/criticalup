@@ -10,6 +10,7 @@ pub mod integrity;
 pub mod keys;
 pub mod manifests;
 mod serde_base64;
+pub mod v2;
 mod sha256;
 pub mod signatures;
 
