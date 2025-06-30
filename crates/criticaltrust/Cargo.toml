@@ -28,6 +28,7 @@ reqwest.workspace = true
 serde_yaml = "0.9.34"
 insta = { version = "1.43.1", features = ["yaml"] }
 semver = { version = "1.0.26", features = ["serde"] }
+serde-semver = "0.2.1"
 
 [dev-dependencies]
 itertools = "0.14.0"
