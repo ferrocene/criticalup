@@ -26,6 +26,7 @@ time.workspace = true
 tokio = { workspace = true, optional = true }
 reqwest.workspace = true
 serde_yaml = "0.9.34"
+insta = { version = "1.43.1", features = ["yaml"] }
 
 [dev-dependencies]
 itertools = "0.14.0"
