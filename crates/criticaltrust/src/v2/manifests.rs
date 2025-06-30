@@ -199,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_release_package_serialize() {
+    fn test_release_package_yaml_serialize() {
         let package = ReleasePackage {
             package: "ferrocene-docs".to_string(),
             artifacts: vec![ReleaseArtifact {
@@ -210,20 +210,12 @@ mod tests {
             dependencies: vec![],
         };
 
-        let package2 = ReleasePackage {
-            package: "ferrocene-docs".to_string(),
-            artifacts: vec![ReleaseArtifact {
-                format: ReleaseArtifactFormat::TarXz,
-                size: 1024,
-                sha256: "abcdefgh".as_bytes().to_vec(),
-            }],
-            dependencies: vec![],
-        };
         assert_eq!(
             package,
-            serde_json::from_str::<ReleasePackage>(&serde_json::to_string(&package).unwrap()[..])
+            serde_yaml::from_str::<ReleasePackage>(&serde_yaml::to_string(&package).unwrap()[..])
                 .unwrap()
         );
-        facet_yaml::to_string( &ReleaseArtifactFormat::TarXz);
+
+        assert_eq!("", &serde_yaml::to_string(&package).unwrap()[..]);
     }
 }
