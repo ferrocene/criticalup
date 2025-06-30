@@ -1,5 +1,4 @@
-// SPDX-FileCopyrightText: The Ferrocene Developers
-// SPDX-License-Identifier: MIT OR Apache-2.0
+// SPDX-FileCopyrightText: The Ferrocene Developers SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::keys::KeyRole;
 use std::string::FromUtf8Error;

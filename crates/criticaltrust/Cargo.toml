@@ -25,6 +25,9 @@ thiserror.workspace = true
 time.workspace = true
 tokio = { workspace = true, optional = true }
 reqwest.workspace = true
+semver = { version = "1.0.26", features = ["serde"] }
+serde-semver = "0.2.1"
+insta = "1.43.1"
 
 [dev-dependencies]
 itertools = "0.14.0"

@@ -1,0 +1,35 @@
+---
+source: crates/criticaltrust/src/v2/manifests.rs
+expression: "&serde_json::to_string_pretty(&package).unwrap()[..]"
+---
+{
+  "kind": "Ferrocene-Release",
+  "metadata-version": "0.0.1",
+  "metadata": {
+    "release-identifier": "stable-25.02.0",
+    "channel": "stable",
+    "ferrocene-version": "a_ferrocene_version",
+    "rust-version": "a_rust_version",
+    "release-date": "10.10.10",
+    "support-expires-date": "20.20.20",
+    "yanked": {
+      "code": 123,
+      "human": "<human readable reason>",
+      "url": "<url to further information>"
+    },
+    "signature": "<signature content>"
+  },
+  "artifacts": [
+    {
+      "name": "rustc",
+      "format": "tar.xz",
+      "size": 1024,
+      "file": "path/to/file/relative/to/repo/root",
+      "signature": "PHNpZ25hdHVyZT4=",
+      "checksums": {
+        "sha256": "c2hhMjU2X2FiY2RlZmdo",
+        "md5": "bWQ1X2FiY2RlZmdo"
+      }
+    }
+  ]
+}
