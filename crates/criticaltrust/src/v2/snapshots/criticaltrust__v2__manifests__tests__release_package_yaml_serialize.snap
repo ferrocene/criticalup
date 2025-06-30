@@ -2,9 +2,24 @@
 source: crates/criticaltrust/src/v2/manifests.rs
 expression: "&serde_yaml::to_string(&package).unwrap()[..]"
 ---
-package: ferrocene-docs
+kind: Ferrocene-Release
+metadata-version: 0.0.1
+metadata:
+    release-identifier: stable-25.02.0
+    channel: stable
+    ferrocene-version:
+    rust-version:
+    release-date: <date>
+    support-expires: <date> (default: release-date +2 years)
+    yanked: null |
+      code: <numeric>
+      human: <human readable reason>
+      url: <url to further information>
+    signature: <signature content>
 artifacts:
-- format: tar.xz
-  size: 1024
-  sha256: YWJjZGVmZ2g=
-dependencies: []
+  - name: rustc
+    file: path/to/file/relative/to/repo/root
+    signature: <signature content>
+    checksums:
+        sha256: YWJjZGVmZ2g=
+        md5: ...

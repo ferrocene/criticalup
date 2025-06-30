@@ -19,29 +19,30 @@ use serde::{Deserialize, Serialize};
 /// * Simplify constructing manifests: you don't have to specify the version number, type
 ///   inference will figure out the right one.
 #[derive(Clone, PartialEq, Eq)]
-pub struct ManifestVersion<const V: u32>;
+pub struct MetadataVersion<const MAJOR: u32, const MINOR: u32, const PATCH: u32>;
 
-impl<const V: u32> std::fmt::Debug for ManifestVersion<V> {
+impl<const MAJOR: u32, const MINOR: u32, const PATCH: u32> std::fmt::Debug for MetadataVersion<MAJOR,MINOR,PATCH> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("ManifestVersion").field(&V).finish()
+        f.debug_tuple("MetadataVersion").field(&MAJOR).field(&MINOR).field(&PATCH).finish()
     }
 }
 
-impl<const V: u32> Serialize for ManifestVersion<V> {
+impl<const MAJOR: u32, const MINOR: u32, const PATCH: u32> Serialize for MetadataVersion<MAJOR,MINOR,PATCH> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_u32(V)
+        let formatted = format!("{}.{}.{}", MAJOR, MINOR, PATCH);
+        serializer.serialize_str(&formatted[..])
     }
 }
 
-impl<'de, const V: u32> Deserialize<'de> for ManifestVersion<V> {
+impl<'de, const MAJOR: u32, const MINOR: u32, const PATCH: u32> Deserialize<'de> for MetadataVersion<MAJOR,MINOR,PATCH> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let raw = u32::deserialize(deserializer)?;
-        if raw != V {
+        if raw != MAJOR {
             Err(D::Error::custom(format!(
-                "expected version {V}, found version {raw}"
+                "expected version {MAJOR}, found version {raw}"
             )))
         } else {
-            Ok(ManifestVersion)
+            Ok(MetadataVersion)
         }
     }
 }
@@ -50,7 +51,7 @@ impl<'de, const V: u32> Deserialize<'de> for ManifestVersion<V> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RedirectManifest {
-    pub version: ManifestVersion<1>,
+    pub version: MetadataVersion<0,0,1>,
     #[serde(flatten)]
     pub payload: SignedPayload<Redirect>,
 }
@@ -69,7 +70,7 @@ impl Signable for Redirect {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ReleaseManifest {
-    pub version: ManifestVersion<1>,
+    pub version: MetadataVersion<1,2,3>,
     #[serde(flatten)]
     pub signed: SignedPayload<Release>,
 }
@@ -127,7 +128,7 @@ impl std::fmt::Display for ReleaseArtifactFormat {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PackageManifest {
-    pub version: ManifestVersion<1>,
+    pub version: MetadataVersion<1,2,3>,
     #[serde(flatten)]
     pub signed: SignedPayload<Package>,
 }
@@ -160,7 +161,7 @@ pub struct PackageFile {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeysManifest {
-    pub version: ManifestVersion<1>,
+    pub version: MetadataVersion<1,2,3>,
     pub keys: Vec<SignedPayload<PublicKey>>,
 }
 
@@ -170,32 +171,32 @@ mod tests {
 
     #[test]
     fn test_manifest_version_debug() {
-        assert_eq!("ManifestVersion(1)", format!("{:?}", ManifestVersion::<1>));
+        assert_eq!("MetadataVersion(2, 3, 5)", format!("{:?}", MetadataVersion::<2,3,5>));
         assert_eq!(
-            "ManifestVersion(42)",
-            format!("{:?}", ManifestVersion::<42>)
+            "MetadataVersion(1, 2, 3)",
+            format!("{:?}", MetadataVersion::<1,2,3>)
         );
     }
 
     #[test]
     fn test_manifest_version_serialize() {
-        assert_eq!("1", serde_json::to_string(&ManifestVersion::<1>).unwrap());
-        assert_eq!("42", serde_json::to_string(&ManifestVersion::<42>).unwrap());
+        assert_eq!("1.2.3\n", serde_yaml::to_string(&MetadataVersion::<1,2,3>).unwrap());
+        assert_eq!("41.42.43\n", serde_yaml::to_string(&MetadataVersion::<41, 42, 43>).unwrap());
     }
 
     #[test]
     fn test_manifest_version_deserialize() {
         assert_eq!(
-            ManifestVersion,
-            serde_json::from_str::<ManifestVersion<1>>("1").unwrap()
+            MetadataVersion,
+            serde_yaml::from_str::<MetadataVersion<2,3,5>>("1.2.3").unwrap()
         );
         assert_eq!(
-            ManifestVersion,
-            serde_json::from_str::<ManifestVersion<42>>("42").unwrap()
+            MetadataVersion,
+            serde_yaml::from_str::<MetadataVersion<42,3,5>>("42,3,5").unwrap()
         );
 
-        assert!(serde_json::from_str::<ManifestVersion<1>>("42").is_err());
-        assert!(serde_json::from_str::<ManifestVersion<42>>("1").is_err());
+        assert!(serde_yaml::from_str::<MetadataVersion<2,3,5>>("42").is_err());
+        assert!(serde_yaml::from_str::<MetadataVersion<42,3,5>>("1").is_err());
     }
 
     #[test]
