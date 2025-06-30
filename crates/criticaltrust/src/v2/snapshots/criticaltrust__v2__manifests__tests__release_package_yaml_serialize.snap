@@ -1,0 +1,10 @@
+---
+source: crates/criticaltrust/src/v2/manifests.rs
+expression: "&serde_yaml::to_string(&package).unwrap()[..]"
+---
+package: ferrocene-docs
+artifacts:
+- format: tar.xz
+  size: 1024
+  sha256: YWJjZGVmZ2g=
+dependencies: []

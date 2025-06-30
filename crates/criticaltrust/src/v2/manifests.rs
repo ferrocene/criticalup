@@ -216,6 +216,6 @@ mod tests {
                 .unwrap()
         );
 
-        assert_eq!("", &serde_yaml::to_string(&package).unwrap()[..]);
+        insta::assert_snapshot!(&serde_yaml::to_string(&package).unwrap()[..]);
     }
 }
