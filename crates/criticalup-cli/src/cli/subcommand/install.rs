@@ -16,7 +16,7 @@ use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
 use tokio::sync::mpsc;
-use tracing::Span;
+use tracing::{Instrument, Span};
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
@@ -134,11 +134,11 @@ async fn install_product_afresh(
         .create_product_dir(&ctx.config.paths.installation_dir)
         .await?;
     // Finish channel must be opened in advance and be ready to rx; if not, the code remains sequential.
-    let (finish_tx, mut finish_rx) = mpsc::channel(product.packages().len());
+    let (finish_tx, mut finish_rx) = mpsc::channel(1);
     let (product_name_clone, release_clone): (String, String) =
         (product_name.to_owned(), release.to_owned());
 
-    let (install_tx, mut install_rx) = mpsc::channel(product.packages().len());
+    let (install_tx, mut install_rx) = mpsc::channel(1);
     tokio::spawn(async move {
         while let Some((package_name, package_data)) = install_rx.recv().await {
             tracing::info!(
@@ -149,7 +149,7 @@ async fn install_product_afresh(
         }
         // Tx must be dropped to indicate the end of the operation.
         drop(finish_tx);
-    });
+    }.instrument(Span::current()));
 
     for package in product.packages() {
         let package_data = client
