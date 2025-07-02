@@ -119,7 +119,7 @@ impl std::fmt::Display for ReleaseArtifactFormat {
             ReleaseArtifactFormat::TarXz => "tar.xz",
             ReleaseArtifactFormat::Unknown => "unknown",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 

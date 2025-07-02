@@ -116,7 +116,7 @@ impl MockServer {
             .await
             .unwrap();
         tokio::fs::write(
-            package_manifest_with_dir_structure.join(format!("{}.json", package_name)),
+            package_manifest_with_dir_structure.join(format!("{package_name}.json")),
             serde_json::to_vec_pretty(&PackageManifest {
                 version: ManifestVersion::<1>,
                 signed,
@@ -126,7 +126,7 @@ impl MockServer {
         .await
         .unwrap();
 
-        let archive_name = format!("{}.tar.xz", package_name);
+        let archive_name = format!("{package_name}.tar.xz");
         let output_compressed_file = File::create(output_dir.join(&archive_name)).unwrap();
         let encoder = XzEncoder::new(output_compressed_file, 9);
         let mut tar = tar::Builder::new(encoder);
@@ -160,9 +160,9 @@ impl MockServer {
         // Create a `ReleasePackage` for each package in the vec. This is needed because we
         // expect only package names.
         for item in packages {
-            let artifact_file = std::fs::read(output_dir.join(format!("{}.tar.xz", item))).unwrap();
+            let artifact_file = std::fs::read(output_dir.join(format!("{item}.tar.xz"))).unwrap();
             let artifact_file_metadata =
-                std::fs::metadata(output_dir.join(format!("{}.tar.xz", item))).unwrap();
+                std::fs::metadata(output_dir.join(format!("{item}.tar.xz"))).unwrap();
 
             let mut hasher = Sha256::new();
             hasher.update(&artifact_file);
