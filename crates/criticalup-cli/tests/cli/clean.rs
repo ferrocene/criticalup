@@ -75,18 +75,18 @@ async fn clean_deletes_only_unused_installations() {
         serde_json::from_reader(BufReader::new(File::open(&root).unwrap())).unwrap();
     // "installation_id_2" is not present.
     assert_eq!(
-        state_file_actual.pointer(format!("/installations/{}", installation_id_2).as_str()),
+        state_file_actual.pointer(format!("/installations/{installation_id_2}").as_str()),
         None
     );
     // "installation_id_3" is not present.
     assert_eq!(
-        state_file_actual.pointer(format!("/installations/{}", installation_id_3).as_str()),
+        state_file_actual.pointer(format!("/installations/{installation_id_3}").as_str()),
         None
     );
     // "installation_id_1" is still present with correct values.
     assert_eq!(
         state_file_actual
-            .pointer(format!("/installations/{}", installation_id_1).as_str())
+            .pointer(format!("/installations/{installation_id_1}").as_str())
             .unwrap(),
         &json!({
             "binary_proxies": {

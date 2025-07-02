@@ -15,7 +15,8 @@ use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
-use tracing::Span;
+use tokio::sync::mpsc;
+use tracing::{Instrument, Span};
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
 
@@ -132,6 +133,23 @@ async fn install_product_afresh(
     product
         .create_product_dir(&ctx.config.paths.installation_dir)
         .await?;
+    // Finish channel must be opened in advance and be ready to rx; if not, the code remains sequential.
+    let (finish_tx, mut finish_rx) = mpsc::channel(1);
+    let (product_name_clone, release_clone): (String, String) =
+        (product_name.to_owned(), release.to_owned());
+
+    let (install_tx, mut install_rx) = mpsc::channel(1);
+    tokio::spawn(async move {
+        while let Some((package_name, package_data)) = install_rx.recv().await {
+            tracing::info!(
+                "Installing component '{package_name}' for '{product_name_clone}' ({release_clone})",
+            );
+            let files = install_one_package(&abs_installation_dir_path, package_data).await;
+            finish_tx.send(files).await.unwrap();
+        }
+        // Tx must be dropped to indicate the end of the operation.
+        drop(finish_tx);
+    }.instrument(Span::current()));
 
     for package in product.packages() {
         let package_data = client
@@ -141,31 +159,21 @@ async fn install_product_afresh(
                 package,
                 DEFAULT_RELEASE_ARTIFACT_FORMAT,
             )
-            .await?;
+            .await
+            .unwrap();
+        install_tx
+            .send((package.to_owned(), package_data))
+            .await
+            .unwrap();
+    }
+    // Same as finish_tx, we send None to indicate the end of the operation.
+    drop(install_tx);
 
-        tracing::info!("Installing component '{package}' for '{product_name}' ({release})",);
-
-        let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
-        let mut archive = tar::Archive::new(decoder);
-        archive.set_preserve_permissions(true);
-        archive.set_preserve_mtime(true);
-        archive.set_unpack_xattrs(true);
-
-        let entries = archive.entries()?;
-        for each in entries {
-            let mut entry = each?;
-
-            let p = entry.path()?.into_owned();
-            let entry_path_on_disk = abs_installation_dir_path.join(p);
-            entry.unpack(&entry_path_on_disk)?;
-
-            if entry_path_on_disk.is_file() {
-                integrity_verifier.add(
-                    &entry_path_on_disk,
-                    entry.header().mode()?,
-                    &tokio::fs::read(&entry_path_on_disk).await?,
-                );
-            }
+    while let Some(res) = finish_rx.recv().await {
+        let files = res?;
+        for (path, mode) in files {
+            let buffer = &tokio::fs::read(&path).await?;
+            integrity_verifier.add(path.as_ref(), mode, buffer);
         }
     }
 
@@ -189,6 +197,35 @@ fn check_for_package_dependencies(verified_release_manifest: &Release) -> Result
         }
     }
     Ok(())
+}
+
+async fn install_one_package(
+    abs_installation_dir_path: &Path,
+    package_data: Vec<u8>,
+) -> Result<Vec<(PathBuf, u32)>, Error> {
+    let decoder = xz2::read::XzDecoder::new(package_data.as_slice());
+    let mut archive = tar::Archive::new(decoder);
+    archive.set_preserve_permissions(true);
+    archive.set_preserve_mtime(true);
+    archive.set_unpack_xattrs(true);
+
+    let mut files = Vec::new();
+
+    let entries = archive.entries()?;
+    for each in entries {
+        let mut entry = each?;
+
+        let p = entry.path()?.into_owned();
+
+        let entry_path_on_disk = abs_installation_dir_path.join(p);
+        entry.unpack(&entry_path_on_disk)?;
+
+        if entry_path_on_disk.is_file() {
+            files.push((entry_path_on_disk, entry.header().mode().unwrap()));
+        }
+    }
+
+    Ok(files)
 }
 
 #[cfg(test)]
