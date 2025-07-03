@@ -3,6 +3,7 @@
 
 use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::manifests::KeysManifest;
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
 use serde::{Deserialize, Serialize};
@@ -12,6 +13,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize)]
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
+    revocation_info: Option<RevocationInfo>,
 }
 
 impl Keychain {
@@ -23,6 +25,7 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
+            revocation_info: None,
         };
 
         if trust_root.role != KeyRole::Root {
@@ -37,9 +40,18 @@ impl Keychain {
         &self.keys
     }
 
-    /// Update the [`Keychain`] for a given [`KeysManifest`] by verifying and loading all the
-    /// verified keys.
+    pub fn revocation_info(&self) -> Option<&RevocationInfo> {
+        self.revocation_info.as_ref()
+    }
+
+    /// Update the [`Keychain`] provided the [`KeysManifest`]:
+    /// 1. Verify and load all the verified keys.
+    /// 2. Verify and replace the Revocation information from the revoked content.
     pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
+        if self.revocation_info.is_some() {
+            return Err(Error::RevocationInfoOverwriting);
+        }
+
         // Load all keys from KeysManifest.
         for key in &keys_manifest.keys {
             // Invalid keys are silently ignored, as they might be signed by a different root key
@@ -180,6 +192,10 @@ mod tests {
 
     impl Signable for String {
         const SIGNED_BY_ROLE: KeyRole = KeyRole::Packages;
+    }
+
+    impl Signable for Vec<u8> {
+        const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
     }
 
     // Utilities

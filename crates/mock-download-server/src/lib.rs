@@ -11,6 +11,7 @@ use axum::routing::get;
 use axum::Router;
 use criticaltrust::keys::{EphemeralKeyPair, PublicKey};
 use criticaltrust::manifests::ReleaseManifest;
+use criticaltrust::revocation_info::RevocationInfo;
 use criticaltrust::signatures::SignedPayload;
 use handlers::{handle_v1_keys, handle_v1_package, handle_v1_release, handle_v1_tokens_current};
 use serde::Serialize;
@@ -18,6 +19,10 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use time::{Duration, OffsetDateTime};
+
+// Make sure there is enough number of days for expiration so tests don't need constant updates.
+const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "kebab-case")]
@@ -31,6 +36,7 @@ pub struct Data {
     pub keypairs: HashMap<String, EphemeralKeyPair>,
     pub tokens: HashMap<String, AuthenticationToken>,
     pub keys: Vec<SignedPayload<PublicKey>>,
+    pub revoked_signatures: SignedPayload<RevocationInfo>,
     pub release_manifests: HashMap<(String, String), ReleaseManifest>,
     pub release_packages: HashMap<(String, String, String), Vec<u8>>,
     pub history: Vec<(Request<Body>, Response<Body>)>,
@@ -47,6 +53,11 @@ impl Builder {
                 keypairs: HashMap::new(),
                 tokens: HashMap::new(),
                 keys: Vec::new(),
+                revoked_signatures: SignedPayload::new(&RevocationInfo::new(
+                    Vec::new(),
+                    OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS,
+                ))
+                .unwrap(),
                 release_manifests: HashMap::new(),
                 release_packages: HashMap::new(),
                 history: Vec::new(),
@@ -66,6 +77,15 @@ impl Builder {
 
     pub fn add_key(mut self, key: SignedPayload<PublicKey>) -> Self {
         self.data.keys.push(key);
+        self
+    }
+
+    pub async fn add_revocation_info(mut self, revocation_key: &EphemeralKeyPair) -> Self {
+        self.data
+            .revoked_signatures
+            .add_signature(revocation_key)
+            .await
+            .unwrap();
         self
     }
 

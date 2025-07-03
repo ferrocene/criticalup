@@ -455,6 +455,7 @@ mod tests {
             &keys.packages,
             &keys.releases,
             &keys.redirects,
+            &keys.revocation,
         ] {
             assert!(keychain
                 .get(&expected_present.public().calculate_id())

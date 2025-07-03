@@ -13,6 +13,8 @@ mod serde_base64;
 mod sha256;
 pub mod signatures;
 
+pub mod revocation_info;
+
 #[cfg(test)]
 mod test_utils;
 

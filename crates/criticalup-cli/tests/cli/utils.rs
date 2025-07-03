@@ -150,7 +150,14 @@ async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
     server_builder =
         add_non_root_key_to_server(server_builder, "releases", KeyRole::Releases, &root_keypair)
             .await;
-
+    // Revocation keypair.
+    server_builder = add_non_root_key_to_server(
+        server_builder,
+        "revocation",
+        KeyRole::Revocation,
+        &root_keypair,
+    )
+    .await;
     // Packages keypair.
     server_builder =
         add_non_root_key_to_server(server_builder, "packages", KeyRole::Packages, &root_keypair)
@@ -346,6 +353,9 @@ async fn add_non_root_key_to_server(
     trusted_by: &EphemeralKeyPair,
 ) -> Builder {
     let (keypair, signed_payload) = generate_trusted_key(role, trusted_by).await;
+    if name == "revocation" {
+        server_builder = server_builder.add_revocation_info(&keypair).await;
+    }
     server_builder = server_builder.add_key(signed_payload);
     server_builder = server_builder.add_keypair(keypair, name);
 
