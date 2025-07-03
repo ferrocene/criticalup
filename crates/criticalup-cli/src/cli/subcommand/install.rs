@@ -7,12 +7,10 @@ use std::path::{Path, PathBuf};
 use crate::cli::connectivity::Network;
 use crate::cli::CommandExecute;
 use crate::errors::Error;
-use crate::errors::Error::{
-    IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported,
-};
+use crate::errors::Error::{IntegrityErrorsWhileInstallation, PackageDependenciesNotSupported};
 use crate::Context;
 use clap::Parser;
-use criticaltrust::integrity::{IntegrityVerifier};
+use criticaltrust::integrity::IntegrityVerifier;
 use criticaltrust::manifests::{Release, ReleaseArtifactFormat};
 use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
