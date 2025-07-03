@@ -18,8 +18,8 @@ use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use time::{Duration, OffsetDateTime};
+use tokio::sync::Mutex;
 
 // Make sure there is enough number of days for expiration so tests don't need constant updates.
 const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
