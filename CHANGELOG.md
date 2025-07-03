@@ -24,11 +24,6 @@ All notable changes to this project will be documented in this file.
 - Added support registering the CriticalUp binary proxies as a `rustup` toolchain. You can now run
   `rustup toolchain link $TOOLCHAIN` (OS dependent, see docs) then use, for example, `cargo +ferrocene build`.
 
-### Removed
-
-- Revocation Info feature. Other methods exist to achieve what this feature was supposed to do. This reduces
-  complexity of the codebase.
-
 ## [1.4.0] - 2025-03-05
 
 ### Fixed
