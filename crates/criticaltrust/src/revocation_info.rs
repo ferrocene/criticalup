@@ -42,6 +42,6 @@ mod tests {
     #[test]
     fn new_revocation_info() {
         let r = RevocationInfo::new(vec![vec![12, 21, 33]], datetime!(2400-10-10 00:00 UTC));
-        assert_eq!("RevocationInfo { revoked_content_sha256: [[12, 21, 33]], expires_at: 2400-10-10 0:00:00.0 +00:00:00 }", format!("{:?}", r));
+        assert_eq!("RevocationInfo { revoked_content_sha256: [[12, 21, 33]], expires_at: 2400-10-10 0:00:00.0 +00:00:00 }", format!("{r:?}"));
     }
 }
