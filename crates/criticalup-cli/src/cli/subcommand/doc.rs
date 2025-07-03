@@ -45,7 +45,7 @@ impl CommandExecute for Doc {
                 Ok(url) => {
                     let url = url.to_string();
                     if self.path {
-                        println!("{url}");
+                        println!("{}", url);
                     } else {
                         // Open in the default browser.
                         tracing::info!(

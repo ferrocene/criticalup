@@ -30,7 +30,7 @@ impl CommandExecute for Init {
         let manifest_content_serialized = toml_edit::ser::to_string_pretty(&manifest_content)?;
 
         if self.print {
-            println!("{manifest_content_serialized}");
+            println!("{}", manifest_content_serialized);
         } else {
             if manifest_path.exists() {
                 return Err(Error::ManifestAlreadyExists());

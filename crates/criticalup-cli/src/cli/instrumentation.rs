@@ -140,6 +140,6 @@ impl std::fmt::Display for Logger {
             Logger::Json => "json",
             Logger::Tree => "tree",
         };
-        write!(f, "{logger}")
+        write!(f, "{}", logger)
     }
 }
