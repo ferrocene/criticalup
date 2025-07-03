@@ -37,6 +37,7 @@ impl TestEnvironment {
         let keys_manifest = KeysManifest {
             version: ManifestVersion,
             keys: vec![signed_revocation_key],
+            revoked_signatures,
         };
         let mut keychain = Keychain::new(root.public()).unwrap();
         keychain.load_all(&keys_manifest).unwrap();

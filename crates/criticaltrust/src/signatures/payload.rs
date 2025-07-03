@@ -357,9 +357,14 @@ mod tests {
             "#,
         ).unwrap();
 
+        let revoked_signatures = serde_json::from_str(r#"
+        {"signatures":[{"key_sha256":"1LAfvhHLQ0bPmRSEgYcDfas2gr+7ZCSUT8MBjsksqnM=","signature":"MEUCICWz68Ry/cgEbp3hRl1zeEDB7cbAjghR4wRIbmsPZaSmAiEAu7HLBjdOjWMMaUWkj+Sm9saLy2eorY17eHY+PRQMXU0="}],"signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"2025-08-05T00:00:00Z\"}"}
+        "#).unwrap();
+
         let km = KeysManifest {
             version: ManifestVersion,
             keys: vec![revocation_key, packages_key],
+            revoked_signatures,
         };
 
         let mut keychain = Keychain::new(&root_key).unwrap();
@@ -416,6 +421,55 @@ mod tests {
     }
 
     #[test]
+    fn test_verify_deserialized_with_revocation_info() {
+        // We need to recreate and initialize the keys for each these tests separately because
+        // for most part the content and datetime etc. are different. So, a new set of keys is
+        // generated for each test and used here.
+        let mut keychain = Keychain::new(
+            &serde_json::from_str(
+            r#"{
+            "role":"root",
+            "algorithm":"ecdsa-p256-sha256-asn1-spki-der",
+            "expiry":null,
+            "public":"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECWHCWK690xv1riGZVu5NtBaDinbHndmOvwYAO71qTEZUC/sI5zWcjI1EedPl7zRidfLToVGvqU/DDMcMg6o0dA=="}
+            "#).unwrap()).unwrap();
+
+        let revocation_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"{
+            "signatures":[{"key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
+                    "signature":"MEUCIDzxak++Ybvs1UurFG4ZFwooCfk04qJckv1Qu7rq5EqxAiEA/xQrzmAaXZHOykxrfJnMlaSHQk/GuoXWEDO62pISiio="}],
+            "signed":"{\"role\":\"revocation\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEujVreV8hOhE8zzXWFSPGIcopeMX8HPIsmmnLZCy6+ojaPX7N3FwpGVjtoYbFXDdPbn71V1CjMO9hmzYLAUCV/g==\"}"
+            }"#).unwrap();
+
+        let packages_key: SignedPayload<PublicKey> = serde_json::from_str(
+            r#"{
+            "signatures":[{"key_sha256":"vNSk+m6gWtw0j9UP0Vz3TwemBHQ1nIIOqWmaGDZ5y6k=",
+                 "signature":"MEQCIEzQxuBBoicimHDF0UCP27h9ER6mlGIq2XtpqiN9f6AOAiBRN/6+l+HiRdTQX/jUHIIHp4kcg3OF34YfsONfzUKr/Q=="}],
+            "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEvruMS2cS1lTwcCOU64Nce36iueXudb8/nn0kXy8JHUP44XPMgFMdWwbd1HX3csd0r9rhtUwbERi/7cAZhYKErA==\"}"
+            }"#).unwrap();
+
+        let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
+            r#"{
+            "signatures":[{"key_sha256":"Xb6qYHsmDiHMkBTrijStwOUoduuHq59DxMAQ1HMWzyA=",
+                "signature":"MEUCIQCEgDqlYvHTBJCPJmvmSoK2MiicsTYo9MuXWOsVe4HH6AIgCDXulLu4bvX/NVJkr+Ck4g6cW8dllk/yTkyQcI52XUw="}],
+                "signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"2025-08-05T00:00:00Z\"}"
+                }"#).unwrap();
+
+        let km = KeysManifest {
+            version: ManifestVersion,
+            keys: vec![revocation_key, packages_key],
+            revoked_signatures,
+        };
+
+        assert!(keychain.load_all(&km).is_ok());
+        assert!(keychain
+            .revocation_info()
+            .unwrap()
+            .revoked_content_sha256
+            .is_empty());
+    }
+
+    #[test]
     #[ignore = "Needs to be tested along with Install command"]
     fn verify_revoked_payload() {
         let mut keychain = Keychain::new(
@@ -442,12 +496,28 @@ mod tests {
                "signed":"{\"role\":\"packages\",\"algorithm\":\"ecdsa-p256-sha256-asn1-spki-der\",\"expiry\":null,\"public\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDuOHCcbc7DNhLpHBwZolEgX33VOf039pRi0FQH6rfS/0uSRawucX4LSKc6Dg4eim3SAbbtRTf+oSl0tTG3KUUg==\"}"}
             "#).unwrap();
 
+        let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
+            r#"
+              {"signatures":[{"key_sha256":"jpwiXafZnKIYVd50u9qlqp/X+KXuB/qtu0chxx3bO5w=",
+              "signature":"MEUCIQCQoHFae7QtfiSw0Okz+dQ4HOtR4Or0XutByRMySpdhwgIgNoQQpeEPmTK/2Vkg6xWP0oIBUF3PV88/RMIUSwLZATU="}],
+              "signed":"{\"revoked_content_sha256\":[[57,55,54,101,97,97,99,53,53,99,101,102,102,50,49,53,53,48,99,55,100,52,97,57,100,52,97,101,100,101,52,101,48,49,102,48,57,100,99,57,53,51,48,48,57,51,97,98,98,57,102,49,100,48,56,53,101,49,48,50,51,99,55,49]],\"expires_at\":\"2025-08-05T00:00:00Z\"}"
+              }"#).unwrap();
+
         let km = KeysManifest {
             version: ManifestVersion,
             keys: vec![revocation_key, packages_key],
+            revoked_signatures,
         };
 
         assert!(keychain.load_all(&km).is_ok());
+        assert_eq!(
+            keychain
+                .revocation_info()
+                .unwrap()
+                .revoked_content_sha256
+                .len(),
+            1
+        );
 
         let s: SignedPayload<String> = serde_json::from_str(
             r#"
@@ -491,9 +561,18 @@ mod tests {
             "#
         ).unwrap();
 
+        let revoked_signatures: SignedPayload<RevocationInfo>  = serde_json::from_str(
+            r#"
+              {"signatures":[{"key_sha256":"jONxDp7vf+gLKbRwNhriqdZgKrNzKz66hyNTpMLDJNQ=",
+              "signature":"MEUCIQCvcU+4YVx2roWJ9Coq/OzUJJxOANLm2VSTyCeCOZptDwIgA7bZYU78oHQPISarXI6mI+BAU0ut3zqWjAh2/bpRejU="}],
+              "signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"1999-12-31T00:00:00Z\"}"}
+            "#
+        ).unwrap();
+
         let km = KeysManifest {
             version: ManifestVersion,
             keys: vec![revocation_key, packages_key],
+            revoked_signatures,
         };
 
         assert!(keychain.load_all(&km).is_ok());

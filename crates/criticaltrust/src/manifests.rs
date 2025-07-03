@@ -6,6 +6,7 @@
 use std::path::PathBuf;
 
 use crate::keys::{KeyRole, PublicKey};
+use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Signable, SignedPayload};
 use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
@@ -162,6 +163,7 @@ pub struct PackageFile {
 pub struct KeysManifest {
     pub version: ManifestVersion<1>,
     pub keys: Vec<SignedPayload<PublicKey>>,
+    pub revoked_signatures: SignedPayload<RevocationInfo>,
 }
 
 #[cfg(test)]

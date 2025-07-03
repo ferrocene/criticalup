@@ -149,6 +149,11 @@ pub(crate) enum Error {
     )]
     MissingDocPackage(),
 
+    #[error("Failed to run install command.")]
+    RevocationSignatureExpired(#[source] criticaltrust::Error),
+    #[error("Failed to install package '{}'.", .0)]
+    RevocationCheckFailed(String, #[source] criticaltrust::Error),
+
     #[error("Manifest serialization failed.")]
     TomlSerializationFailed(#[from] toml_edit::ser::Error),
 
