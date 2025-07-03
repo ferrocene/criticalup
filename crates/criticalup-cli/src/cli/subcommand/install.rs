@@ -165,7 +165,8 @@ async fn install_product_afresh(
             .await?;
         install_tx
             .send((package.to_owned(), package_data))
-            .await.map_err(|_| Error::SendError("Failed to send installation begin message".into()))?;
+            .await
+            .map_err(|_| Error::SendError("Failed to send installation begin message".into()))?;
     }
     // Tx must be dropped to indicate the end of the operation.
     drop(install_tx);
