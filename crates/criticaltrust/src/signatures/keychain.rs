@@ -3,6 +3,7 @@
 
 use crate::keys::{KeyId, KeyRole, PublicKey};
 use crate::manifests::KeysManifest;
+#[cfg(feature = "hash-revocation")]
 use crate::revocation_info::RevocationInfo;
 use crate::signatures::{PublicKeysRepository, SignedPayload};
 use crate::Error;
@@ -13,6 +14,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize)]
 pub struct Keychain {
     keys: HashMap<KeyId, PublicKey>,
+    #[cfg(feature = "hash-revocation")]
     revocation_info: Option<RevocationInfo>,
 }
 
@@ -25,6 +27,7 @@ impl Keychain {
     pub fn new(trust_root: &PublicKey) -> Result<Self, Error> {
         let mut keychain = Self {
             keys: HashMap::new(),
+            #[cfg(feature = "hash-revocation")]
             revocation_info: None,
         };
 
@@ -40,6 +43,7 @@ impl Keychain {
         &self.keys
     }
 
+    #[cfg(feature = "hash-revocation")]
     pub fn revocation_info(&self) -> Option<&RevocationInfo> {
         self.revocation_info.as_ref()
     }
@@ -48,6 +52,7 @@ impl Keychain {
     /// 1. Verify and load all the verified keys.
     /// 2. Verify and replace the Revocation information from the revoked content.
     pub fn load_all(&mut self, keys_manifest: &KeysManifest) -> Result<(), Error> {
+        #[cfg(feature = "hash-revocation")]
         if self.revocation_info.is_some() {
             return Err(Error::RevocationInfoOverwriting);
         }
@@ -60,9 +65,12 @@ impl Keychain {
             let _ = self.load(key)?;
         }
 
-        // Special case: verify and load only RevocationInfo.
-        let revocation_info = keys_manifest.revoked_signatures.get_verified(self)?;
-        self.revocation_info = Some(revocation_info.clone());
+        #[cfg(feature = "hash-revocation")]
+        {
+            // Special case: verify and load only RevocationInfo.
+            let revocation_info = keys_manifest.revoked_signatures.get_verified(self)?;
+            self.revocation_info = Some(revocation_info.clone());
+        }
 
         Ok(())
     }

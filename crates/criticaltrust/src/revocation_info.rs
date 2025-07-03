@@ -29,6 +29,7 @@ impl RevocationInfo {
     }
 }
 
+#[cfg(feature = "hash-revocation")]
 impl Signable for RevocationInfo {
     const SIGNED_BY_ROLE: KeyRole = KeyRole::Revocation;
 }
