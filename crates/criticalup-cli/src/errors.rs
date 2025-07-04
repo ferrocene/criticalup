@@ -181,7 +181,7 @@ pub(crate) enum Error {
     CommandExitNonzero(String, Output),
 
     #[error("Send error")]
-    SendError(String), // We don't include the source error as it contains the generic value
+    Send(String), // We don't include the source error as it contains the generic value
 
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]

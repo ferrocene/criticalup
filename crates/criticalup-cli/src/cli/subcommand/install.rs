@@ -146,7 +146,7 @@ async fn install_product_afresh(
                 "Installing component '{package_name}' for '{product_name_clone}' ({release_clone})",
             );
             let files = install_one_package(&abs_installation_dir_path, package_data).await;
-            finish_tx.send(files).await.map_err(|_| Error::SendError("Failed to send installation complete message".into()))?;
+            finish_tx.send(files).await.map_err(|_| Error::Send("Failed to send installation complete message".into()))?;
         }
         // Tx must be dropped to indicate the end of the operation.
         drop(finish_tx);
@@ -166,7 +166,7 @@ async fn install_product_afresh(
         install_tx
             .send((package.to_owned(), package_data))
             .await
-            .map_err(|_| Error::SendError("Failed to send installation begin message".into()))?;
+            .map_err(|_| Error::Send("Failed to send installation begin message".into()))?;
     }
     // Tx must be dropped to indicate the end of the operation.
     drop(install_tx);
