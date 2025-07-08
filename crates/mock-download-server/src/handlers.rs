@@ -76,6 +76,7 @@ pub(crate) async fn handle_v1_keys(State(data): State<Arc<Mutex<Data>>>) -> impl
     Json(criticaltrust::manifests::KeysManifest {
         version: ManifestVersion,
         keys: data.keys.clone(),
+        revoked_signatures: data.revoked_signatures.clone(),
     })
 }
 

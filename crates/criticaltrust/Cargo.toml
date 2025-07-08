@@ -32,6 +32,7 @@ tokio.workspace = true
 
 [features]
 aws-kms = ["aws-sdk-kms", "aws-config", "aws-smithy-runtime-api", "tokio"]
+hash-revocation = []
 
 [package.metadata.docs.rs]
 all-features = true

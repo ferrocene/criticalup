@@ -13,6 +13,9 @@ mod serde_base64;
 mod sha256;
 pub mod signatures;
 
+#[cfg(feature = "hash-revocation")]
+pub mod revocation_info;
+
 #[cfg(test)]
 mod test_utils;
 

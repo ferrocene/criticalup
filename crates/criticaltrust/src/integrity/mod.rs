@@ -49,4 +49,6 @@ pub enum IntegrityError {
     FileReferencedByMultipleManifests { path: PathBuf },
     #[error("file {path} was loaded multiple times")]
     FileLoadedMultipleTimes { path: PathBuf },
+    #[error("revocation information is missing which is required to verify")]
+    MissingRevocationInfo,
 }

@@ -150,7 +150,7 @@ impl TestEnvironmentBuilder {
 
         let mock_server = if self.download_server {
             let keys = keys.as_ref().unwrap();
-            let server = start_mock_server(keys.signed_public_keys().await).await;
+            let server = start_mock_server(keys.signed_public_keys().await, &keys.revocation).await;
             config.whitelabel.download_server_url = server.url();
             Some(server)
         } else {
@@ -193,6 +193,7 @@ pub(crate) struct TestKeys {
     pub(crate) packages: EphemeralKeyPair,
     pub(crate) releases: EphemeralKeyPair,
     pub(crate) redirects: EphemeralKeyPair,
+    pub(crate) revocation: EphemeralKeyPair,
 
     pub(crate) alternate_trust_root: EphemeralKeyPair,
     pub(crate) alternate_root: EphemeralKeyPair,
@@ -212,6 +213,7 @@ impl TestKeys {
             packages: generate(KeyRole::Packages),
             releases: generate(KeyRole::Releases),
             redirects: generate(KeyRole::Redirects),
+            revocation: generate(KeyRole::Revocation),
 
             alternate_trust_root: generate(KeyRole::Root),
             alternate_root: generate(KeyRole::Root),
@@ -237,6 +239,7 @@ impl TestKeys {
         result.push(sign(&self.packages, &[&self.root]).await);
         result.push(sign(&self.releases, &[&self.root]).await);
         result.push(sign(&self.redirects, &[&self.root]).await);
+        result.push(sign(&self.revocation, &[&self.root]).await);
 
         result.push(sign(&self.alternate_root, &[&self.alternate_trust_root]).await);
         result.push(sign(&self.alternate_packages, &[&self.alternate_root]).await);
@@ -245,7 +248,10 @@ impl TestKeys {
     }
 }
 
-async fn start_mock_server(keys: Vec<SignedPayload<PublicKey>>) -> MockServer {
+async fn start_mock_server(
+    keys: Vec<SignedPayload<PublicKey>>,
+    revocation_key: &EphemeralKeyPair,
+) -> MockServer {
     use mock_download_server::AuthenticationToken;
 
     let mut builder = mock_download_server::Builder::new();
@@ -261,6 +267,8 @@ async fn start_mock_server(keys: Vec<SignedPayload<PublicKey>>) -> MockServer {
     for key in keys {
         builder = builder.add_key(key);
     }
+
+    builder = builder.add_revocation_info(revocation_key).await;
 
     builder.start().await
 }
