@@ -16,6 +16,7 @@ use criticalup_core::download_server_client::DownloadServerClient;
 use criticalup_core::project_manifest::{ProjectManifest, ProjectManifestProduct};
 use criticalup_core::state::State;
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 use tracing::{Instrument, Span};
 
 pub const DEFAULT_RELEASE_ARTIFACT_FORMAT: ReleaseArtifactFormat = ReleaseArtifactFormat::TarXz;
@@ -134,21 +135,23 @@ async fn install_product_afresh(
         .create_product_dir(&ctx.config.paths.installation_dir)
         .await?;
     // Finish channel must be opened in advance and be ready to rx; if not, the code remains sequential.
-    let (finish_tx, mut finish_rx) = mpsc::channel(1);
+    let (finish_tx, mut finish_rx) = mpsc::channel(product.packages().len());
     let (product_name_clone, release_clone): (String, String) =
         (product_name.to_owned(), release.to_owned());
 
     let (install_tx, mut install_rx) = mpsc::channel(1);
-    tokio::spawn(async move {
+    let handle: JoinHandle<Result<_, Error>> = tokio::spawn(async move {
         while let Some((package_name, package_data)) = install_rx.recv().await {
             tracing::info!(
                 "Installing component '{package_name}' for '{product_name_clone}' ({release_clone})",
             );
             let files = install_one_package(&abs_installation_dir_path, package_data).await;
-            finish_tx.send(files).await.unwrap();
+            finish_tx.send(files).await.map_err(|_| Error::Send("Failed to send installation complete message".into()))?;
         }
         // Tx must be dropped to indicate the end of the operation.
         drop(finish_tx);
+
+        Ok(())
     }.instrument(Span::current()));
 
     for package in product.packages() {
@@ -159,14 +162,13 @@ async fn install_product_afresh(
                 package,
                 DEFAULT_RELEASE_ARTIFACT_FORMAT,
             )
-            .await
-            .unwrap();
+            .await?;
         install_tx
             .send((package.to_owned(), package_data))
             .await
-            .unwrap();
+            .map_err(|_| Error::Send("Failed to send installation begin message".into()))?;
     }
-    // Same as finish_tx, we send None to indicate the end of the operation.
+    // Tx must be dropped to indicate the end of the operation.
     drop(install_tx);
 
     while let Some(res) = finish_rx.recv().await {
@@ -176,6 +178,7 @@ async fn install_product_afresh(
             integrity_verifier.add(path.as_ref(), mode, buffer);
         }
     }
+    handle.await??; // Ensure we exit with any odd errors.
 
     let verified_packages = integrity_verifier
         .verify()
@@ -187,6 +190,7 @@ async fn install_product_afresh(
         manifest_path,
         &ctx.config,
     )?;
+
     Ok(())
 }
 

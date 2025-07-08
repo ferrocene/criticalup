@@ -180,6 +180,9 @@ pub(crate) enum Error {
     #[error("Non-successful exit for command `{}`, stderr: \n{}", .0, String::from_utf8_lossy(&.1.stderr))]
     CommandExitNonzero(String, Output),
 
+    #[error("Send error")]
+    Send(String), // We don't include the source error as it contains the generic value
+
     #[cfg(windows)]
     #[error("Could not set Ctrl-C handler.")]
     CtrlHandler,
