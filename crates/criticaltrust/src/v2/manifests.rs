@@ -64,10 +64,17 @@ pub enum MetadataKind {
     FerroceneRelease,
 }
 
+/// Indicates that a version has been yanked, meaning it is considered problematic or potentially unstable.
+/// Yanked versions are not recommended for use in new projects, and developers are strongly advised to avoid them.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Yanked {
+    /// A machine-readable code representing the reason for yanking.
     pub code: u16,
+
+    /// A human-readable explanation of why the version was yanked.
     pub human: String,
+
+    /// A URL pointing to documentation or resources that justify or explain the yanking decision.
     pub url: String,
 }
 
