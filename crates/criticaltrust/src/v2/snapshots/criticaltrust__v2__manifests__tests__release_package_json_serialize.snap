@@ -4,7 +4,7 @@ expression: "&package"
 ---
 {
   "kind": "Ferrocene-Release",
-  "metadata-version": "0.0.1",
+  "metadata-version": 2,
   "metadata": {
     "release-identifier": "stable-25.02.0",
     "channel": "stable",

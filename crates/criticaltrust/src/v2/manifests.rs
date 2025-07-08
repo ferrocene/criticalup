@@ -3,19 +3,44 @@
 
 //! Serializable and deserializable representation of criticaltrust v2 manifests.
 
-use serde_semver::SemverReq;
-
 use crate::keys::KeyRole;
 use crate::signatures::Signable;
+use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Eq, SemverReq)]
-#[version("0.0.1")]
-pub struct MetadataVersion;
+/// Typed representation of a manifest version number.
+///
+/// The version number is stored as a const generic rather than as a field of the struct. This is
+/// done to:
+///
+/// * Verify that the version number is correct as part of the deserialization process.
+/// * Simplify constructing manifests: you don't have to specify the version number, type
+///   inference will figure out the right one.
+#[derive(Clone, PartialEq, Eq)]
+pub struct MetadataVersion<const V: u32>;
 
-impl std::fmt::Debug for MetadataVersion {
+impl<const V: u32> std::fmt::Debug for MetadataVersion<V> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("MetadataVersion: {}", MetadataVersion::version())[..])
+        f.debug_tuple("MetadataVersion").field(&V).finish()
+    }
+}
+
+impl<const V: u32> Serialize for MetadataVersion<V> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u32(V)
+    }
+}
+
+impl<'de, const V: u32> Deserialize<'de> for MetadataVersion<V> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = u32::deserialize(deserializer)?;
+        if raw != V {
+            Err(D::Error::custom(format!(
+                "expected version {V}, found version {raw}"
+            )))
+        } else {
+            Ok(MetadataVersion)
+        }
     }
 }
 
@@ -62,7 +87,7 @@ impl Signable for Release {
 #[serde(rename_all = "kebab-case")]
 pub struct ReleasePackage {
     pub kind: MetadataKind,
-    pub metadata_version: MetadataVersion,
+    pub metadata_version: MetadataVersion<2>,
     pub metadata: Metadata,
     pub artifacts: Vec<ReleaseArtifact>,
 }
@@ -115,21 +140,17 @@ mod tests {
 
     #[test]
     fn test_manifest_version_debug() {
-        assert_eq!("MetadataVersion: 0.0.1", format!("{MetadataVersion:?}"));
-    }
-
-    #[test]
-    fn test_manifest_version_serialize() {
+        assert_eq!("MetadataVersion(2)", format!("{:?}", MetadataVersion::<2>));
         assert_eq!(
-            "\"0.0.1\"",
-            serde_json::to_string(&MetadataVersion).unwrap()
+            "MetadataVersion(42)",
+            format!("{:?}", MetadataVersion::<42>)
         );
     }
 
     #[test]
-    fn test_manifest_version_deserialize() {
-        assert_eq!(MetadataVersion, serde_json::from_str("\"0.0.1\"").unwrap());
-        assert!(serde_json::from_str::<MetadataVersion>("0.0.0").is_err());
+    fn test_manifest_version_serialize() {
+        assert_eq!("2", serde_json::to_string(&MetadataVersion::<2>).unwrap());
+        assert_eq!("42", serde_json::to_string(&MetadataVersion::<42>).unwrap());
     }
 
     #[test]
