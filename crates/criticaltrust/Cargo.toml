@@ -25,6 +25,7 @@ thiserror.workspace = true
 time.workspace = true
 tokio = { workspace = true, optional = true }
 reqwest.workspace = true
+insta = { version = "1.43.1", features = ["json"] }
 
 [dev-dependencies]
 itertools = "0.14.0"
