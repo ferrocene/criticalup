@@ -72,7 +72,7 @@ pub struct Yanked {
     pub code: u16,
 
     /// A human-readable explanation of why the version was yanked.
-    pub human: String,
+    pub reason: String,
 
     /// A URL pointing to documentation or resources that justify or explain the yanking decision.
     pub url: String,
@@ -174,7 +174,7 @@ mod tests {
                 support_expires_date: "20.20.20".parse().unwrap(),
                 yanked: Some(Yanked {
                     code: 123,
-                    human: "<human readable reason>".parse().unwrap(),
+                    reason: "<human readable reason>".parse().unwrap(),
                     url: "<url to further information>".parse().unwrap(),
                 }),
                 signature: "<signature content>".parse().unwrap(),

@@ -14,7 +14,7 @@ expression: "&package"
     "support-expires-date": "20.20.20",
     "yanked": {
       "code": 123,
-      "human": "<human readable reason>",
+      "reason": "<human readable reason>",
       "url": "<url to further information>"
     },
     "signature": "<signature content>"
