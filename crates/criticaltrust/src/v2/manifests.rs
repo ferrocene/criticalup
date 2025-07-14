@@ -59,8 +59,8 @@ pub struct Metadata {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Copy)]
+#[serde(rename_all = "kebab-case")]
 pub enum MetadataKind {
-    #[serde(rename = "Ferrocene-Release")]
     FerroceneRelease,
 }
 

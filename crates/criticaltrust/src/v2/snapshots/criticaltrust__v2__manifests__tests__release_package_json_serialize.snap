@@ -3,7 +3,7 @@ source: crates/criticaltrust/src/v2/manifests.rs
 expression: "&package"
 ---
 {
-  "kind": "Ferrocene-Release",
+  "kind": "ferrocene-release",
   "metadata-version": 2,
   "metadata": {
     "release-identifier": "stable-25.02.0",
