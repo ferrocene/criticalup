@@ -9,10 +9,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Added improved caching support using HTTP caching. Before installing packages,
+  they are validated to be correct and available against the server via HTTP caching
+  using `If-None-Match` and `ETag` headers.
 - Added a 90 second connect/idle timeouts in the download client, which should reduce the risk of long hangs
   in exotic networking situations.
-- Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
-  our team was unsatisfied with it's behavior and opted not to mature it.
 - Altered the location of the binary proxies to enable clean integration with `rustup toolchain link`.
   Previously, binary proxies were in the `bin/` folder of the CriticalUp home, now they are in `proxy/bin/`.
 
@@ -23,6 +24,13 @@ All notable changes to this project will be documented in this file.
   `json` outputs as JSON, and `tree` displays logging span structure.
 - Added support registering the CriticalUp binary proxies as a `rustup` toolchain. You can now run
   `rustup toolchain link $TOOLCHAIN` (OS dependent, see docs) then use, for example, `cargo +ferrocene build`.
+
+### Removed
+
+- Removed support for package revocation via signatures. Instead, cached packages are
+  validated to be still available online before use (except when `--offline` is passed).
+- Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
+  our team was unsatisfied with it's behavior and opted not to mature it.
 
 ## [1.4.0] - 2025-03-05
 
