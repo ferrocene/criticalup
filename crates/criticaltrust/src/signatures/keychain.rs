@@ -104,12 +104,16 @@ impl PublicKeysRepository for Keychain {
 mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair};
+    #[cfg(feature = "hash-revocation")]
     use crate::manifests::ManifestVersion;
     use crate::signatures::{Signable, SignedPayload};
+    #[cfg(feature = "hash-revocation")]
     use time::macros::datetime;
+    #[cfg(feature = "hash-revocation")]
     use time::{Duration, OffsetDateTime};
 
     // Make sure there is enough number of days for expiration so tests don't need constant updates.
+    #[cfg(feature = "hash-revocation")]
     const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
     #[test]
@@ -218,6 +222,7 @@ mod tests {
 
     // Test `load_all` method with RevocationInfo being an empty list.
     #[tokio::test]
+    #[cfg(feature = "hash-revocation")]
     async fn test_load_all_revoked_content_empty() {
         let root = generate_key(KeyRole::Root);
         let (revocation_keypair, signed_public_revocation_key) =
@@ -248,6 +253,7 @@ mod tests {
     // Test `load_all` method with RevocationInfo but with one item in the list. The call
     // to `load_all` should not fail in verifying the revocation key.
     #[tokio::test]
+    #[cfg(feature = "hash-revocation")]
     async fn test_load_all_revoked_content_one_item() {
         let root = generate_key(KeyRole::Root);
         let (revocation_keypair, signed_public_revocation_key) =
@@ -278,6 +284,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "hash-revocation")]
     async fn test_error_on_load_all_when_revocation_info_is_some() {
         let root = generate_key(KeyRole::Root);
         let (revocation_keypair, signed_public_revocation_key) =

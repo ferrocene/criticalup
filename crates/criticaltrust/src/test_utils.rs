@@ -3,6 +3,7 @@
 
 use crate::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use crate::manifests::{KeysManifest, ManifestVersion};
+#[cfg(feature = "hash-revocation")]
 use crate::revocation_info::RevocationInfo;
 use crate::signatures::{Keychain, SignedPayload};
 use base64::Engine;
@@ -10,6 +11,7 @@ use time::{Duration, OffsetDateTime};
 
 const ALGORITHM: KeyAlgorithm = KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer;
 // Make sure there is enough number of days for expiration so tests don't need constant updates.
+#[cfg(feature = "hash-revocation")]
 const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
 pub(crate) struct TestEnvironment {
@@ -21,22 +23,32 @@ impl TestEnvironment {
     pub(crate) async fn prepare() -> Self {
         let root = EphemeralKeyPair::generate(ALGORITHM, KeyRole::Root, None).unwrap();
 
-        let revocation_key =
-            EphemeralKeyPair::generate(ALGORITHM, KeyRole::Revocation, None).unwrap();
-        let mut signed_revocation_key = SignedPayload::new(revocation_key.public()).unwrap();
-        signed_revocation_key.add_signature(&root).await.unwrap();
+        #[cfg(feature = "hash-revocation")]
+        let (revoked_signatures, signed_revocation_key) = {
+            let revocation_key =
+                EphemeralKeyPair::generate(ALGORITHM, KeyRole::Revocation, None).unwrap();
+            let mut signed_revocation_key = SignedPayload::new(revocation_key.public()).unwrap();
+            signed_revocation_key.add_signature(&root).await.unwrap();
 
-        let expiration_datetime = OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS;
-        let mut revoked_signatures =
-            SignedPayload::new(&RevocationInfo::new(vec![], expiration_datetime)).unwrap();
-        revoked_signatures
-            .add_signature(&revocation_key)
-            .await
-            .unwrap();
+            let expiration_datetime = OffsetDateTime::now_utc() + EXPIRATION_EXTENSION_IN_DAYS;
+
+            let mut revoked_signatures =
+                SignedPayload::new(&RevocationInfo::new(vec![], expiration_datetime)).unwrap();
+            revoked_signatures
+                .add_signature(&revocation_key)
+                .await
+                .unwrap();
+
+            (revoked_signatures, signed_revocation_key)
+        };
 
         let keys_manifest = KeysManifest {
             version: ManifestVersion,
+            #[cfg(not(feature = "hash-revocation"))]
+            keys: vec![],
+            #[cfg(feature = "hash-revocation")]
             keys: vec![signed_revocation_key],
+            #[cfg(feature = "hash-revocation")]
             revoked_signatures,
         };
         let mut keychain = Keychain::new(root.public()).unwrap();

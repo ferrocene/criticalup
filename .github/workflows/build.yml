@@ -90,6 +90,11 @@ jobs:
         run: |
           cargo test --target ${{ inputs.target }} --locked
 
+      - name: Run the test suite (with hash revocation)
+        if: ${{ inputs.test == true }}
+        run: |
+          cargo test --target ${{ inputs.target }} --locked --features hash-revocation
+
       - name: Run the test suite (With AWS KMS)
         if: ${{ runner.os == 'Linux' && inputs.test == true }}
         run: |

@@ -153,13 +153,16 @@ mod tests {
     use super::*;
     use crate::keys::{EphemeralKeyPair, PublicKey};
     use crate::manifests::{KeysManifest, ManifestVersion};
+    #[cfg(feature = "hash-revocation")]
     use crate::revocation_info::RevocationInfo;
     use crate::signatures::Keychain;
     use crate::test_utils::{base64_encode, TestEnvironment};
+    #[cfg(feature = "hash-revocation")]
     use time::{Duration, OffsetDateTime};
 
     const SAMPLE_DATA: &str = r#"{"answer":42}"#;
     // Make sure there is enough number of days for expiration so tests don't need constant updates.
+    #[cfg(feature = "hash-revocation")]
     const EXPIRATION_EXTENSION_IN_DAYS: Duration = Duration::days(180);
 
     #[tokio::test]
@@ -357,6 +360,7 @@ mod tests {
             "#,
         ).unwrap();
 
+        #[cfg(feature = "hash-revocation")]
         let revoked_signatures = serde_json::from_str(r#"
         {"signatures":[{"key_sha256":"1LAfvhHLQ0bPmRSEgYcDfas2gr+7ZCSUT8MBjsksqnM=","signature":"MEUCICWz68Ry/cgEbp3hRl1zeEDB7cbAjghR4wRIbmsPZaSmAiEAu7HLBjdOjWMMaUWkj+Sm9saLy2eorY17eHY+PRQMXU0="}],"signed":"{\"revoked_content_sha256\":[],\"expires_at\":\"2025-08-05T00:00:00Z\"}"}
         "#).unwrap();
@@ -364,6 +368,7 @@ mod tests {
         let km = KeysManifest {
             version: ManifestVersion,
             keys: vec![revocation_key, packages_key],
+            #[cfg(feature = "hash-revocation")]
             revoked_signatures,
         };
 
@@ -375,6 +380,7 @@ mod tests {
     // Revocation.
 
     #[tokio::test]
+    #[cfg(feature = "hash-revocation")]
     async fn test_verify_revocation_info() {
         let mut test_env = TestEnvironment::prepare().await;
         let key_revocation = test_env.create_key(KeyRole::Revocation).await;
@@ -400,6 +406,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(feature = "hash-revocation")]
     async fn test_verify_revocation_info_incorrect_keyrole() {
         let mut test_env = TestEnvironment::prepare().await;
         let key_not_revocation_role = test_env.create_key(KeyRole::Packages).await;
@@ -421,6 +428,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "hash-revocation")]
     fn test_verify_deserialized_with_revocation_info() {
         // We need to recreate and initialize the keys for each these tests separately because
         // for most part the content and datetime etc. are different. So, a new set of keys is
@@ -470,6 +478,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "hash-revocation")]
     #[ignore = "Needs to be tested along with Install command"]
     fn verify_revoked_payload() {
         let mut keychain = Keychain::new(
@@ -535,6 +544,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "hash-revocation")]
     #[ignore = "Needs to be tested along with Install command"]
     fn verify_revoked_payload_expired_hashes() {
         let mut keychain = Keychain::new(
