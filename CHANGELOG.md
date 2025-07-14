@@ -23,14 +23,14 @@ All notable changes to this project will be documented in this file.
   The `default` option preserves existing behavior, while `pretty` shows the previous `--verbose` format,
   `json` outputs as JSON, and `tree` displays logging span structure.
 - Added support registering the CriticalUp binary proxies as a `rustup` toolchain. You can now run
-  `rustup toolchain link $TOOLCHAIN` (OS dependent, see docs) then use, for example, `cargo +ferrocene build`.
+  `criticalup link create` then use, for example, `cargo +ferrocene build`.
 
 ### Removed
 
 - Removed support for package revocation via signatures. Instead, cached packages are
-  validated to be still available online before use (except when `--offline` is passed).
+  validated to be still available online before use, except when `--offline` is passed.
 - Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
-  our team was unsatisfied with it's behavior and opted not to mature it.
+  our team was unsatisfied with its behavior and opted not to mature it.
 
 ## [1.4.0] - 2025-03-05
 
