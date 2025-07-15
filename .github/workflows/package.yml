@@ -72,11 +72,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: unsigned-criticalup-x86_64-pc-windows-msvc.msi
+          path: ${{ github.workspace }}
 
-      - name: Rename artifact
+      - name: Show artifacts
         run: |
-          ls -l
-          mv unsigned-criticalup-x86_64-pc-windows-msvc.msi criticalup-x86_64-pc-windows-msvc.msi
+          ls -l ${{ github.workspace }}
       
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
@@ -97,7 +97,7 @@ jobs:
           totp_secret: ${{secrets.SSLDOTCOM_TOTP_SECRET}}
           # Path of code object to be signed.
           # Supported File Types: acm, ax, bin, cab, cpl, dll, drv, efi, exe, mui, ocx, scr, sys, tsp, msi, ps1, ps1xml, js, vbs, wsf, jar
-          file_path: ${GITHUB_WORKSPACE}/criticalup-x86_64-pc-windows-msvc.msi
+          file_path: ${{ github.workspace }}/criticalup-x86_64-pc-windows-msvc.msi
           override: true
           # This variable are optional, and specify the environment name. If omitted, the environment name will be set to PROD and use production code_sign_tool.properties file. For signing artifact with demo account, the environment name will be set to TEST.
           environment_name: PROD
