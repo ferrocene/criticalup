@@ -47,20 +47,20 @@ runs:
         # FIXME: remove after Criticalup 1.5.0 release
         ${{ runner.os == 'Linux' && 'echo "Adding to path: $HOME/.local/share/criticalup/bin"' || '' }}
         ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/bin" >> $GITHUB_PATH' || '' }}
-
-        ${{ runner.os == 'Linux' && 'echo "Adding to path: $HOME/.local/share/criticalup/proxy/bin"' || '' }}
-        ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
-        
+                
         # FIXME: remove after Criticalup 1.5.0 release
         ${{ runner.os == 'Windows' && 'echo "Adding to path: $HOME/AppData/Roaming/criticalup/bin"' || '' }}
         ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/bin" >> $GITHUB_PATH' || '' }}
-
-        ${{ runner.os == 'Windows' && 'echo "Adding to path: $HOME/AppData/Roaming/criticalup/proxy/bin"' || '' }}
-        ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
-        
+  
         # FIXME: remove after Criticalup 1.5.0 release
         ${{ runner.os == 'macOS' && 'echo "Adding to path: $HOME/Library/Application Support/criticalup/bin"' || '' }}
         ${{ runner.os == 'macOS' && 'echo "$HOME/Library/Application Support/criticalup/bin" >> $GITHUB_PATH' || '' }}
+
+        ${{ runner.os == 'Linux' && 'echo "Adding to path: $HOME/.local/share/criticalup/proxy/bin"' || '' }}
+        ${{ runner.os == 'Linux' && 'echo "$HOME/.local/share/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
+
+        ${{ runner.os == 'Windows' && 'echo "Adding to path: $HOME/AppData/Roaming/criticalup/proxy/bin"' || '' }}
+        ${{ runner.os == 'Windows' && 'echo "$HOME/AppData/Roaming/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
 
         ${{ runner.os == 'macOS' && 'echo "Adding to path: $HOME/Library/Application Support/criticalup/proxy/bin"' || '' }}
         ${{ runner.os == 'macOS' && 'echo "$HOME/Library/Application Support/criticalup/proxy/bin" >> $GITHUB_PATH' || '' }}
@@ -76,4 +76,3 @@ runs:
       shell: bash
       run: |
         echo $PATH
-        which cargo
