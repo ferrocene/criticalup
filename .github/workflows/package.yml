@@ -54,9 +54,27 @@ jobs:
       - name: Run cargo-wix
         run: cargo wix --package criticalup --bin-path ~/msi --nocapture --output ${GITHUB_WORKSPACE}/criticalup-x86_64-pc-windows-msvc.msi
 
+      - name: Upload msi
+        id: msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-criticalup-x86_64-pc-windows-msvc.msi
+          path: criticalup-x86_64-pc-windows-msvc.msi
+          retention-days: 7
+
+  signing:
+    if: ${{ inputs.sign }}
+    environment: signing
+    runs-on: windows-latest
+    needs:
+      - msi
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.msi.outputs.msi-id }}
+
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
-        if: ${{ inputs.sign }}
         with:
           # CodeSignTool Commands:
           # - get_credential_ids: Output the list of eSigner credential IDs associated with a particular user.
