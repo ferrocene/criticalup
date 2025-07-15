@@ -36,6 +36,7 @@ jobs:
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
           uninstall-rust: true  
+          toolchain-link: false
 
       - name: Install WiX
         run: |
