@@ -5,7 +5,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.5.0-prerelease.1] - 2025-07-14
+## [unreleased]
 
 ### Changed
 
@@ -37,7 +37,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - The reworked `criticalup run` behavior was not correctly checking that the toolchain specified
-  in `criticalup.toml` was installed. This lead to some situations where users could accidentally
+  in `criticalup.toml` was installed. This lead to some situations where users could accidentally 
   run a non-Ferrocene tool when they meant to run Ferrocene tools. This behavior has been altered
   and CriticalUp will now present users with an error suggesting they install the toolchain.
 
@@ -126,9 +126,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/ferrocene/criticalup/compare/v1.5.0-prerelease.1...HEAD
-
-[1.5.0-prerelease.1]: https://github.com/ferrocene/criticalup/compare/v1.4.0...1.5.0-prerelease.1
+[Unreleased]: https://github.com/ferrocene/criticalup/compare/v1.4.0...HEAD
 
 [1.4.0]:  https://github.com/ferrocene/criticalup/compare/v1.3.0...1.4.0
 
