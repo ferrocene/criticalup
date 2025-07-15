@@ -148,7 +148,7 @@ jobs:
     secrets: inherit
     uses: ./.github/workflows/package.yml
     with:
-      sign: false
+      sign: true
 
   license:
     name: Check licenses
