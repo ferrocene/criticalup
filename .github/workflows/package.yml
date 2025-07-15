@@ -75,6 +75,7 @@ jobs:
           path: ${{ github.workspace }}
 
       - name: Show artifacts
+        shell: pwsh
         run: |
           ls -l ${{ github.workspace }}
       
@@ -107,5 +108,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: criticalup-x86_64-pc-windows-msvc.msi
-          path: criticalup-x86_64-pc-windows-msvc.msi
+          path: ${{ github.workspace }}/criticalup-x86_64-pc-windows-msvc.msi
           retention-days: 7
