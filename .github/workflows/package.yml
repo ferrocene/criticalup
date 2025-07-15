@@ -35,7 +35,7 @@ jobs:
       - uses: ./.github/actions/use-ferrocene/
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rust: true  
+          uninstall-rustup: true  
           toolchain-link: false
 
       - name: Install WiX

@@ -143,6 +143,12 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
+          
+  package:
+    secrets: inherit
+    uses: ./.github/workflows/package.yml
+    with:
+      sign: false
 
   license:
     name: Check licenses
@@ -167,6 +173,7 @@ jobs:
     needs:
       - build
       - integration-test
+      - package
       - docs
       - license
     steps:
