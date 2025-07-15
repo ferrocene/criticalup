@@ -40,7 +40,6 @@ macro_rules! run_cmd {
                 // This regex replacement dance is required because this nested macro tests
                 // set is instantiating the test server twice which means each run gives
                 // a different local port. We replace with a stable port just for this test.
-                #[allow(clippy::regex_creation_in_loops)]
                 let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
                 let left_str = String::from_utf8(out.stderr.clone())
                     .expect("string creation from bytes failed.");
