@@ -71,8 +71,13 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          artifact-ids: ${{ needs.msi.outputs.msi-id }}
+          name: unsigned-criticalup-x86_64-pc-windows-msvc.msi
 
+      - name: Rename artifact
+        run: |
+          ls -l
+          mv unsigned-criticalup-x86_64-pc-windows-msvc.msi criticalup-x86_64-pc-windows-msvc.msi
+      
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
         with:
