@@ -35,7 +35,7 @@ jobs:
       - uses: ./.github/actions/use-ferrocene/
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rust: true  
+          uninstall-rustup: true  
           toolchain-link: false
 
       - name: Install WiX
@@ -54,9 +54,33 @@ jobs:
       - name: Run cargo-wix
         run: cargo wix --package criticalup --bin-path ~/msi --nocapture --output ${GITHUB_WORKSPACE}/criticalup-x86_64-pc-windows-msvc.msi
 
+      - name: Upload msi
+        id: msi
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-criticalup-x86_64-pc-windows-msvc.msi
+          path: criticalup-x86_64-pc-windows-msvc.msi
+          retention-days: 7
+
+  signing:
+    if: ${{ inputs.sign }}
+    environment: signing
+    runs-on: windows-latest
+    needs:
+      - msi
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: unsigned-criticalup-x86_64-pc-windows-msvc.msi
+          path: ${{ github.workspace }}
+
+      - name: Show artifacts
+        shell: pwsh
+        run: |
+          ls -l ${{ github.workspace }}
+      
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
-        if: ${{ inputs.sign }}
         with:
           # CodeSignTool Commands:
           # - get_credential_ids: Output the list of eSigner credential IDs associated with a particular user.
@@ -74,7 +98,7 @@ jobs:
           totp_secret: ${{secrets.SSLDOTCOM_TOTP_SECRET}}
           # Path of code object to be signed.
           # Supported File Types: acm, ax, bin, cab, cpl, dll, drv, efi, exe, mui, ocx, scr, sys, tsp, msi, ps1, ps1xml, js, vbs, wsf, jar
-          file_path: ${GITHUB_WORKSPACE}/criticalup-x86_64-pc-windows-msvc.msi
+          file_path: ${{ github.workspace }}/criticalup-x86_64-pc-windows-msvc.msi
           override: true
           # This variable are optional, and specify the environment name. If omitted, the environment name will be set to PROD and use production code_sign_tool.properties file. For signing artifact with demo account, the environment name will be set to TEST.
           environment_name: PROD
@@ -84,5 +108,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: criticalup-x86_64-pc-windows-msvc.msi
-          path: criticalup-x86_64-pc-windows-msvc.msi
+          path: ${{ github.workspace }}/criticalup-x86_64-pc-windows-msvc.msi
           retention-days: 7
