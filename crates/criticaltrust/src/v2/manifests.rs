@@ -144,7 +144,7 @@ impl std::fmt::Display for ReleaseArtifactFormat {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
 
     #[test]
     fn test_manifest_version_debug() {
