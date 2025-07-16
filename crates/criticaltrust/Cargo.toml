@@ -26,6 +26,7 @@ time.workspace = true
 tokio = { workspace = true, optional = true }
 reqwest.workspace = true
 hex = { version = "0.4.3", features = ["serde"] }
+md-5.workspace = true
 
 [dev-dependencies]
 itertools = "0.14.0"

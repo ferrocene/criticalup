@@ -114,6 +114,8 @@ pub struct ReleaseArtifact {
 pub struct Checksums {
     #[serde(with = "hex")]
     pub sha256: [u8; 32],
+    #[serde(with = "hex")]
+    pub md5: [u8; 16],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Copy)]
@@ -164,7 +166,11 @@ mod tests {
 
         let mut hasher = Sha256::new();
         hasher.update("Hello, World!");
-        let hash_result = hasher.finalize();
+        let sha256_hash_result = hasher.finalize();
+
+        let mut hasher = md5::Md5::new();
+        hasher.update("Hello, World!");
+        let md5_hash_result = hasher.finalize();
 
         let package = ReleasePackage {
             kind: MetadataKind::FerroceneRelease,
@@ -190,7 +196,8 @@ mod tests {
                 format: ReleaseArtifactFormat::TarXz,
                 size: 1024,
                 checksums: Checksums {
-                    sha256: hash_result.into(),
+                    sha256: sha256_hash_result.into(),
+                    md5: md5_hash_result.into(),
                 },
             }],
         };
