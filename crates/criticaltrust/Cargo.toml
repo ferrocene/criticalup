@@ -25,6 +25,7 @@ thiserror.workspace = true
 time.workspace = true
 tokio = { workspace = true, optional = true }
 reqwest.workspace = true
+hex = { version = "0.4.3", features = ["serde"] }
 
 [dev-dependencies]
 itertools = "0.14.0"

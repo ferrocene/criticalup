@@ -112,10 +112,8 @@ pub struct ReleaseArtifact {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Checksums {
-    #[serde(with = "crate::serde_base64")]
-    pub sha256: Vec<u8>,
-    #[serde(with = "crate::serde_base64")]
-    pub md5: Vec<u8>,
+    #[serde(with = "hex")]
+    pub sha256: [u8; 32],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Copy)]
@@ -144,6 +142,7 @@ impl std::fmt::Display for ReleaseArtifactFormat {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sha2::{Sha256, Digest};
 
     #[test]
     fn test_manifest_version_debug() {
@@ -162,6 +161,11 @@ mod tests {
 
     #[test]
     fn test_release_package_json_serialize() {
+
+        let mut hasher = Sha256::new();
+        hasher.update("Hello, World!");
+        let hash_result = hasher.finalize();
+
         let package = ReleasePackage {
             kind: MetadataKind::FerroceneRelease,
             metadata_version: MetadataVersion,
@@ -186,8 +190,7 @@ mod tests {
                 format: ReleaseArtifactFormat::TarXz,
                 size: 1024,
                 checksums: Checksums {
-                    sha256: "sha256_abcdefgh".as_bytes().to_vec(),
-                    md5: "md5_abcdefgh".as_bytes().to_vec(),
+                    sha256: hash_result.into(),
                 },
             }],
         };

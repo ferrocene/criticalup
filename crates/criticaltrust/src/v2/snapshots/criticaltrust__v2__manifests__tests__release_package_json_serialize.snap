@@ -27,8 +27,7 @@ expression: "&package"
       "file": "path/to/file/relative/to/repo/root",
       "signature": "PHNpZ25hdHVyZT4=",
       "checksums": {
-        "sha256": "c2hhMjU2X2FiY2RlZmdo",
-        "md5": "bWQ1X2FiY2RlZmdo"
+        "sha256": "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f"
       }
     }
   ]
