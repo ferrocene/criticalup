@@ -163,7 +163,6 @@ mod tests {
 
     #[test]
     fn test_release_package_json_serialize() {
-
         let mut hasher = Sha256::new();
         hasher.update("Hello, World!");
         let sha256_hash_result = hasher.finalize();
