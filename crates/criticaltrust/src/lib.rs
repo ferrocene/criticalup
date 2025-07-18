@@ -12,6 +12,7 @@ pub mod manifests;
 mod serde_base64;
 mod sha256;
 pub mod signatures;
+pub mod v2;
 
 #[cfg(feature = "hash-revocation")]
 pub mod revocation_info;
