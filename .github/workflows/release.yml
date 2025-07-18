@@ -46,6 +46,9 @@ jobs:
 
   deploy-docs:
     secrets: inherit
+    needs:
+      - build
+      - package
     uses: ./.github/workflows/deploy-docs.yml
 
   release:
