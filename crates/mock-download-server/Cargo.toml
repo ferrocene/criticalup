@@ -17,7 +17,7 @@ tempfile.workspace = true
 time.workspace = true
 tokio.workspace = true
 walkdir.workspace = true
-xz2.workspace = true
+xz2 = { workspace = true, features = ["static"] }
 md-5.workspace = true
 axum.workspace = true
 axum-extra.workspace = true
