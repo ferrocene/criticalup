@@ -36,6 +36,7 @@ hyper = { version = "1", features = ["tracing"] }
 axum = { version = "0.8.1", features = ["default", "macros"] } # Use the same version as the server
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
 http-body-util = "0.1"
+insta = { version = "1.43.1", features = ["json"] }
 
 [profile.release]
 lto = "thin"
