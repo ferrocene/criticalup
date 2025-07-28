@@ -4,6 +4,7 @@
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use criticaltrust::manifests::{Release, ReleaseManifest};
 use criticaltrust::signatures::SignedPayload;
+use mock_artifact_server::MockArtifactServer;
 use mock_download_server::{AuthenticationToken, Builder, MockServer};
 use std::borrow::Cow;
 use std::io::{Seek, Write};
@@ -61,6 +62,7 @@ pub(crate) struct TestEnvironment {
     root: TempDir,
     trust_root: PublicKey,
     server: MockServer,
+    artifact_server: MockArtifactServer,
     customer_portal_url: String,
 }
 
@@ -73,12 +75,15 @@ impl TestEnvironment {
         )
         .unwrap();
 
+        let cloned_root_keypair = root_keypair.clone();
+
         let root = TempDir::new_in(std::env::current_dir().unwrap()).unwrap();
 
         TestEnvironment {
             root,
             trust_root: root_keypair.public().clone(),
             server: setup_mock_server(root_keypair).await,
+            artifact_server: setup_mock_artifact_server(cloned_root_keypair).await,
             customer_portal_url: "https://customers-test.ferrocene.dev".into(),
         }
     }
@@ -91,6 +96,25 @@ impl TestEnvironment {
         let mut command = Command::new(env!("CARGO_BIN_EXE_criticalup-test"));
         command.env("CRITICALUP_ROOT", self.root.path());
         command.env("CRITICALUP_TEST_DOWNLOAD_SERVER_URL", self.server.url());
+        command.env(
+            "CRITICALUP_TEST_CUSTOMER_PORTAL_URL",
+            &self.customer_portal_url,
+        );
+        command.env(
+            "CRITICALUP_TEST_TRUST_ROOT",
+            serde_json::to_string(&self.trust_root).unwrap(),
+        );
+        command.env("CRITICALUP_TESTING_IN_PROGRESS", "1");
+        command
+    }
+
+    pub(crate) fn cmd_with_artifact_server(&self) -> Command {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_criticalup-test"));
+        command.env("CRITICALUP_ROOT", self.root.path());
+        command.env(
+            "CRITICALUP_TEST_DOWNLOAD_SERVER_URL",
+            self.artifact_server.url(),
+        );
         command.env(
             "CRITICALUP_TEST_CUSTOMER_PORTAL_URL",
             &self.customer_portal_url,
@@ -124,6 +148,11 @@ impl TestEnvironment {
     // Beware of the consumption.
     pub(crate) fn server(&mut self) -> &mut MockServer {
         &mut self.server
+    }
+
+    // Beware of the consumption.
+    pub(crate) fn artifact_server(&mut self) -> &mut MockArtifactServer {
+        &mut self.artifact_server
     }
 }
 
@@ -162,6 +191,50 @@ async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
     server_builder =
         add_non_root_key_to_server(server_builder, "packages", KeyRole::Packages, &root_keypair)
             .await;
+
+    for (product, release, mut manifest) in mock_release_manifests() {
+        manifest.signed.add_signature(&root_keypair).await.unwrap();
+        server_builder = server_builder.add_release_manifest(
+            product.to_string(),
+            release.to_string(),
+            manifest.clone(),
+        );
+    }
+    server_builder.start().await
+}
+
+async fn setup_mock_artifact_server(root_keypair: EphemeralKeyPair) -> MockArtifactServer {
+    let mut server_builder = mock_artifact_server::Builder::new();
+
+    // Root keypair.
+    // This is the only keypair that is added without adding a public signed payload because
+    // Root is self-trusting and has no parent to sign its public key.
+    server_builder = server_builder.add_keypair(root_keypair.to_owned(), "root");
+
+    // Releases keypair.
+    server_builder = add_non_root_key_to_artifact_server(
+        server_builder,
+        "releases",
+        KeyRole::Releases,
+        &root_keypair,
+    )
+    .await;
+    // Revocation keypair.
+    server_builder = add_non_root_key_to_artifact_server(
+        server_builder,
+        "revocation",
+        KeyRole::Revocation,
+        &root_keypair,
+    )
+    .await;
+    // Packages keypair.
+    server_builder = add_non_root_key_to_artifact_server(
+        server_builder,
+        "packages",
+        KeyRole::Packages,
+        &root_keypair,
+    )
+    .await;
 
     for (product, release, mut manifest) in mock_release_manifests() {
         manifest.signed.add_signature(&root_keypair).await.unwrap();
@@ -352,6 +425,22 @@ async fn add_non_root_key_to_server(
     role: KeyRole,
     trusted_by: &EphemeralKeyPair,
 ) -> Builder {
+    let (keypair, signed_payload) = generate_trusted_key(role, trusted_by).await;
+    if name == "revocation" {
+        server_builder = server_builder.add_revocation_info(&keypair).await;
+    }
+    server_builder = server_builder.add_key(signed_payload);
+    server_builder = server_builder.add_keypair(keypair, name);
+
+    server_builder
+}
+
+async fn add_non_root_key_to_artifact_server(
+    mut server_builder: mock_artifact_server::Builder,
+    name: &str,
+    role: KeyRole,
+    trusted_by: &EphemeralKeyPair,
+) -> mock_artifact_server::Builder {
     let (keypair, signed_payload) = generate_trusted_key(role, trusted_by).await;
     if name == "revocation" {
         server_builder = server_builder.add_revocation_info(&keypair).await;

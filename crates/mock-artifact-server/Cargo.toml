@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "mock-artifact-server"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.97"
+criticaltrust = { path = "../criticaltrust", features = ["hash-revocation"] }
+tempfile.workspace = true
+tokio.workspace = true
+walkdir.workspace = true
+sha2.workspace = true
+xz2 = { workspace = true, features = ["static"] }
+time.workspace = true
+tar.workspace = true
+serde_json.workspace = true
+axum.workspace = true
+axum-extra.workspace = true
+http-body-util.workspace = true

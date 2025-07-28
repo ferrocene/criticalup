@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+mod artifact_server_install;
 mod auth;
 mod auth_remove;
 mod auth_set;
