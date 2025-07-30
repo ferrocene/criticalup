@@ -25,10 +25,13 @@ thiserror.workspace = true
 time.workspace = true
 tokio = { workspace = true, optional = true }
 reqwest.workspace = true
+hex = { version = "0.4.3", features = ["serde"] }
+md-5.workspace = true
 
 [dev-dependencies]
 itertools = "0.14.0"
 tokio.workspace = true
+insta.workspace = true
 
 [features]
 aws-kms = ["aws-sdk-kms", "aws-config", "aws-smithy-runtime-api", "tokio"]
