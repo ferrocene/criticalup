@@ -42,6 +42,7 @@ hyper.workspace = true
 dirs.workspace = true
 insta = { version = "1.42.2", features = ["filters"] }
 mock-download-server = { path = "../mock-download-server" }
+mock-artifact-server = { path = "../mock-artifact-server" }
 regex = "1.11.1"
 serde = { version = "1.0.219", features = ["derive"] }
 tempfile.workspace = true
