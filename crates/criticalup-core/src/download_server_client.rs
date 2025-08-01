@@ -380,14 +380,10 @@ mod tests {
         let res = test_env
             .download_server()
             .product_release_cache_path("ferrocene", "stable-25.05.0");
-        // dbg!(&test_env.download_server().cache_dir);
-        // let cache_dir = test_env.download_server().cache_dir.clone();
-        let cache_dir = test_env.config().paths.cache_dir.clone();
-        let expected = "/artifacts/products/ferrocene/releases/stable-25.05.0";
-        let expected = PathBuf::from(format!("{}/{}", cache_dir.display(), expected));
-        dbg!(&expected);
-        // dbg!(&cache_dir);
-        assert_eq!(expected, res);
+        let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
+        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+        let cache_dir = PathBuf::from(cache_dir.join(expected));
+        assert_eq!(cache_dir, res);
     }
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
