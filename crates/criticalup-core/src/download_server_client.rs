@@ -382,7 +382,7 @@ mod tests {
             .product_release_cache_path("ferrocene", "stable-25.05.0");
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
-        let cache_dir = PathBuf::from(cache_dir.join(expected));
+        let cache_dir = cache_dir.join(expected);
         assert_eq!(cache_dir, res);
     }
     #[tokio::test]
