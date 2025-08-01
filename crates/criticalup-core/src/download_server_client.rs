@@ -99,7 +99,12 @@ impl DownloadServerClient {
     }
 
     fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.cache_dir.join("artifacts").join(product).join(release)
+        self.cache_dir
+            .join("artifacts")
+            .join("products")
+            .join(product)
+            .join("releases")
+            .join(release)
     }
 
     fn package_cache_path(
@@ -368,6 +373,18 @@ mod tests {
         assert_eq!(req.headers().get(IF_NONE_MATCH), Some(&test_hash));
     }
 
+    #[tokio::test]
+    async fn cache_is_constructed() {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+
+        let res = test_env
+            .download_server()
+            .product_release_cache_path("ferrocene", "stable-25.05.0");
+        let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
+        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+        let cache_dir = cache_dir.join(expected);
+        assert_eq!(cache_dir, res);
+    }
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
