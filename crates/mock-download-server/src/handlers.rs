@@ -71,6 +71,7 @@ pub(crate) async fn handle_package(
     // we cannot pass 2 parameters in the url /{package}.{format}
     // the package hash keys use `package` and not `format` information
     // we remove the format information.
+    assert!(package.contains(".tar.xz"));
     let package = package.replace(".tar.xz", "");
 
     let bytes = data
