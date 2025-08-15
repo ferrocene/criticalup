@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-use crate::{v1_routes, Data};
+use crate::Data;
 use anyhow::Result;
 use axum::body::Body;
 use axum::extract::{Request, State};
@@ -37,7 +37,7 @@ pub struct MockServer {
 }
 
 impl MockServer {
-    pub(crate) async fn spawn(data: Data) -> Self {
+    pub(crate) async fn spawn(data: Data, routes: fn() -> Router<Arc<Mutex<Data>>>) -> Self {
         let data = Arc::new(Mutex::new(data));
         let data_clone = data.clone();
 
@@ -58,7 +58,7 @@ impl MockServer {
         let router = Router::new()
             .route("/", get(StatusCode::NOT_IMPLEMENTED))
             .route("/health", get(StatusCode::OK))
-            .nest("/v1", v1_routes())
+            .merge((routes)())
             .layer(middleware::from_fn_with_state(
                 Arc::clone(&data),
                 update_history,

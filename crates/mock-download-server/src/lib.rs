@@ -6,14 +6,18 @@ mod server;
 
 pub use crate::server::MockServer;
 use axum::body::Body;
+use axum::extract::Path;
 use axum::http::{Request, Response};
+use axum::response::Redirect;
 use axum::routing::get;
 use axum::Router;
 use criticaltrust::keys::{EphemeralKeyPair, PublicKey};
 use criticaltrust::manifests::ReleaseManifest;
 use criticaltrust::revocation_info::RevocationInfo;
 use criticaltrust::signatures::SignedPayload;
-use handlers::{handle_v1_keys, handle_v1_package, handle_v1_release, handle_v1_tokens_current};
+use handlers::{
+    handle_package, handle_v1_keys, handle_v1_package, handle_v1_release, handle_v1_tokens_current,
+};
 use serde::Serialize;
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -44,10 +48,11 @@ pub struct Data {
 
 pub struct Builder {
     data: Data,
+    routes: fn() -> Router<Arc<Mutex<Data>>>,
 }
 
 impl Builder {
-    pub fn new() -> Builder {
+    pub fn new(routes: fn() -> Router<Arc<Mutex<Data>>>) -> Builder {
         Builder {
             data: Data {
                 keypairs: HashMap::new(),
@@ -62,6 +67,7 @@ impl Builder {
                 release_packages: HashMap::new(),
                 history: Vec::new(),
             },
+            routes,
         }
     }
 
@@ -102,24 +108,72 @@ impl Builder {
     }
 
     pub async fn start(self) -> MockServer {
-        MockServer::spawn(self.data).await
+        MockServer::spawn(self.data, self.routes).await
     }
 }
 
 impl Default for Builder {
     fn default() -> Self {
-        Self::new()
+        Self::new(v1_routes)
     }
 }
 
 fn v1_routes() -> Router<Arc<Mutex<Data>>> {
+    Router::new().nest(
+        "/v1",
+        Router::new()
+            .route("/keys", get(handle_v1_keys))
+            .route("/releases/{product}/{release}", get(handle_v1_release))
+            .route(
+                "/releases/{product}/{release}/download/{package}/{format}",
+                get(handle_v1_package),
+            )
+            .route("/tokens", get(handle_v1_tokens_current))
+            .route("/tokens/current", get(handle_v1_tokens_current)),
+    )
+}
+
+pub fn file_server_routes() -> Router<Arc<Mutex<Data>>> {
     Router::new()
-        .route("/keys", get(handle_v1_keys))
-        .route("/releases/{product}/{release}", get(handle_v1_release))
+        .route("/keys.json", get(handle_v1_keys))
         .route(
-            "/releases/{product}/{release}/download/{package}/{format}",
-            get(handle_v1_package),
+            "/artifacts/products/{product}/releases/{release}/manifest.json",
+            get(handle_v1_release),
         )
-        .route("/tokens", get(handle_v1_tokens_current))
-        .route("/tokens/current", get(handle_v1_tokens_current))
+        .route(
+            "/artifacts/products/{product}/releases/{release}/{package}",
+            get(handle_package),
+        )
+        .nest(
+            "/v1",
+            Router::new()
+                .route("/keys", get(|| async { Redirect::permanent("/keys.json") }))
+                .route(
+                    "/releases/{product}/{release}",
+                    get(
+                        |Path((product, release)): Path<(String, String)>| async move {
+                            let uri = format!(
+                                "/artifacts/products/{product}/releases/{release}/manifest.json"
+                            );
+                            Redirect::permanent(uri.as_str())
+                        },
+                    ),
+                )
+                .route(
+                    "/releases/{product}/{release}/download/{package}/{format}",
+                    get(
+                        |Path((product, release, package, format)): Path<(
+                            String,
+                            String,
+                            String,
+                            String,
+                        )>| async move {
+                            let uri = format!(
+                        "/artifacts/products/{product}/releases/{release}/{package}.{format}"
+                    );
+                            Redirect::permanent(uri.as_str())
+                        },
+                    ),
+                ),
+        )
 }

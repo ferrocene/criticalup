@@ -4,7 +4,7 @@
 use criticaltrust::keys::{EphemeralKeyPair, KeyAlgorithm, KeyPair, KeyRole, PublicKey};
 use criticaltrust::manifests::{Release, ReleaseManifest};
 use criticaltrust::signatures::SignedPayload;
-use mock_download_server::{AuthenticationToken, Builder, MockServer};
+use mock_download_server::{file_server_routes, AuthenticationToken, Builder, MockServer};
 use std::borrow::Cow;
 use std::io::{Seek, Write};
 use std::path::{Path, PathBuf};
@@ -64,8 +64,17 @@ pub(crate) struct TestEnvironment {
     customer_portal_url: String,
 }
 
+pub enum Server {
+    V1,
+    FileServer,
+}
+
 impl TestEnvironment {
     pub(crate) async fn prepare() -> Self {
+        Self::prepare_with(Server::V1).await
+    }
+
+    pub(crate) async fn prepare_with(server: Server) -> Self {
         let root_keypair = EphemeralKeyPair::generate(
             KeyAlgorithm::EcdsaP256Sha256Asn1SpkiDer,
             KeyRole::Root,
@@ -75,10 +84,15 @@ impl TestEnvironment {
 
         let root = TempDir::new_in(std::env::current_dir().unwrap()).unwrap();
 
+        let server_builder = match server {
+            Server::V1 => mock_download_server::Builder::default(),
+            _ => mock_download_server::Builder::new(file_server_routes),
+        };
+
         TestEnvironment {
             root,
             trust_root: root_keypair.public().clone(),
-            server: setup_mock_server(root_keypair).await,
+            server: setup_mock_server(server_builder, root_keypair).await,
             customer_portal_url: "https://customers-test.ferrocene.dev".into(),
         }
     }
@@ -135,8 +149,10 @@ pub(crate) fn stdin(content: &str) -> Stdio {
     file.into()
 }
 
-async fn setup_mock_server(root_keypair: EphemeralKeyPair) -> MockServer {
-    let mut server_builder = mock_download_server::Builder::new();
+async fn setup_mock_server(
+    mut server_builder: mock_download_server::Builder,
+    root_keypair: EphemeralKeyPair,
+) -> MockServer {
     for (token, data) in MOCK_AUTH_TOKENS {
         server_builder = server_builder.add_token(token, data.clone());
     }

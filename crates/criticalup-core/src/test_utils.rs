@@ -254,7 +254,7 @@ async fn start_mock_server(
 ) -> MockServer {
     use mock_download_server::AuthenticationToken;
 
-    let mut builder = mock_download_server::Builder::new();
+    let mut builder = mock_download_server::Builder::default();
     builder = builder.add_token(
         SAMPLE_AUTH_TOKEN,
         AuthenticationToken {

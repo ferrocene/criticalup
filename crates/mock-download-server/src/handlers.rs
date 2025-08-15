@@ -62,6 +62,31 @@ pub(crate) async fn handle_v1_package(
     bytes.into_response()
 }
 
+pub(crate) async fn handle_package(
+    State(data): State<Arc<Mutex<Data>>>,
+    Path((product, release, package)): Path<(String, String, String)>,
+) -> impl IntoResponse {
+    let data = data.lock().await;
+
+    // we cannot pass 2 parameters in the url /{package}.{format}
+    // the package hash keys use `package` and not `format` information
+    // we remove the format information.
+    assert!(package.contains(".tar.xz"));
+    let package = package.replace(".tar.xz", "");
+
+    let bytes = data
+        .release_packages
+        .get(&(
+            product.to_string(),
+            release.to_string(),
+            package.to_string(),
+        ))
+        .unwrap()
+        .clone();
+
+    bytes.into_response()
+}
+
 pub(crate) async fn handle_v1_tokens_current(
     State(data): State<Arc<Mutex<Data>>>,
     TypedHeader(bearer): TypedHeader<Authorization<Bearer>>,
