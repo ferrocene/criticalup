@@ -22,7 +22,6 @@ use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
 use sha2::Digest;
 use tokio::fs::{self, create_dir_all};
-use tokio::task;
 
 const CLIENT_MAX_RETRIES: u32 = 5;
 
