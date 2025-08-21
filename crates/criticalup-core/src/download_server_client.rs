@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use std::fmt::Display;
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tokio::fs as tokio_fs;
 
 use crate::config::Config;
 use crate::envvars;
@@ -21,7 +23,6 @@ use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
 use sha2::Digest;
-use tokio::fs::{self, create_dir_all};
 
 const CLIENT_MAX_RETRIES: u32 = 5;
 
@@ -51,15 +52,68 @@ impl DownloadServerClient {
         let client = ClientBuilder::new(client)
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .build();
-
-        DownloadServerClient {
+        let download_server_client = DownloadServerClient {
             base_url: config.whitelabel.download_server_url.clone(),
             client,
             state: state.clone(),
             trust_root: config.whitelabel.trust_root.clone(),
             cache_dir: config.paths.cache_dir.clone(),
             connectivity,
+        };
+
+        // Trying migrating the obsolete cache.
+        // old path: ~/.cache/criticalup/artifacts/ferrocene
+        let deprecated_product_name_path = download_server_client
+            .cache_dir
+            .join("artifacts")
+            .join("ferrocene");
+        // new destination path ~/.cache/criticalup/artifacts/products/ferrocene/releases
+        let new_product_name_path = download_server_client
+            .cache_dir
+            .join("artifacts")
+            .join("products")
+            .join("ferrocene")
+            .join("releases");
+        // We want to do the migration iff:
+        // 1. the deprecated path exists and we have premissions
+        // 2. the new path was never created (to not overwrite existing cache)
+        // This function returns three types of errors,
+        // when writing, creating or not being able to migrate.
+        if matches!(deprecated_product_name_path.try_exists(), Ok(true)) {
+            Self::try_migrating_deprecated_path(
+                deprecated_product_name_path.clone(),
+                new_product_name_path.clone(),
+            )
+            .inspect_err(|e| tracing::warn!("{:?}", e))
+            .ok();
         }
+
+        download_server_client
+    }
+
+    fn try_migrating_deprecated_path(
+        deprecated_product_name_path: PathBuf,
+        new_products_path: PathBuf,
+    ) -> Result<(), Error> {
+        // This function should error if we try to overwrite an existing cache
+        if matches!(new_products_path.try_exists(), Ok(true)) {
+            return Err(Error::DestinationAlreadyExists {
+                deprecated: deprecated_product_name_path.clone(),
+                new: new_products_path.clone(),
+            });
+        }
+        fs::create_dir_all(&new_products_path)
+            .map_err(|e| Error::Create(new_products_path.clone(), e))?;
+
+        tracing::info!(
+            "Tidying deprecated binary proxies, they are now located at `{}`",
+            &new_products_path.display()
+        );
+        // The old path is removed by `rename` which is a move
+        fs::rename(&deprecated_product_name_path, &new_products_path)
+            .map_err(|e| Error::Write(new_products_path.clone(), e))?;
+
+        Ok(())
     }
 
     pub async fn get_current_token_data(&self) -> Result<CurrentTokenData, Error> {
@@ -126,9 +180,7 @@ impl DownloadServerClient {
 
         let data = if self.connectivity == Connectivity::Offline {
             if cache_hit {
-                fs::read(&cache_key)
-                    .await
-                    .map_err(|e| Error::Read(cache_key, e))?
+                fs::read(&cache_key).map_err(|e| Error::Read(cache_key, e))?
             } else {
                 return Err(Error::OfflineMode);
             }
@@ -149,18 +201,17 @@ impl DownloadServerClient {
                     tracing::trace!(status = %resp.status(), "Downloading");
                     let data = resp.bytes().await?;
                     if let Some(parent) = cache_key.parent() {
-                        create_dir_all(parent)
-                            .await
+                        fs::create_dir_all(parent)
                             .map_err(|e| Error::Create(parent.to_path_buf(), e))?;
                     }
-                    fs::write(&cache_key, &data)
+                    tokio_fs::write(&cache_key, &data)
                         .await
                         .map_err(|e| Error::Write(cache_key, e))?;
                     data.to_vec()
                 }
                 StatusCode::NOT_MODIFIED => {
                     tracing::trace!(status = %resp.status(), "Cache is fresh & valid");
-                    fs::read(&cache_key)
+                    tokio_fs::read(&cache_key)
                         .await
                         .map_err(|e| Error::Read(cache_key, e))?
                 }
@@ -186,9 +237,8 @@ impl DownloadServerClient {
             req = req.header(AUTHORIZATION, auth_token);
         }
         if cache_hit {
-            let cache_content = fs::read(cache_key)
-                .await
-                .map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
+            let cache_content =
+                fs::read(cache_key).map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
             let mut hasher = md5::Md5::new();
             hasher.update(cache_content);
             let etag_md5 = format!(r#""{:x}""#, hasher.finalize());
@@ -349,7 +399,8 @@ mod tests {
     use criticaltrust::signatures::PublicKeysRepository;
     use md5::Md5;
     use reqwest::header::IF_NONE_MATCH;
-    use tokio::fs::write;
+    use tempfile::tempdir;
+    use tokio_fs::write;
 
     #[tokio::test]
     async fn test_cacheable_requests_set_if_none_match() {
@@ -372,7 +423,7 @@ mod tests {
         hasher.update(test_slug);
         let test_hash = HeaderValue::from_str(&format!(r#""{:x}""#, hasher.finalize())).unwrap();
         if let Some(parent) = test_path.parent() {
-            create_dir_all(parent).await.unwrap()
+            fs::create_dir_all(parent).unwrap()
         }
         write(&test_path, test_slug).await.unwrap();
         let req = test_env
@@ -386,15 +437,16 @@ mod tests {
     #[tokio::test]
     async fn cache_is_constructed() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
-
         let res = test_env
             .download_server()
             .product_release_cache_path("ferrocene", "stable-25.05.0");
+
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
         let cache_dir = cache_dir.join(expected);
         assert_eq!(cache_dir, res);
     }
+
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
@@ -514,5 +566,64 @@ mod tests {
                 ..
             },
         ));
+    }
+    #[test]
+    fn assert_cache_is_migrated() -> Result<(), Box<dyn std::error::Error>> {
+        let cache_path = tempdir()?;
+
+        let deprecated_product_name_path = cache_path
+            .path()
+            .join("artifacts")
+            .join("ferrocene")
+            .join("stable-25.05.0");
+        fs::create_dir_all(&deprecated_product_name_path)?;
+        assert!(&deprecated_product_name_path.exists());
+        assert!(&deprecated_product_name_path.is_dir());
+        let old_path = &deprecated_product_name_path.join("package.txt");
+        fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(old_path)?;
+
+        let new_products_path = cache_path
+            .path()
+            .join("artifacts")
+            .join("products")
+            .join("ferrocene")
+            .join("releases")
+            .join("stable-25.05.0");
+        let res = DownloadServerClient::try_migrating_deprecated_path(
+            deprecated_product_name_path.clone(),
+            new_products_path.clone(),
+        );
+        assert!(res.is_ok());
+        assert!(&new_products_path.exists());
+        assert!(!&deprecated_product_name_path.exists());
+        assert!(new_products_path.is_dir());
+        let migrated_product_path = &new_products_path.join("package.txt");
+        assert!(&migrated_product_path.exists());
+        assert!(&migrated_product_path.is_file());
+        cache_path.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn assert_cache_is_not_overwritten() -> Result<(), Box<dyn std::error::Error>> {
+        let cache_path = tempdir()?;
+        let deprecated_product_name_path = cache_path.path().join("artifacts").join("ferrocene");
+        fs::create_dir_all(&deprecated_product_name_path)?;
+
+        let new_products_path = cache_path.path().join("artifacts").join("products");
+        // This will return an error as we do not want to overwrite an
+        // existing fresh cache.
+        fs::create_dir_all(&new_products_path)?;
+        let res = DownloadServerClient::try_migrating_deprecated_path(
+            deprecated_product_name_path.clone(),
+            new_products_path.clone(),
+        );
+        assert!(res.is_err());
+        Ok(())
     }
 }

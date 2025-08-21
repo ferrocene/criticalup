@@ -5,13 +5,11 @@ use crate::config::WhitelabelConfig;
 use crate::errors::Error;
 use std::env;
 use std::path::{Path, PathBuf};
-
 const DEFAULT_INSTALLATION_DIR_NAME: &str = "toolchains";
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct Paths {
     pub(crate) state_file: PathBuf,
-
     pub proxy_dir: PathBuf,
     pub installation_dir: PathBuf,
     pub cache_dir: PathBuf,
