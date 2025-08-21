@@ -22,6 +22,7 @@ use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
 use sha2::Digest;
 use tokio::fs::{self, create_dir_all};
+use tokio::task;
 
 const CLIENT_MAX_RETRIES: u32 = 5;
 
@@ -93,32 +94,64 @@ impl DownloadServerClient {
         self.cache_dir.join("keys.json")
     }
 
-    fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
+    async fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
         self.product_release_cache_path(product, release)
+            .await
             .join("manifest.json")
     }
 
-    fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.cache_dir
+    async fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
+        let old_cache_dir = self.cache_dir.join("artifacts").join(product).join(release);
+
+        let new_cache_dir = self
+            .cache_dir
             .join("artifacts")
             .join("products")
             .join(product)
             .join("releases")
-            .join(release)
+            .join(release);
+        fs::create_dir_all(new_cache_dir.clone()).await.unwrap();
+
+        // If an old cache exist, we move its contents.
+        if old_cache_dir.exists() && !old_cache_dir.as_os_str().is_empty() {
+            match fs::read_dir(&old_cache_dir).await {
+                // Must fail silently!
+                Err(why) => println!("! {:?}", why.kind()),
+                Ok(mut paths) => {
+                    if let Ok(Some(path)) = paths.next_entry().await {
+                        tracing::info!(
+                            "Tidying deprecated cache. New cache is located at {}",
+                            new_cache_dir.display()
+                        );
+                        let file_name = path.file_name();
+                        let old_file_name = old_cache_dir.join(&file_name);
+                        let new_file_name = new_cache_dir.join(&file_name);
+                        let _ = fs::copy(old_file_name, new_file_name).await;
+
+                        // Clean old cache
+                        tokio::fs::remove_dir_all(&old_cache_dir).await.unwrap();
+                    }
+                }
+            }
+        }
+
+        new_cache_dir
     }
 
-    fn package_cache_path(
+    async fn package_cache_path(
         &self,
         product: &str,
         release: &str,
         package: &str,
         format: ReleaseArtifactFormat,
     ) -> PathBuf {
-        self.product_release_cache_path(product, release).join({
-            let mut file_name = PathBuf::from(package);
-            file_name.set_extension(format.to_string());
-            file_name
-        })
+        self.product_release_cache_path(product, release)
+            .await
+            .join({
+                let mut file_name = PathBuf::from(package);
+                file_name.set_extension(format.to_string());
+                file_name
+            })
     }
 
     async fn cacheable(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
@@ -222,7 +255,9 @@ impl DownloadServerClient {
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
         let url = self.url(&format!("/v1/releases/{product}/{release}"));
-        let cache_key = self.product_release_manifest_cache_path(product, release);
+        let cache_key = self
+            .product_release_manifest_cache_path(product, release)
+            .await;
 
         let data = self.cacheable(url, cache_key).await?;
 
@@ -246,7 +281,9 @@ impl DownloadServerClient {
         let url = self.url(&format!(
             "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
         ));
-        let cache_key = self.package_cache_path(product, release, package, format);
+        let cache_key = self
+            .package_cache_path(product, release, package, format)
+            .await;
 
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
         let data = self.cacheable(url, cache_key).await?;
@@ -347,6 +384,7 @@ mod tests {
     };
     use criticaltrust::keys::KeyPair;
     use criticaltrust::signatures::PublicKeysRepository;
+    use dirs::cache_dir;
     use md5::Md5;
     use reqwest::header::IF_NONE_MATCH;
     use tokio::fs::write;
@@ -384,17 +422,44 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn cache_content_is_migrated() {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+        // creating a file at the incorrect path
+        let cache_dir = test_env.config().paths.cache_dir.clone();
+        let old_path = cache_dir
+            .join("artifacts")
+            .join("ferrocene")
+            .join("stable-25.05.0");
+
+        let foo = old_path.join("foo.txt");
+
+        let _ = fs::create_dir_all(old_path.clone()).await.unwrap();
+        let foo_txt = fs::File::create_new(foo).await.unwrap();
+
+        let res: PathBuf = test_env
+            .download_server()
+            .product_release_cache_path("ferrocene", "stable-25.05.0")
+            .await;
+        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+        let new_path = cache_dir.join(expected).join("foo.txt");
+
+        assert!(new_path.exists());
+    }
+
+    #[tokio::test]
     async fn cache_is_constructed() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
-
         let res = test_env
             .download_server()
-            .product_release_cache_path("ferrocene", "stable-25.05.0");
+            .product_release_cache_path("ferrocene", "stable-25.05.0")
+            .await;
+
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
         let cache_dir = cache_dir.join(expected);
         assert_eq!(cache_dir, res);
     }
+
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
