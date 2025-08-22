@@ -434,7 +434,7 @@ mod tests {
 
         let foo = old_path.join("foo.txt");
 
-        let _ = fs::create_dir_all(old_path.clone()).await.unwrap();
+        fs::create_dir_all(old_path.clone()).await.unwrap();
         fs::File::create_new(foo).await.unwrap();
 
         test_env
