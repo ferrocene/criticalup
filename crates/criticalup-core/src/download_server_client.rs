@@ -113,23 +113,26 @@ impl DownloadServerClient {
 
         // If an old cache exist, we move its contents.
         if old_cache_dir.exists() && !old_cache_dir.as_os_str().is_empty() {
-            match fs::read_dir(&old_cache_dir).await {
-                // Must fail silently!
-                Err(why) => println!("! {:?}", why.kind()),
-                Ok(mut paths) => {
-                    if let Ok(Some(path)) = paths.next_entry().await {
-                        tracing::info!(
-                            "Tidying deprecated cache. New cache is located at {}",
-                            new_cache_dir.display()
-                        );
-                        let file_name = path.file_name();
-                        let old_file_name = old_cache_dir.join(&file_name);
-                        let new_file_name = new_cache_dir.join(&file_name);
-                        let _ = fs::copy(old_file_name, new_file_name).await;
-
-                        // Clean old cache
-                        tokio::fs::remove_dir_all(&old_cache_dir).await.unwrap();
-                    }
+            // We want to fail silently.
+            if let Ok(mut paths) = fs::read_dir(&old_cache_dir).await {
+                if let Ok(Some(path)) = paths.next_entry().await {
+                    tracing::info!(
+                        "Tidying deprecated cache. New cache is located at {}",
+                        new_cache_dir.display()
+                    );
+                    let file_name = path.file_name();
+                    let old_file_name = old_cache_dir.join(&file_name);
+                    let new_file_name = new_cache_dir.join(&file_name);
+                    // If for some reason, the files are not copied,
+                    // we just want to return the new cache early and delete the old one.
+                    let _ = fs::copy(old_file_name, new_file_name).await.map(|_| async {
+                        // This should not fail as the old cache exists.
+                        // This operation should not happen very often, so we can clone.
+                        let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
+                        new_cache_dir.clone()
+                    });
+                    // Clean old cache
+                    let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
                 }
             }
         }
@@ -383,7 +386,6 @@ mod tests {
     };
     use criticaltrust::keys::KeyPair;
     use criticaltrust::signatures::PublicKeysRepository;
-    use dirs::cache_dir;
     use md5::Md5;
     use reqwest::header::IF_NONE_MATCH;
     use tokio::fs::write;
@@ -433,13 +435,15 @@ mod tests {
         let foo = old_path.join("foo.txt");
 
         let _ = fs::create_dir_all(old_path.clone()).await.unwrap();
-        let foo_txt = fs::File::create_new(foo).await.unwrap();
+        fs::File::create_new(foo).await.unwrap();
 
-        let res: PathBuf = test_env
+        test_env
             .download_server()
+            // the tested function that migrates the cache
             .product_release_cache_path("ferrocene", "stable-25.05.0")
             .await;
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+        // the file must be found in the new cache
         let new_path = cache_dir.join(expected).join("foo.txt");
 
         assert!(new_path.exists());
