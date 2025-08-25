@@ -65,13 +65,13 @@ pub(crate) struct TestEnvironment {
 }
 
 pub enum Server {
-    V1,
+    Default,
     FileServer,
 }
 
 impl TestEnvironment {
     pub(crate) async fn prepare() -> Self {
-        Self::prepare_with(Server::V1).await
+        Self::prepare_with(Server::Default).await
     }
 
     pub(crate) async fn prepare_with(server: Server) -> Self {
@@ -85,8 +85,8 @@ impl TestEnvironment {
         let root = TempDir::new_in(std::env::current_dir().unwrap()).unwrap();
 
         let server_builder = match server {
-            Server::V1 => mock_download_server::Builder::default(),
-            _ => mock_download_server::Builder::new(file_server_routes),
+            Server::FileServer => mock_download_server::Builder::new(file_server_routes),
+            _ => mock_download_server::Builder::default(),
         };
 
         TestEnvironment {
