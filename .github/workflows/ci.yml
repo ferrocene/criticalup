@@ -52,7 +52,6 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.runner }}
     env:
-      # For the dev environment
       CRITICALUP_TOKEN: ${{ secrets.CRITICALUP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -96,7 +95,6 @@ jobs:
 
       - name: Auth Criticalup
         working-directory: crab-boil
-        # For the dev environment
         run: ./criticalup auth set $CRITICALUP_TOKEN
 
 
