@@ -109,6 +109,11 @@ impl DownloadServerClient {
             .join(product)
             .join("releases")
             .join(release);
+
+        if let Err(e) = fs::create_dir_all(new_cache_dir.clone()).await {
+            tracing::debug!("Failed to created {} with {}", new_cache_dir.display(), e);
+            return new_cache_dir;
+        }
         fs::create_dir_all(new_cache_dir.clone()).await.unwrap();
 
         // If an old cache exist, we move its contents.
@@ -125,14 +130,18 @@ impl DownloadServerClient {
                     let new_file_name = new_cache_dir.join(&file_name);
                     // If for some reason, the files are not copied,
                     // we just want to return the new cache early and delete the old one.
-                    let _ = fs::copy(old_file_name, new_file_name).await.map(|_| async {
-                        // This should not fail as the old cache exists.
-                        // This operation should not happen very often, so we can clone.
-                        let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
-                        new_cache_dir.clone()
-                    });
-                    // Clean old cache
-                    let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
+                    // The error is not relevant for the user.
+                    fs::copy(old_file_name, new_file_name)
+                        .await
+                        .map(|_| async {
+                            // This should not fail as the old cache exists.
+                            // This operation should not happen very often, so we can clone.
+                            let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
+                            new_cache_dir.clone()
+                        })
+                        .ok();
+                    // Clean old cache, file system error not relevant for the user
+                    tokio::fs::remove_dir_all(&old_cache_dir).await.ok();
                 }
             }
         }
