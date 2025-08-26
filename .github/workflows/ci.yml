@@ -7,7 +7,6 @@ name: CI
 on:
   push:
     branches: [staging, trying]
-  pull_request: {}
 
 permissions:
   # Allow write access to the source code to enable GitHub Pages publishing.
@@ -39,6 +38,7 @@ jobs:
   integration-test:
     name: Test CriticalUp on GHA Runners
     needs: [build]
+    environment: testing
     strategy:
       fail-fast: false
       matrix:

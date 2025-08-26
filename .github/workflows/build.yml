@@ -47,6 +47,7 @@ defaults:
 
 jobs:
   build:
+    environment: testing
     runs-on: ${{ inputs.runner }}
     outputs:
       package-id: ${{ steps.package.outputs.artifact-id }}
