@@ -34,6 +34,7 @@ jobs:
 
       - uses: ./.github/actions/use-ferrocene/
         with:
+          # For the dev environment
           token: ${{ secrets.CRITICALUP_TOKEN }}
           uninstall-rustup: true  
           toolchain-link: false
