@@ -26,6 +26,7 @@ defaults:
 
 jobs:
   msi:
+    environment: signing
     runs-on: windows-latest
     outputs:
       msi-id: ${{ steps.msi.outputs.artifact-id }}

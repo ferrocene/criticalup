@@ -38,6 +38,7 @@ jobs:
   integration-test:
     name: Test CriticalUp on GHA Runners
     needs: [build]
+    environment: testing
     strategy:
       fail-fast: false
       matrix:
