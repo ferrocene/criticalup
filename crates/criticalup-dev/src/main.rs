@@ -3,13 +3,20 @@
 
 use criticaltrust::keys::newtypes::PublicKeyBytes;
 use criticaltrust::keys::{KeyAlgorithm, KeyRole, PublicKey};
+use std::env;
 
 #[tokio::main]
 async fn main() {
+    let key = "DOWNLOAD_SERVER_URL";
+    let download_server_url = match env::var(key) {
+        Ok(val) => val,
+        Err(_e) => "https://criticalup-downloads-dev.ferrocene.dev".into(),
+    };
+
     let whitelabel = criticalup_cli::WhitelabelConfig {
         name: "criticalup-dev",
         http_user_agent: concat!("criticalup/", env!("CARGO_PKG_VERSION"), " (dev)"),
-        download_server_url: "https://criticalup-downloads-dev.ferrocene.dev".into(),
+        download_server_url,
         customer_portal_url: "https://customers-dev.ferrocene.dev".into(),
         trust_root: PublicKey {
             role: KeyRole::Root,
