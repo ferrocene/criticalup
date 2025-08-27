@@ -30,7 +30,7 @@ async fn byte_zero_via_stdin() {
 // This is a macro instead of a function because otherwise insta detects the name of the helper
 // function as the name of the test.
 macro_rules! run_cmd {
-    ($expected:ident, $env:ident, $variant:ident, $token:ident) => {
+    ($expected:ident, $env:ident, $variant:ident, $token:ident, $re:ident) => {
         let out = build_command(&$env, $variant, $token)
             .output()
             .await
@@ -40,13 +40,13 @@ macro_rules! run_cmd {
                 // This regex replacement dance is required because this nested macro tests
                 // set is instantiating the test server twice which means each run gives
                 // a different local port. We replace with a stable port just for this test.
-                let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
+
                 let left_str = String::from_utf8(out.stderr.clone())
                     .expect("string creation from bytes failed.");
                 let right_str = String::from_utf8(expected.stderr.clone())
                     .expect("string creation from bytes failed.");
-                let left = re.replace_all(left_str.as_str(), "127.0.0.1:1312");
-                let right = re.replace_all(right_str.as_str(), "127.0.0.1:1312");
+                let left = $re.replace_all(left_str.as_str(), "127.0.0.1:1312");
+                let right = $re.replace_all(right_str.as_str(), "127.0.0.1:1312");
                 assert_eq!(left, right);
             }
             None => {
@@ -66,11 +66,12 @@ macro_rules! test_matrix {
             #[tokio::test]
             async fn set_valid_token() {
                 let mut expected: Option<Output> = None;
+                let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
                 for variant in [$($variant,)*] {
                     let test_env = TestEnvironment::prepare().await;
 
                     assert_token(&test_env, None);
-                    run_cmd!(expected, test_env, variant, TOKEN_A);
+                    run_cmd!(expected, test_env, variant, TOKEN_A, re);
                     assert_token(&test_env, Some(TOKEN_A));
 
                     // The download server was called to validate the token.
@@ -81,11 +82,12 @@ macro_rules! test_matrix {
             #[tokio::test]
             async fn set_valid_token_with_existing_token() {
                 let mut expected: Option<Output>  = None;
+                let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
                 for variant in [$($variant,)*] {
                     let test_env = TestEnvironment::prepare().await;
                     set_token(&test_env, TOKEN_A).await;
 
-                    run_cmd!(expected, test_env, variant, TOKEN_B);
+                    run_cmd!(expected, test_env, variant, TOKEN_B, re);
                     assert_token(&test_env, Some(TOKEN_B));
 
                     // The download server was called by both the `set_token` function and what we want
@@ -97,11 +99,12 @@ macro_rules! test_matrix {
             #[tokio::test]
             async fn set_invalid_token() {
                 let mut expected: Option<Output>  = None;
+                let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
                 for variant in [$($variant,)*] {
                     let test_env = TestEnvironment::prepare().await;
 
                     assert_token(&test_env, None);
-                    run_cmd!(expected, test_env, variant, TOKEN_INVALID);
+                    run_cmd!(expected, test_env, variant, TOKEN_INVALID, re);
                     assert_token(&test_env, None);
 
                     // The download server was called to validate the token.
@@ -112,11 +115,12 @@ macro_rules! test_matrix {
             #[tokio::test]
             async fn set_invalid_token_with_existing_token() {
                 let mut expected: Option<Output>  = None;
+                let re = Regex::new(r"127.0.0.1:\d+").expect("regex creation failed.");
                 for variant in [$($variant,)*] {
                     let test_env = TestEnvironment::prepare().await;
 
                     set_token(&test_env, TOKEN_A).await;
-                    run_cmd!(expected, test_env, variant, TOKEN_INVALID);
+                    run_cmd!(expected, test_env, variant, TOKEN_INVALID, re);
                     assert_token(&test_env, Some(TOKEN_A));
 
                     // The download server was called by both the `set_token` function and what we want

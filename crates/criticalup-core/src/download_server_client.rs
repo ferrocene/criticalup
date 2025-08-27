@@ -93,32 +93,76 @@ impl DownloadServerClient {
         self.cache_dir.join("keys.json")
     }
 
-    fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
+    async fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
         self.product_release_cache_path(product, release)
+            .await
             .join("manifest.json")
     }
 
-    fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.cache_dir
+    async fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
+        let old_cache_dir = self.cache_dir.join("artifacts").join(product).join(release);
+
+        let new_cache_dir = self
+            .cache_dir
             .join("artifacts")
             .join("products")
             .join(product)
             .join("releases")
-            .join(release)
+            .join(release);
+
+        if let Err(e) = fs::create_dir_all(new_cache_dir.clone()).await {
+            tracing::debug!("Failed to created {} with {}", new_cache_dir.display(), e);
+            return new_cache_dir;
+        }
+        fs::create_dir_all(new_cache_dir.clone()).await.unwrap();
+
+        // If an old cache exist, we move its contents.
+        if old_cache_dir.exists() && !old_cache_dir.as_os_str().is_empty() {
+            // We want to fail silently.
+            if let Ok(mut paths) = fs::read_dir(&old_cache_dir).await {
+                if let Ok(Some(path)) = paths.next_entry().await {
+                    tracing::info!(
+                        "Tidying deprecated cache. New cache is located at {}",
+                        new_cache_dir.display()
+                    );
+                    let file_name = path.file_name();
+                    let old_file_name = old_cache_dir.join(&file_name);
+                    let new_file_name = new_cache_dir.join(&file_name);
+                    // If for some reason, the files are not copied,
+                    // we just want to return the new cache early and delete the old one.
+                    // The error is not relevant for the user.
+                    fs::copy(old_file_name, new_file_name)
+                        .await
+                        .map(|_| async {
+                            // This should not fail as the old cache exists.
+                            // This operation should not happen very often, so we can clone.
+                            let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
+                            new_cache_dir.clone()
+                        })
+                        .ok();
+                    // Clean old cache, file system error not relevant for the user
+                    tokio::fs::remove_dir_all(&old_cache_dir).await.ok();
+                }
+            }
+        }
+
+        new_cache_dir
     }
 
-    fn package_cache_path(
+    async fn package_cache_path(
         &self,
         product: &str,
         release: &str,
         package: &str,
         format: ReleaseArtifactFormat,
     ) -> PathBuf {
-        self.product_release_cache_path(product, release).join({
-            let mut file_name = PathBuf::from(package);
-            file_name.set_extension(format.to_string());
-            file_name
-        })
+        self.product_release_cache_path(product, release)
+            .await
+            .join({
+                let mut file_name = PathBuf::from(package);
+                file_name.set_extension(format.to_string());
+                file_name
+            })
     }
 
     async fn cacheable(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
@@ -222,7 +266,9 @@ impl DownloadServerClient {
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
         let url = self.url(&format!("/v1/releases/{product}/{release}"));
-        let cache_key = self.product_release_manifest_cache_path(product, release);
+        let cache_key = self
+            .product_release_manifest_cache_path(product, release)
+            .await;
 
         let data = self.cacheable(url, cache_key).await?;
 
@@ -246,7 +292,9 @@ impl DownloadServerClient {
         let url = self.url(&format!(
             "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
         ));
-        let cache_key = self.package_cache_path(product, release, package, format);
+        let cache_key = self
+            .package_cache_path(product, release, package, format)
+            .await;
 
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
         let data = self.cacheable(url, cache_key).await?;
@@ -374,17 +422,46 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn cache_content_is_migrated() {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+        // creating a file at the incorrect path
+        let cache_dir = test_env.config().paths.cache_dir.clone();
+        let old_path = cache_dir
+            .join("artifacts")
+            .join("ferrocene")
+            .join("stable-25.05.0");
+
+        let foo = old_path.join("foo.txt");
+
+        fs::create_dir_all(old_path.clone()).await.unwrap();
+        fs::File::create_new(foo).await.unwrap();
+
+        test_env
+            .download_server()
+            // the tested function that migrates the cache
+            .product_release_cache_path("ferrocene", "stable-25.05.0")
+            .await;
+        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+        // the file must be found in the new cache
+        let new_path = cache_dir.join(expected).join("foo.txt");
+
+        assert!(new_path.exists());
+    }
+
+    #[tokio::test]
     async fn cache_is_constructed() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
-
         let res = test_env
             .download_server()
-            .product_release_cache_path("ferrocene", "stable-25.05.0");
+            .product_release_cache_path("ferrocene", "stable-25.05.0")
+            .await;
+
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
         let cache_dir = cache_dir.join(expected);
         assert_eq!(cache_dir, res);
     }
+
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
         let test_env = TestEnvironment::with().download_server().prepare().await;

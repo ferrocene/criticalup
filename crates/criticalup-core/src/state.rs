@@ -185,7 +185,7 @@ impl State {
     }
 
     /// Gets all the installations listed in the `State` file.
-    pub fn installations(&self) -> Ref<BTreeMap<InstallationId, StateInstallation>> {
+    pub fn installations(&self) -> Ref<'_, BTreeMap<InstallationId, StateInstallation>> {
         Ref::map(self.inner.borrow(), |v| &v.repr.installations)
     }
 
@@ -946,7 +946,7 @@ mod tests {
         state
             .add_installation(
                 &installation_id_1,
-                &[verified_package.clone()],
+                std::slice::from_ref(&verified_package),
                 &proj1,
                 test_env.config(),
             )
@@ -960,7 +960,7 @@ mod tests {
         state
             .add_installation(
                 &installation_id_2,
-                &[verified_package.clone()],
+                std::slice::from_ref(&verified_package),
                 &proj2,
                 test_env.config(),
             )
