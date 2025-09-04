@@ -115,12 +115,23 @@ impl DownloadServerClient {
             return new_cache_dir;
         }
 
-        // If an old cache exist, we move its contents.
-        if old_cache_dir.exists() && !old_cache_dir.as_os_str().is_empty() {
-            if let Err(e) = fs::rename(&old_cache_dir, &new_cache_dir).await {
-                // We want to fail silenly.
-                tracing::debug!("Failed to move {}: {}", old_cache_dir.display(), e);
-                return new_cache_dir;
+        // If an old cache exist, we try moving its contents or delete it, or we fail silently.
+        if old_cache_dir.exists() {
+            if old_cache_dir.as_os_str().is_empty() {
+                if let Err(e) = fs::remove_dir(&old_cache_dir).await {
+                    tracing::debug!(
+                        "Failed to remove empty cache {}: {}",
+                        old_cache_dir.display(),
+                        e
+                    );
+                }
+            } else if let Err(e) = fs::rename(&old_cache_dir, &new_cache_dir).await {
+                tracing::debug!(
+                    "Failed to move {} to {}: {}",
+                    old_cache_dir.display(),
+                    &new_cache_dir.display(),
+                    e
+                );
             }
         }
 
