@@ -114,7 +114,6 @@ impl DownloadServerClient {
             tracing::debug!("Failed to created {} with {}", new_cache_dir.display(), e);
             return new_cache_dir;
         }
-        fs::create_dir_all(new_cache_dir.clone()).await.unwrap();
 
         // If an old cache exist, we move its contents.
         if old_cache_dir.exists() && !old_cache_dir.as_os_str().is_empty() {
