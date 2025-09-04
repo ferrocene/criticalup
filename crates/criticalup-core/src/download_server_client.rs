@@ -117,31 +117,10 @@ impl DownloadServerClient {
 
         // If an old cache exist, we move its contents.
         if old_cache_dir.exists() && !old_cache_dir.as_os_str().is_empty() {
-            // We want to fail silently.
-            if let Ok(mut paths) = fs::read_dir(&old_cache_dir).await {
-                if let Ok(Some(path)) = paths.next_entry().await {
-                    tracing::info!(
-                        "Tidying deprecated cache. New cache is located at {}",
-                        new_cache_dir.display()
-                    );
-                    let file_name = path.file_name();
-                    let old_file_name = old_cache_dir.join(&file_name);
-                    let new_file_name = new_cache_dir.join(&file_name);
-                    // If for some reason, the files are not copied,
-                    // we just want to return the new cache early and delete the old one.
-                    // The error is not relevant for the user.
-                    fs::copy(old_file_name, new_file_name)
-                        .await
-                        .map(|_| async {
-                            // This should not fail as the old cache exists.
-                            // This operation should not happen very often, so we can clone.
-                            let _ = tokio::fs::remove_dir_all(&old_cache_dir).await;
-                            new_cache_dir.clone()
-                        })
-                        .ok();
-                    // Clean old cache, file system error not relevant for the user
-                    tokio::fs::remove_dir_all(&old_cache_dir).await.ok();
-                }
+            if let Err(e) = fs::rename(&old_cache_dir, &new_cache_dir).await {
+                // We want to fail silenly.
+                tracing::debug!("Failed to move {}: {}", old_cache_dir.display(), e);
+                return new_cache_dir;
             }
         }
 
