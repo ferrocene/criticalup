@@ -431,6 +431,9 @@ mod tests {
             .join("artifacts")
             .join("ferrocene")
             .join("stable-25.05.0");
+        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+        // The new path should not exist yet
+        assert!(!cache_dir.join(expected).exists());
 
         let foo = old_path.join("foo.txt");
 
@@ -442,11 +445,13 @@ mod tests {
             // the tested function that migrates the cache
             .product_release_cache_path("ferrocene", "stable-25.05.0")
             .await;
-        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
+
         // the file must be found in the new cache
         let new_path = cache_dir.join(expected).join("foo.txt");
 
         assert!(new_path.exists());
+        // we assert old path was deleted
+        assert!(!cache_dir.join(&old_path).exists());
     }
 
     #[tokio::test]
