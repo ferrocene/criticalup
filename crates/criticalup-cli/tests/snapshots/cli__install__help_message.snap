@@ -14,11 +14,20 @@ Usage:
   criticalup-test install [OPTIONS]
 
 Options:
-      --project <PROJECT>           Path to the manifest `criticalup.toml`
-      --reinstall                   Reinstall products that may have already been installed
-      --offline                     Don't download from the server, only use previously cached artifacts
-  -v, --verbose...                  Enable debug logs, -vv for trace
-      --log-format <LOG_FORMAT>     Which logger to use [default: default] [possible values: default, pretty, tree, json]
-      --log-level [<LOG_LEVEL>...]  Tracing directives
-  -h, --help                        Print help
+      --project <PROJECT>
+          Path to the manifest `criticalup.toml`
+      --reinstall
+          Reinstall products that may have already been installed
+      --offline
+          Don't download from the server, only use previously cached artifacts
+      --download-server-url <DOWNLOAD_SERVER_URL>
+          URL of the download server
+  -v, --verbose...
+          Enable debug logs, -vv for trace
+      --log-format <LOG_FORMAT>
+          Which logger to use [default: default] [possible values: default, pretty, tree, json]
+      --log-level [<LOG_LEVEL>...]
+          Tracing directives
+  -h, --help
+          Print help
 ------

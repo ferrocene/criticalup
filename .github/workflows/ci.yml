@@ -218,7 +218,7 @@ jobs:
       - name: Install toolchain from local server
         working-directory: crab-boil
         run: |
-          DOWNLOAD_SERVER_URL=http://localhost:3000 ./criticalup-dev install
+          ./criticalup-dev install --download-server-url=http://localhost:3000
 
       - name: Run `criticalup-dev` with artifacts from local server in test workflow
         working-directory: crab-boil
