@@ -5,6 +5,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Added an optional --download-server-url <URL> flag to the `install` subcommand to specify the base URL of the download server.
+
 ## [1.5.1] - 2025-07-28
 
 ### Fixed

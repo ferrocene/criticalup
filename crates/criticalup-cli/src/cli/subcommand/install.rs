@@ -32,6 +32,9 @@ pub(crate) struct Install {
     reinstall: bool,
     #[clap(flatten)]
     network: Network,
+    /// URL of the download server
+    #[arg(long)]
+    download_server_url: Option<String>,
 }
 
 impl CommandExecute for Install {
@@ -52,7 +55,15 @@ impl CommandExecute for Install {
         span.record("project", tracing::field::display(project.display()));
 
         let state = State::load(&ctx.config).await?;
-        let client = DownloadServerClient::new(&ctx.config, &state, self.network.connectivity);
+
+        // set to mutable,  in case a new download_server_url is set.
+        let mut client = DownloadServerClient::new(&ctx.config, &state, self.network.connectivity);
+
+        if let Some(download_server_url) = self.download_server_url {
+            client.set_base_url(download_server_url);
+        };
+        // shadow binding, setting it back to immutable
+        let client = client;
 
         // Parse and serialize the project manifest.
         let project_manifest = ProjectManifest::load(&project)?;
@@ -114,7 +125,10 @@ async fn install_product_afresh(
     let abs_installation_dir_path = installation_dir.join(product.installation_id());
     let keys = client.keys().await?;
 
-    tracing::info!("Installing product '{product_name}' ({release})",);
+    tracing::info!(
+        "Installing product '{product_name}' ({release}) from download server '{}'",
+        client.base_url()
+    );
 
     let mut integrity_verifier = IntegrityVerifier::new(&keys);
 

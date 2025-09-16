@@ -287,6 +287,16 @@ impl DownloadServerClient {
             Ok(None)
         }
     }
+
+    /// Sets the base url of this [`DownloadServerClient`].
+    pub fn set_base_url(&mut self, base_url: String) {
+        self.base_url = base_url;
+    }
+
+    /// Returns a reference to the base url of this [`DownloadServerClient`].
+    pub fn base_url(&self) -> &str {
+        &self.base_url
+    }
 }
 
 fn unexpected_status(url: String, response: Response) -> Error {
