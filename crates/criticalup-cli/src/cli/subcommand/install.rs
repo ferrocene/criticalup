@@ -62,7 +62,7 @@ impl CommandExecute for Install {
         if let Some(download_server_url) = self.download_server_url {
             client.set_base_url(download_server_url);
         };
-        // shawdow biding, setting it back to immutable
+        // shadow binding, setting it back to immutable
         let client = client;
 
         // Parse and serialize the project manifest.
