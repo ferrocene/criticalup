@@ -185,7 +185,7 @@ impl State {
     }
 
     /// Gets all the installations listed in the `State` file.
-    pub fn installations(&self) -> Ref<BTreeMap<InstallationId, StateInstallation>> {
+    pub fn installations(&self) -> Ref<'_, BTreeMap<InstallationId, StateInstallation>> {
         Ref::map(self.inner.borrow(), |v| &v.repr.installations)
     }
 
