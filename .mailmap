@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 #
 # This list is used by git-shortlog to aggregate contributions.  It is
 # necessary when either the author's full name is not always written
