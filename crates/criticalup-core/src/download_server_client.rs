@@ -139,6 +139,12 @@ impl DownloadServerClient {
                 e
             );
         }
+        // We also want to remove the parent:
+        if let Some(parent) = old_cache_dir.parent() {
+            if let Err(e) = fs::remove_dir(parent).await {
+                tracing::debug!("Failing in removing {}, {}", parent.display(), e);
+            }
+        }
     }
     async fn package_cache_path(
         &self,
