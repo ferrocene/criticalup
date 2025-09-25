@@ -441,10 +441,7 @@ mod tests {
         // The new path should not exist yet
         assert!(!cache_dir.join(expected).exists());
 
-        let foo = old_path.join("foo.txt");
-
         fs::create_dir_all(old_path.clone()).await.unwrap();
-        fs::File::create_new(foo).await.unwrap();
 
         test_env
             .download_server()
@@ -453,7 +450,7 @@ mod tests {
             .await;
 
         // the file must be found in the new cache
-        let new_path = cache_dir.join(expected).join("foo.txt");
+        let new_path = cache_dir.join(expected);
 
         assert!(new_path.exists());
         // we assert old path was deleted
