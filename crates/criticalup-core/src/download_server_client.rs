@@ -453,8 +453,8 @@ mod tests {
         let new_path = cache_dir.join(expected);
 
         assert!(new_path.exists());
-        // we assert old path was deleted
-        assert!(!cache_dir.join(&old_path).exists());
+        // we assert parent in old path was deleted
+        assert!(!cache_dir.join("artifacts/ferrocene").exists());
     }
 
     #[tokio::test]
