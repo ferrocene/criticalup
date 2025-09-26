@@ -454,7 +454,7 @@ mod tests {
 
         assert!(new_path.exists());
         // we assert parent in old path was deleted
-        assert!(!cache_dir.join("artifacts/ferrocene").exists());
+        assert!(!cache_dir.join("artifacts").join("ferrocene").exists());
     }
 
     #[tokio::test]
