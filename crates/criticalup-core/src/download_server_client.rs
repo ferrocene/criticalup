@@ -118,7 +118,11 @@ impl DownloadServerClient {
     }
 
     async fn migration(&self, old_cache_dir: &PathBuf, new_cache_dir: &PathBuf) {
-        if let Err(e) = fs::create_dir_all(new_cache_dir.clone()).await {
+        let Some(new_cache_dir_parent) = new_cache_dir.parent() else {
+            panic!("I need to be handled");
+        };
+
+        if let Err(e) = fs::create_dir_all(new_cache_dir_parent.clone()).await {
             tracing::debug!("Failed to created {} with {}", new_cache_dir.display(), e);
         }
 
