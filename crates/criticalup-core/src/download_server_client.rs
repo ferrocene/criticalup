@@ -437,9 +437,13 @@ mod tests {
             .join("artifacts")
             .join("ferrocene")
             .join("stable-25.05.0");
-        let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
-        // The new path should not exist yet
-        assert!(!cache_dir.join(expected).exists());
+        let expected = cache_dir
+            .join("artifacts")
+            .join("products")
+            .join("ferrocene")
+            .join("releases")
+            .join("stable-25.05.0");
+        assert!(!expected.exists()); // The new path should not exist yet
 
         fs::create_dir_all(old_path.clone()).await.unwrap();
 
@@ -449,10 +453,7 @@ mod tests {
             .product_release_cache_path("ferrocene", "stable-25.05.0")
             .await;
 
-        // the file must be found in the new cache
-        let new_path = cache_dir.join(expected);
-
-        assert!(new_path.exists());
+        assert!(expected.exists());
         // we assert parent in old path was deleted
         assert!(!cache_dir.join("artifacts").join("ferrocene").exists());
     }
