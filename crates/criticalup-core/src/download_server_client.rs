@@ -93,32 +93,77 @@ impl DownloadServerClient {
         self.cache_dir.join("keys.json")
     }
 
-    fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
+    async fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
         self.product_release_cache_path(product, release)
+            .await
             .join("manifest.json")
     }
 
-    fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.cache_dir
+    async fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
+        let old_cache_dir = self.cache_dir.join("artifacts").join(product).join(release);
+
+        let new_cache_dir = self
+            .cache_dir
             .join("artifacts")
             .join("products")
             .join(product)
             .join("releases")
-            .join(release)
+            .join(release);
+
+        if old_cache_dir.exists() {
+            self.migration(&old_cache_dir, &new_cache_dir).await;
+        }
+
+        new_cache_dir
     }
 
-    fn package_cache_path(
+    async fn migration(&self, old_cache_dir: &PathBuf, new_cache_dir: &PathBuf) {
+        let Some(new_cache_dir_parent) = new_cache_dir.parent() else {
+            panic!("I need to be handled");
+        };
+
+        if let Err(e) = fs::create_dir_all(new_cache_dir_parent.clone()).await {
+            tracing::debug!("Failed to created {} with {}", new_cache_dir.display(), e);
+        }
+
+        // If an old cache exist, we try moving its contents or delete it, or we fail silently.
+        if old_cache_dir.as_os_str().is_empty() {
+            if let Err(e) = fs::remove_dir(&old_cache_dir).await {
+                tracing::debug!(
+                    "Failed to remove empty cache {}: {}",
+                    old_cache_dir.display(),
+                    e
+                );
+            }
+        } else if let Err(e) = fs::rename(&old_cache_dir, &new_cache_dir).await {
+            tracing::debug!(
+                "Failed to move {} to {}: {}",
+                old_cache_dir.display(),
+                &new_cache_dir.display(),
+                e
+            );
+        }
+        // We also want to remove the parent:
+        if let Some(parent) = old_cache_dir.parent() {
+            if let Err(e) = fs::remove_dir(parent).await {
+                tracing::debug!("Failing in removing {}, {}", parent.display(), e);
+            }
+        }
+    }
+    async fn package_cache_path(
         &self,
         product: &str,
         release: &str,
         package: &str,
         format: ReleaseArtifactFormat,
     ) -> PathBuf {
-        self.product_release_cache_path(product, release).join({
-            let mut file_name = PathBuf::from(package);
-            file_name.set_extension(format.to_string());
-            file_name
-        })
+        self.product_release_cache_path(product, release)
+            .await
+            .join({
+                let mut file_name = PathBuf::from(package);
+                file_name.set_extension(format.to_string());
+                file_name
+            })
     }
 
     async fn cacheable(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
@@ -222,7 +267,9 @@ impl DownloadServerClient {
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
         let url = self.url(&format!("/v1/releases/{product}/{release}"));
-        let cache_key = self.product_release_manifest_cache_path(product, release);
+        let cache_key = self
+            .product_release_manifest_cache_path(product, release)
+            .await;
 
         let data = self.cacheable(url, cache_key).await?;
 
@@ -246,7 +293,9 @@ impl DownloadServerClient {
         let url = self.url(&format!(
             "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
         ));
-        let cache_key = self.package_cache_path(product, release, package, format);
+        let cache_key = self
+            .package_cache_path(product, release, package, format)
+            .await;
 
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
         let data = self.cacheable(url, cache_key).await?;
@@ -384,17 +433,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn cache_content_is_migrated() {
+        let test_env = TestEnvironment::with().download_server().prepare().await;
+        // creating a file at the incorrect path
+        let cache_dir = test_env.config().paths.cache_dir.clone();
+        let old_path = cache_dir
+            .join("artifacts")
+            .join("ferrocene")
+            .join("stable-25.05.0");
+        let expected = cache_dir
+            .join("artifacts")
+            .join("products")
+            .join("ferrocene")
+            .join("releases")
+            .join("stable-25.05.0");
+        assert!(!expected.exists()); // The new path should not exist yet
+
+        fs::create_dir_all(old_path.clone()).await.unwrap();
+
+        test_env
+            .download_server()
+            // the tested function that migrates the cache
+            .product_release_cache_path("ferrocene", "stable-25.05.0")
+            .await;
+
+        assert!(expected.exists());
+        // we assert parent in old path was deleted
+        assert!(!cache_dir.join("artifacts").join("ferrocene").exists());
+    }
+
+    #[tokio::test]
     async fn cache_is_constructed() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
-
         let res = test_env
             .download_server()
-            .product_release_cache_path("ferrocene", "stable-25.05.0");
+            .product_release_cache_path("ferrocene", "stable-25.05.0")
+            .await;
+
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
         let cache_dir = cache_dir.join(expected);
         assert_eq!(cache_dir, res);
     }
+
     #[tokio::test]
     async fn test_get_current_token_while_authenticated() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
