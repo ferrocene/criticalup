@@ -122,7 +122,7 @@ impl DownloadServerClient {
             panic!("I need to be handled");
         };
 
-        if let Err(e) = fs::create_dir_all(new_cache_dir_parent.clone()).await {
+        if let Err(e) = fs::create_dir_all(new_cache_dir_parent).await {
             tracing::debug!("Failed to created {} with {}", new_cache_dir.display(), e);
         }
 
