@@ -3,7 +3,7 @@
 
 [package]
 name = "criticalup-cli"
-version = "1.5.1"
+version = "1.6.0"
 edition = "2021"
 repository = "https://github.com/ferrocene/criticalup"
 homepage = "https://github.com/ferrocene/criticalup"
