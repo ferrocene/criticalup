@@ -6,7 +6,6 @@ use reqwest::Error as ReqError;
 use reqwest::StatusCode;
 use std::env::VarError;
 use std::path::PathBuf;
-
 /// We're using a custom error enum instead of `Box<dyn Error>` or one of the crates providing a
 /// `Box<dyn Error>` wrapper because we need to know all the possible errors criticalup could
 /// encounter. Using `Box<dyn Error>` makes it too easy to accidentally bubble up a library error
@@ -18,6 +17,9 @@ pub enum Error {
 
     #[error("Could not detect the criticalup cache directory.")]
     CouldNotDetectCacheDirectory,
+
+    #[error("The destination cache already exists. Migrating from {} to {} would overwrite the cache. Run `criticalup clean` and try this command again.", deprecated.display(), new.display())]
+    DestinationAlreadyExists { deprecated: PathBuf, new: PathBuf },
 
     #[error("Failed to download {url}.")]
     DownloadServerError {
@@ -67,6 +69,12 @@ pub enum Error {
     ProjectManifestProductDirCreationFailed {
         path: PathBuf,
         product: String,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("Could not remove directory {}, {}", .path.display(), source)]
+    RemovingDirectory {
+        path: PathBuf,
         #[source]
         source: std::io::Error,
     },

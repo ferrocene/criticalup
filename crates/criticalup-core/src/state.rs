@@ -946,7 +946,7 @@ mod tests {
         state
             .add_installation(
                 &installation_id_1,
-                &[verified_package.clone()],
+                std::slice::from_ref(&verified_package),
                 &proj1,
                 test_env.config(),
             )
@@ -960,7 +960,7 @@ mod tests {
         state
             .add_installation(
                 &installation_id_2,
-                &[verified_package.clone()],
+                std::slice::from_ref(&verified_package),
                 &proj2,
                 test_env.config(),
             )
