@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::cache::{
-    cacheable, keys_cache_path, package_cache_path, product_release_manifest_cache_path,
+    keys_cache_path, package_cache_path, product_release_manifest_cache_path,
     try_migrating_deprecated_path,
 };
 use crate::config::Config;
@@ -12,15 +12,19 @@ use crate::state::{AuthenticationToken, State};
 use criticaltrust::keys::PublicKey;
 use criticaltrust::manifests::{ReleaseArtifactFormat, ReleaseManifest};
 use criticaltrust::signatures::Keychain;
+use md5::Md5;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
-use reqwest::{Response, StatusCode};
+use reqwest::{IntoUrl, Request, Response, StatusCode};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use serde::Deserialize;
+use sha2::Digest;
 use std::fmt::Display;
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tokio::fs as tokio_fs;
 
 const CLIENT_MAX_RETRIES: u32 = 5;
 
@@ -121,7 +125,7 @@ impl DownloadServerClient {
         let url = self.url("/v1/keys");
         let cache_key = keys_cache_path(&self.cache_dir);
 
-        let data: Vec<u8> = cacheable(self, url, cache_key).await?;
+        let data: Vec<u8> = self.cacheable(url, cache_key).await?;
         let keys_manifest = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
 
         let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
@@ -141,7 +145,7 @@ impl DownloadServerClient {
         let url = self.url(&format!("/v1/releases/{product}/{release}"));
         let cache_key = product_release_manifest_cache_path(self, product, release);
 
-        let data = cacheable(self, url, cache_key).await?;
+        let data = self.cacheable(url, cache_key).await?;
 
         serde_json::from_slice(&data).map_err(Error::JsonSerialization)
     }
@@ -165,13 +169,89 @@ impl DownloadServerClient {
         ));
         let cache_key = package_cache_path(self, product, release, package, format);
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
-        let data = cacheable(self, url, cache_key).await?;
+        let data = self.cacheable(url, cache_key).await?;
 
         Ok(data)
     }
 
     fn url(&self, path: &str) -> String {
         format!("{}{path}", self.base_url)
+    }
+    pub(crate) async fn cacheable(
+        &self,
+        url: String,
+        cache_key: PathBuf,
+    ) -> Result<Vec<u8>, Error> {
+        let cache_hit = cache_key.exists();
+
+        let data = if self.connectivity == Connectivity::Offline {
+            if cache_hit {
+                fs::read(&cache_key).map_err(|e| Error::Read(cache_key, e))?
+            } else {
+                return Err(Error::OfflineMode);
+            }
+        } else {
+            let req = self.cacheable_request(&url, &cache_key, cache_hit).await?;
+
+            let resp = self
+                .client
+                .execute(req)
+                .await
+                .map_err(|e| Error::DownloadServerError {
+                    url: url.clone(),
+                    kind: DownloadServerError::NetworkWithMiddleware(e),
+                })?;
+
+            match resp.status() {
+                StatusCode::OK => {
+                    tracing::trace!(status = %resp.status(), "Downloading");
+                    let data = resp.bytes().await?;
+                    if let Some(parent) = cache_key.parent() {
+                        fs::create_dir_all(parent)
+                            .map_err(|e| Error::Create(parent.to_path_buf(), e))?;
+                    }
+                    tokio_fs::write(&cache_key, &data)
+                        .await
+                        .map_err(|e| Error::Write(cache_key, e))?;
+                    data.to_vec()
+                }
+                StatusCode::NOT_MODIFIED => {
+                    tracing::trace!(status = %resp.status(), "Cache is fresh & valid");
+                    tokio_fs::read(&cache_key)
+                        .await
+                        .map_err(|e| Error::Read(cache_key, e))?
+                }
+                _ => {
+                    tracing::trace!(status = %resp.status(), "Unexpected status");
+                    return Err(unexpected_status(url, resp));
+                }
+            }
+        };
+
+        Ok(data)
+    }
+    pub(crate) async fn cacheable_request(
+        &self,
+        url: impl IntoUrl,
+        cache_key: impl AsRef<Path>,
+        cache_hit: bool,
+    ) -> Result<Request, Error> {
+        let cache_key = cache_key.as_ref();
+        let mut req = self.client.get(url);
+        if let Some(auth_token) = self.auth_token().await? {
+            req = req.header(AUTHORIZATION, auth_token);
+        }
+        if cache_hit {
+            let cache_content =
+                fs::read(cache_key).map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
+            let mut hasher = Md5::new();
+            hasher.update(cache_content);
+            let etag_md5 = format!(r#""{:x}""#, hasher.finalize());
+            req = req.header("If-None-Match", HeaderValue::from_str(&etag_md5).unwrap());
+            tracing::trace!(cache_key = %cache_key.display(), etag = %etag_md5, "Got cached");
+        }
+        let req_built = req.build()?;
+        Ok(req_built)
     }
 
     pub(crate) async fn auth_token(&self) -> Result<Option<HeaderValue>, Error> {
@@ -256,7 +336,7 @@ pub struct CurrentTokenData {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cache::{cacheable_request, product_release_cache_path};
+    use crate::cache::product_release_cache_path;
     use crate::state::AuthenticationToken;
     use crate::test_utils::{
         TestEnvironment, SAMPLE_AUTH_TOKEN_CUSTOMER, SAMPLE_AUTH_TOKEN_EXPIRY,
@@ -280,7 +360,8 @@ mod tests {
 
         // Does not yet exist
         let download_server_client = test_env.download_server();
-        let req = cacheable_request(&download_server_client, &test_url, &test_path, false)
+        let req = download_server_client
+            .cacheable_request(&test_url, &test_path, false)
             .await
             .unwrap();
         assert!(req.headers().get(IF_NONE_MATCH).is_none());
@@ -296,7 +377,8 @@ mod tests {
         write(&test_path, test_slug).await.unwrap();
         let download_server_client = test_env.download_server();
 
-        let req = cacheable_request(&download_server_client, &test_url, &test_path, true)
+        let req = download_server_client
+            .cacheable_request(&test_url, &test_path, true)
             .await
             .unwrap();
         assert_eq!(req.headers().get(IF_NONE_MATCH), Some(&test_hash));
