@@ -1,4 +1,3 @@
-use crate::download_server_client::DownloadServerClient;
 use crate::errors::Error;
 use criticaltrust::manifests::ReleaseArtifactFormat;
 use std::fs;
@@ -34,19 +33,18 @@ pub(crate) fn keys_cache_path(cache_dir: &Path) -> PathBuf {
 }
 
 pub(crate) fn product_release_manifest_cache_path(
-    download_server_client: &DownloadServerClient,
+    cache_dir: &Path,
     product: &str,
     release: &str,
 ) -> PathBuf {
-    product_release_cache_path(download_server_client, product, release).join("manifest.json")
+    product_release_cache_path(cache_dir, product, release).join("manifest.json")
 }
 pub(crate) fn product_release_cache_path(
-    download_server_client: &DownloadServerClient,
+    cache_dir: &Path,
     product: &str,
     release: &str,
 ) -> PathBuf {
-    download_server_client
-        .cache_dir
+    cache_dir
         .join("artifacts")
         .join("products")
         .join(product)
@@ -55,13 +53,13 @@ pub(crate) fn product_release_cache_path(
 }
 
 pub(crate) fn package_cache_path(
-    download_server_client: &DownloadServerClient,
+    cache_dir: &Path,
     product: &str,
     release: &str,
     package: &str,
     format: ReleaseArtifactFormat,
 ) -> PathBuf {
-    product_release_cache_path(download_server_client, product, release).join({
+    product_release_cache_path(cache_dir, product, release).join({
         let mut file_name = PathBuf::from(package);
         file_name.set_extension(format.to_string());
         file_name

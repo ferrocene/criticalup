@@ -143,7 +143,7 @@ impl DownloadServerClient {
         release: &str,
     ) -> Result<ReleaseManifest, Error> {
         let url = self.url(&format!("/v1/releases/{product}/{release}"));
-        let cache_key = product_release_manifest_cache_path(self, product, release);
+        let cache_key = product_release_manifest_cache_path(&self.cache_dir, product, release);
 
         let data = self.cacheable(url, cache_key).await?;
 
@@ -167,7 +167,7 @@ impl DownloadServerClient {
         let url = self.url(&format!(
             "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
         ));
-        let cache_key = package_cache_path(self, product, release, package, format);
+        let cache_key = package_cache_path(&self.cache_dir, product, release, package, format);
         tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
         let data = self.cacheable(url, cache_key).await?;
 
@@ -388,8 +388,11 @@ mod tests {
     async fn cache_is_constructed() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
         let download_server_client = test_env.download_server();
-        let res =
-            product_release_cache_path(&download_server_client, "ferrocene", "stable-25.05.0");
+        let res = product_release_cache_path(
+            &download_server_client.cache_dir,
+            "ferrocene",
+            "stable-25.05.0",
+        );
 
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
