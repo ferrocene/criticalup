@@ -1,38 +1,40 @@
 // SPDX-FileCopyrightText: The Ferrocene Developers
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
+use crate::cache::{
+    keys_cache_path, package_cache_path, product_release_manifest_cache_path,
+    try_migrating_deprecated_path,
+};
+use crate::config::Config;
+use crate::envvars;
+use crate::errors::{DownloadServerError, Error};
+use crate::state::{AuthenticationToken, State};
+use criticaltrust::keys::PublicKey;
+use criticaltrust::manifests::{ReleaseArtifactFormat, ReleaseManifest};
+use criticaltrust::signatures::Keychain;
+use md5::Md5;
+use reqwest::header::{HeaderValue, AUTHORIZATION};
+use reqwest::{IntoUrl, Request, Response, StatusCode};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::policies::ExponentialBackoff;
+use reqwest_retry::RetryTransientMiddleware;
+use serde::Deserialize;
+use sha2::Digest;
 use std::fmt::Display;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio::fs as tokio_fs;
 
-use crate::config::Config;
-use crate::envvars;
-use crate::errors::{DownloadServerError, Error};
-use crate::state::{AuthenticationToken, State};
-use criticaltrust::keys::PublicKey;
-use criticaltrust::manifests::ReleaseArtifactFormat;
-use criticaltrust::manifests::ReleaseManifest;
-use criticaltrust::signatures::Keychain;
-use reqwest::header::{HeaderValue, AUTHORIZATION};
-use reqwest::StatusCode;
-use reqwest::{IntoUrl, Request, Response};
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-use reqwest_retry::policies::ExponentialBackoff;
-use reqwest_retry::RetryTransientMiddleware;
-use serde::Deserialize;
-use sha2::Digest;
-
 const CLIENT_MAX_RETRIES: u32 = 5;
 
 pub struct DownloadServerClient {
-    cache_dir: PathBuf,
+    pub(crate) cache_dir: PathBuf,
     base_url: String,
-    client: ClientWithMiddleware,
+    pub(crate) client: ClientWithMiddleware,
     state: State,
     trust_root: PublicKey,
-    connectivity: Connectivity,
+    pub(crate) connectivity: Connectivity,
 }
 
 impl DownloadServerClient {
@@ -80,7 +82,7 @@ impl DownloadServerClient {
         // This function returns three types of errors,
         // when writing, creating or not being able to migrate.
         if matches!(deprecated_product_name_path.try_exists(), Ok(true)) {
-            Self::try_migrating_deprecated_path(
+            try_migrating_deprecated_path(
                 deprecated_product_name_path.clone(),
                 new_product_name_path.clone(),
             )
@@ -89,31 +91,6 @@ impl DownloadServerClient {
         }
 
         download_server_client
-    }
-
-    fn try_migrating_deprecated_path(
-        deprecated_product_name_path: PathBuf,
-        new_products_path: PathBuf,
-    ) -> Result<(), Error> {
-        // This function should error if we try to overwrite an existing cache
-        if matches!(new_products_path.try_exists(), Ok(true)) {
-            return Err(Error::DestinationAlreadyExists {
-                deprecated: deprecated_product_name_path.clone(),
-                new: new_products_path.clone(),
-            });
-        }
-        fs::create_dir_all(&new_products_path)
-            .map_err(|e| Error::Create(new_products_path.clone(), e))?;
-
-        tracing::info!(
-            "Tidying deprecated binary proxies, they are now located at `{}`",
-            &new_products_path.display()
-        );
-        // The old path is removed by `rename` which is a move
-        fs::rename(&deprecated_product_name_path, &new_products_path)
-            .map_err(|e| Error::Write(new_products_path.clone(), e))?;
-
-        Ok(())
     }
 
     pub async fn get_current_token_data(&self) -> Result<CurrentTokenData, Error> {
@@ -143,39 +120,68 @@ impl DownloadServerClient {
         }
     }
 
-    fn keys_cache_path(&self) -> PathBuf {
-        self.cache_dir.join("keys.json")
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub async fn keys(&self) -> Result<Keychain, Error> {
+        let url = self.url("/v1/keys");
+        let cache_key = keys_cache_path(&self.cache_dir);
+
+        let data: Vec<u8> = self.cacheable(url, cache_key).await?;
+        let keys_manifest = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
+
+        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
+        let _ = keychain.load_all(&keys_manifest);
+        Ok(keychain)
     }
 
-    fn product_release_manifest_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.product_release_cache_path(product, release)
-            .join("manifest.json")
+    #[tracing::instrument(level = "trace", skip_all, fields(
+        %product,
+        %release,
+    ))]
+    pub async fn product_release_manifest(
+        &self,
+        product: &str,
+        release: &str,
+    ) -> Result<ReleaseManifest, Error> {
+        let url = self.url(&format!("/v1/releases/{product}/{release}"));
+        let cache_key = product_release_manifest_cache_path(&self.cache_dir, product, release);
+
+        let data = self.cacheable(url, cache_key).await?;
+
+        serde_json::from_slice(&data).map_err(Error::JsonSerialization)
     }
 
-    fn product_release_cache_path(&self, product: &str, release: &str) -> PathBuf {
-        self.cache_dir
-            .join("artifacts")
-            .join("products")
-            .join(product)
-            .join("releases")
-            .join(release)
-    }
-
-    fn package_cache_path(
+    #[tracing::instrument(level = "trace", skip_all, fields(
+        %product,
+        %release,
+        %package,
+        %format
+    ))]
+    pub async fn package(
         &self,
         product: &str,
         release: &str,
         package: &str,
         format: ReleaseArtifactFormat,
-    ) -> PathBuf {
-        self.product_release_cache_path(product, release).join({
-            let mut file_name = PathBuf::from(package);
-            file_name.set_extension(format.to_string());
-            file_name
-        })
+    ) -> Result<Vec<u8>, Error> {
+        let artifact_format = format.to_string();
+        let url = self.url(&format!(
+            "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
+        ));
+        let cache_key = package_cache_path(&self.cache_dir, product, release, package, format);
+        tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
+        let data = self.cacheable(url, cache_key).await?;
+
+        Ok(data)
     }
 
-    async fn cacheable(&self, url: String, cache_key: PathBuf) -> Result<Vec<u8>, Error> {
+    fn url(&self, path: &str) -> String {
+        format!("{}{path}", self.base_url)
+    }
+    pub(crate) async fn cacheable(
+        &self,
+        url: String,
+        cache_key: PathBuf,
+    ) -> Result<Vec<u8>, Error> {
         let cache_hit = cache_key.exists();
 
         let data = if self.connectivity == Connectivity::Offline {
@@ -224,8 +230,7 @@ impl DownloadServerClient {
 
         Ok(data)
     }
-
-    async fn cacheable_request(
+    pub(crate) async fn cacheable_request(
         &self,
         url: impl IntoUrl,
         cache_key: impl AsRef<Path>,
@@ -239,7 +244,7 @@ impl DownloadServerClient {
         if cache_hit {
             let cache_content =
                 fs::read(cache_key).map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
-            let mut hasher = md5::Md5::new();
+            let mut hasher = Md5::new();
             hasher.update(cache_content);
             let etag_md5 = format!(r#""{:x}""#, hasher.finalize());
             req = req.header("If-None-Match", HeaderValue::from_str(&etag_md5).unwrap());
@@ -249,66 +254,7 @@ impl DownloadServerClient {
         Ok(req_built)
     }
 
-    #[tracing::instrument(level = "trace", skip_all)]
-    pub async fn keys(&self) -> Result<Keychain, Error> {
-        let url = self.url("/v1/keys");
-        let cache_key = self.keys_cache_path();
-
-        let data = self.cacheable(url, cache_key).await?;
-        let keys_manifest = serde_json::from_slice(&data).map_err(Error::JsonSerialization)?;
-
-        let mut keychain = Keychain::new(&self.trust_root).map_err(Error::KeychainInitFailed)?;
-        let _ = keychain.load_all(&keys_manifest);
-        Ok(keychain)
-    }
-
-    #[tracing::instrument(level = "trace", skip_all, fields(
-        %product,
-        %release,
-    ))]
-    pub async fn product_release_manifest(
-        &self,
-        product: &str,
-        release: &str,
-    ) -> Result<ReleaseManifest, Error> {
-        let url = self.url(&format!("/v1/releases/{product}/{release}"));
-        let cache_key = self.product_release_manifest_cache_path(product, release);
-
-        let data = self.cacheable(url, cache_key).await?;
-
-        serde_json::from_slice(&data).map_err(Error::JsonSerialization)
-    }
-
-    #[tracing::instrument(level = "trace", skip_all, fields(
-        %product,
-        %release,
-        %package,
-        %format
-    ))]
-    pub async fn package(
-        &self,
-        product: &str,
-        release: &str,
-        package: &str,
-        format: ReleaseArtifactFormat,
-    ) -> Result<Vec<u8>, Error> {
-        let artifact_format = format.to_string();
-        let url = self.url(&format!(
-            "/v1/releases/{product}/{release}/download/{package}/{artifact_format}"
-        ));
-        let cache_key = self.package_cache_path(product, release, package, format);
-
-        tracing::info!("Downloading component '{package}' for '{product}' ({release})",);
-        let data = self.cacheable(url, cache_key).await?;
-
-        Ok(data)
-    }
-
-    fn url(&self, path: &str) -> String {
-        format!("{}{path}", self.base_url)
-    }
-
-    async fn auth_token(&self) -> Result<Option<HeaderValue>, Error> {
+    pub(crate) async fn auth_token(&self) -> Result<Option<HeaderValue>, Error> {
         let token_from_env: Option<AuthenticationToken> = envvars::EnvVars::new()
             .criticalup_token
             .map(|item| item.into());
@@ -349,7 +295,7 @@ impl DownloadServerClient {
     }
 }
 
-fn unexpected_status(url: String, response: Response) -> Error {
+pub(crate) fn unexpected_status(url: String, response: Response) -> Error {
     let kind = match response.status() {
         StatusCode::BAD_REQUEST => DownloadServerError::BadRequest,
         StatusCode::FORBIDDEN => DownloadServerError::AuthenticationFailed,
@@ -390,6 +336,7 @@ pub struct CurrentTokenData {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cache::product_release_cache_path;
     use crate::state::AuthenticationToken;
     use crate::test_utils::{
         TestEnvironment, SAMPLE_AUTH_TOKEN_CUSTOMER, SAMPLE_AUTH_TOKEN_EXPIRY,
@@ -399,8 +346,10 @@ mod tests {
     use criticaltrust::signatures::PublicKeysRepository;
     use md5::Md5;
     use reqwest::header::IF_NONE_MATCH;
+    use sha2::Digest;
+    use std::fs;
     use tempfile::tempdir;
-    use tokio_fs::write;
+    use tokio::fs::write;
 
     #[tokio::test]
     async fn test_cacheable_requests_set_if_none_match() {
@@ -410,8 +359,8 @@ mod tests {
         let test_url = test_env.download_server().url("/tester");
 
         // Does not yet exist
-        let req = test_env
-            .download_server()
+        let download_server_client = test_env.download_server();
+        let req = download_server_client
             .cacheable_request(&test_url, &test_path, false)
             .await
             .unwrap();
@@ -426,8 +375,9 @@ mod tests {
             fs::create_dir_all(parent).unwrap()
         }
         write(&test_path, test_slug).await.unwrap();
-        let req = test_env
-            .download_server()
+        let download_server_client = test_env.download_server();
+
+        let req = download_server_client
             .cacheable_request(&test_url, &test_path, true)
             .await
             .unwrap();
@@ -437,9 +387,12 @@ mod tests {
     #[tokio::test]
     async fn cache_is_constructed() {
         let test_env = TestEnvironment::with().download_server().prepare().await;
-        let res = test_env
-            .download_server()
-            .product_release_cache_path("ferrocene", "stable-25.05.0");
+        let download_server_client = test_env.download_server();
+        let res = product_release_cache_path(
+            &download_server_client.cache_dir,
+            "ferrocene",
+            "stable-25.05.0",
+        );
 
         let cache_dir: PathBuf = test_env.config().paths.cache_dir.clone();
         let expected = "artifacts/products/ferrocene/releases/stable-25.05.0";
@@ -594,7 +547,7 @@ mod tests {
             .join("ferrocene")
             .join("releases")
             .join("stable-25.05.0");
-        let res = DownloadServerClient::try_migrating_deprecated_path(
+        let res = try_migrating_deprecated_path(
             deprecated_product_name_path.clone(),
             new_products_path.clone(),
         );
@@ -619,7 +572,7 @@ mod tests {
         // This will return an error as we do not want to overwrite an
         // existing fresh cache.
         fs::create_dir_all(&new_products_path)?;
-        let res = DownloadServerClient::try_migrating_deprecated_path(
+        let res = try_migrating_deprecated_path(
             deprecated_product_name_path.clone(),
             new_products_path.clone(),
         );
