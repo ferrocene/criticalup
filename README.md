@@ -94,7 +94,7 @@ If the release build fails:
 
 ## Using ferrocene as default toolchain
 
-To use `ferrocene` as default, it is possible to create a `rust-toolchain.toml` file at the root:
+To use `ferrocene` as the default `rustup` toolchain, it is possible to create a `rust-toolchain.toml` file at the root:
 
 ```
 > cat rust-toolchain.toml 
