@@ -1,4 +1,0 @@
-[toolchain]
-channel = "1.82.0"
-components = ["cargo", "rustfmt", "clippy"]
-profile = "default"
