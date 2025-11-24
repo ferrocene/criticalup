@@ -92,6 +92,20 @@ If the release build fails:
 - Revert the changes from `release/vX.Y.Z` and open a PR to be merged to `main`.
 - Delete the tag from GitHub.
 
+## Using ferrocene as default toolchain
+
+To use `ferrocene` as the default `rustup` toolchain, it is possible to create a `rust-toolchain.toml` file at the root:
+
+```
+> cat rust-toolchain.toml 
+[toolchain]
+channel = "ferrocene"
+components = ["cargo", "rustfmt", "clippy"]
+profile = "default"
+```
+
+Add the file to `.gitignore`
+
 [criticalup-docs]: https://criticalup.ferrocene.dev/
 
 [rustup]: https://github.com/rust-lang/rustup
