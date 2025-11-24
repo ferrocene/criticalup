@@ -33,11 +33,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ./.github/actions/use-ferrocene/
+      - name: Uses Ferrocene from shareable actions
+        uses: ferrous-systems/shared-github-actions/use-ferrocene@main
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rustup: true  
-          toolchain-link: false
+          uninstall-rustup: false  
+          toolchain-link: true
 
       - name: Install WiX
         run: |
