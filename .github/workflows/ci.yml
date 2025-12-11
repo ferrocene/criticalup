@@ -155,11 +155,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install REUSE
-        run: pipx install reuse
+      - uses: ferrous-systems/shared-github-actions/reuse@main
 
-      - name: Check compliance with REUSE
-        run: reuse lint
 
   docs:
     uses: ./.github/workflows/docs.yml
