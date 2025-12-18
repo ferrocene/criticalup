@@ -92,6 +92,12 @@ impl ProjectManifest {
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Packages(Vec<String>);
 
+impl Packages {
+    pub fn new(packages: Vec<String>) -> Self {
+        Self(packages)
+    }
+}
+
 impl Hash for Packages {
     /// Packages hash to be done only on sorted packages.
     ///
@@ -123,6 +129,16 @@ pub struct ProjectManifestProduct {
     name: String,
     release: String,
     packages: Packages,
+}
+
+impl ProjectManifestProduct {
+    pub fn new(name: String, release: String, packages: Packages) -> Self {
+        Self {
+            name,
+            release,
+            packages,
+        }
+    }
 }
 
 impl ProjectManifestProduct {
