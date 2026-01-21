@@ -143,6 +143,26 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
+      - name: Change Ferrocene version to beta (Test RA on Ferrocene beta step1)
+        working-directory: crab-boil
+        run: 
+          cat <<- EOF > criticalup.toml
+            manifest-version = 1
+
+            [products.ferrocene]
+            release = "beta"
+            packages = [
+                "cargo-\${rustc-host}",
+                "rustc-\${rustc-host}",
+                "rust-std-\${rustc-host}",
+            ]
+          EOF
+
+      - name: Check RA version (Test RA on Ferrocene beta step2)
+        working-directory: crab-boil
+        run:
+          ./criticalup install && criticalup which rust-analyzer
+          
   package:
     secrets: inherit
     uses: ./.github/workflows/package.yml
