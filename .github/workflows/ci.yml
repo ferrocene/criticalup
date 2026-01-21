@@ -155,6 +155,7 @@ jobs:
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
                 "rust-std-\${rustc-host}",
+                "rust-analyzer-\${rustc-host}"
             ]
           EOF
 
