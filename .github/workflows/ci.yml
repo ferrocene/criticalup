@@ -145,7 +145,8 @@ jobs:
 
       - name: Change Ferrocene version to beta (Test RA on Ferrocene beta step1)
         working-directory: crab-boil
-        run: 
+        run:
+          cd crab-boil 
           cat <<- EOF > criticalup.toml
             manifest-version = 1
 
