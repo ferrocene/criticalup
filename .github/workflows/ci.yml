@@ -143,9 +143,9 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
-      - name: Change Ferrocene version to beta (Test RA on Ferrocene beta step1)
+      - name: Change toolchain to test RA installation
         working-directory: crab-boil
-        shell: bash # warning about heredocs earlier
+        shell: bash # bash necessary for heredocs
         run: |
           cat <<- EOF > criticalup.toml
             manifest-version = 1
@@ -159,12 +159,8 @@ jobs:
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
-
-      - name: Check RA version (Test RA on Ferrocene beta step2)
-        working-directory: crab-boil
-        run:
           ./criticalup install && ./criticalup which rust-analyzer
-          
+
   package:
     secrets: inherit
     uses: ./.github/workflows/package.yml
