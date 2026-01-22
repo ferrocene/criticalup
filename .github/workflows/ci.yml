@@ -116,6 +116,7 @@ jobs:
           ./criticalup run -- cargo build
           ./criticalup run -- cargo run
           ./criticalup which rustc
+          ./criticalup which rust-analyzer
 
       # Windows allows the `.exe` or not, at the users option.
       - name: Run Windows exclusive commands
