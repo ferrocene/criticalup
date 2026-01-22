@@ -147,7 +147,6 @@ jobs:
         working-directory: crab-boil
         shell: bash # warning about heredocs earlier
         run:
-          # cat criticalup.toml
           cat <<- EOF > criticalup.toml
             manifest-version = 1
 
@@ -164,7 +163,7 @@ jobs:
       - name: Check RA version (Test RA on Ferrocene beta step2)
         working-directory: crab-boil
         run:
-          ./criticalup install && criticalup which rust-analyzer
+          ./criticalup install && ./criticalup which rust-analyzer
           
   package:
     secrets: inherit
