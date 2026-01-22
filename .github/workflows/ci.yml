@@ -145,20 +145,21 @@ jobs:
 
       - name: Change Ferrocene version to beta (Test RA on Ferrocene beta step1)
         working-directory: crab-boil
+        shell: bash # warning about heredocs earlier
         run:
-          cat criticalup.toml
-          # cat <<- EOF > criticalup.toml
-          #   manifest-version = 1
+          # cat criticalup.toml
+          cat <<- EOF > criticalup.toml
+            manifest-version = 1
 
-          #   [products.ferrocene]
-          #   release = "beta-26.02-2026-01-17"
-          #   packages = [
-          #       "cargo-\${rustc-host}",
-          #       "rustc-\${rustc-host}",
-          #       "rust-std-\${rustc-host}",
-          #       "rust-analyzer-\${rustc-host}"
-          #   ]
-          # EOF
+            [products.ferrocene]
+            release = "beta-26.02-2026-01-17"
+            packages = [
+                "cargo-\${rustc-host}",
+                "rustc-\${rustc-host}",
+                "rust-std-\${rustc-host}",
+                "rust-analyzer-\${rustc-host}"
+            ]
+          EOF
 
       - name: Check RA version (Test RA on Ferrocene beta step2)
         working-directory: crab-boil
