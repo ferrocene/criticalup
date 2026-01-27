@@ -153,6 +153,9 @@ jobs:
             [products.ferrocene]
             release = "beta-26.02-2026-01-27"
             packages = [
+                "cargo-\${rustc-host}",
+                "rustc-\${rustc-host}",
+                "rust-std-\${rustc-host}",
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
