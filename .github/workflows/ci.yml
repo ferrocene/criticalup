@@ -159,7 +159,10 @@ jobs:
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
-          ./criticalup install && rust-analyzer --version
+          ./criticalup install
+          criticalup which rust-analyzer
+          which rust-analyzer
+          rust-analyzer --version
 
   package:
     secrets: inherit
