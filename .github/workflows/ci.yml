@@ -157,7 +157,7 @@ jobs:
             ]
           EOF
           ./criticalup install
-          criticalup which rust-analyzer
+          ./criticalup which rust-analyzer
           which rust-analyzer
           rust-analyzer --version
 
