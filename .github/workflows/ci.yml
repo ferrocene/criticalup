@@ -143,7 +143,6 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
-      
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
         run: |
@@ -201,7 +200,6 @@ jobs:
         shell: bash # bash necessary for heredocs
         working-directory: poor-ferris
         run: |
-          ./criticalup install
           ./criticalup which rust-analyzer
           ./criticalup link create # linking rust-analyzer
           which rust-analyzer
