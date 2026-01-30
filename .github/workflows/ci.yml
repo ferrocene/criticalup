@@ -143,10 +143,11 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
-      - name: Change toolchain to test RA installation
-        working-directory: crab-boil
+      - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
         run: |
+          mkdir poor-ferris # a new dir without previous installation is necessary
+          cd poor-ferris
           cat <<- EOF > criticalup.toml
             manifest-version = 1
 
