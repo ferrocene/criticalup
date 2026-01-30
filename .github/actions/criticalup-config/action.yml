@@ -29,6 +29,7 @@ runs:
         path: ${{ path }}
 
     - name: Unpack archive
+      shell: bash
       if: ${{ runner.os == 'Windows' }}
       working-directory: ${{ path }}
       run: |
@@ -36,6 +37,7 @@ runs:
         mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
 
     - name: Unpack archive and make executable
+      shell: bash
       if: ${{ runner.os != 'Windows' }}
       working-directory: ${{ path }}
       run: |
@@ -44,15 +46,18 @@ runs:
         chmod +x ./criticalup
 
     - name: Auth Criticalup
+      shell: bash
       working-directory: poor-ferris
       run: ./criticalup auth set $CRITICALUP_TOKEN
 
     - name: Install toolchain
+      shell: bash
       working-directory: ${{ path }}
       run: |
         ./criticalup install
 
     - name: Create toolchain link
+      shell: bash
       working-directory: ${{ path }}
       run: |
         ./criticalup link create
