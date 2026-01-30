@@ -143,10 +143,11 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
+      
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
         run: |
-          mkdir poor-ferris # a new dir without previous installation is necessary
+          mkdir poor-ferris 
           cd poor-ferris
           cat <<- EOF > criticalup.toml
             manifest-version = 1
@@ -160,6 +161,46 @@ jobs:
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+          path: poor-ferris
+
+      - name: Unpack archive
+        if: ${{ runner.os == 'Windows' }}
+        working-directory: poor-ferris
+        run: |
+          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
+          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+
+      - name: Unpack archive and make executable
+        if: ${{ runner.os != 'Windows' }}
+        working-directory: poor-ferris
+        run: |
+          tar xvf criticalup-${{ matrix.target }}.tar.xz
+          mv criticalup-${{ matrix.target }}/criticalup criticalup
+          chmod +x ./criticalup
+
+      - name: Auth Criticalup
+        working-directory: poor-ferris
+        run: ./criticalup auth set $CRITICALUP_TOKEN
+
+      - name: Install toolchain
+        working-directory: poor-ferris
+        run: |
+          ./criticalup install
+
+      - name: Create toolchain link
+        working-directory: poor-ferris
+        run: |
+          ./criticalup link create
+
+
+      - name: Test RA installation
+        shell: bash # bash necessary for heredocs
+        working-directory: poor-ferris
+        run: |
           ./criticalup install
           ./criticalup which rust-analyzer
           ./criticalup link create # linking rust-analyzer
