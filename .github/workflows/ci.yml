@@ -79,8 +79,8 @@ jobs:
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
           path: crab-boil
-          matrix: ${{ matrix }}
-          runner: ${{ runner }}
+          matrix: ${{ toJSON(matrix) }}
+          runner: ${{ toJSON(runner) }}
           
 
       # - uses: actions/download-artifact@v4
