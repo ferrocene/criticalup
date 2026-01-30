@@ -161,6 +161,7 @@ jobs:
           EOF
           ./criticalup install
           ./criticalup which rust-analyzer
+          ./criticalup link create # linking rust-analyzer
           which rust-analyzer
           rust-analyzer --version
 
