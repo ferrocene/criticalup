@@ -74,40 +74,49 @@ jobs:
             ]
           EOF
 
-      - uses: actions/download-artifact@v4
+      - name: Configure directory
+        uses: ./.github/actions/criticalup-config
         with:
-          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+          token: ${{ secrets.CRITICALUP_TOKEN }}
           path: crab-boil
+          matrix: ${{ matrix }}
+          runner: ${{ runner }}
+          
 
-      - name: Unpack archive
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: crab-boil
-        run: |
-          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
-          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+      # - uses: actions/download-artifact@v4
+      #   with:
+      #     name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+      #     path: crab-boil
 
-      - name: Unpack archive and make executable
-        if: ${{ runner.os != 'Windows' }}
-        working-directory: crab-boil
-        run: |
-          tar xvf criticalup-${{ matrix.target }}.tar.xz
-          mv criticalup-${{ matrix.target }}/criticalup criticalup
-          chmod +x ./criticalup
+      # - name: Unpack archive
+      #   if: ${{ runner.os == 'Windows' }}
+      #   working-directory: crab-boil
+      #   run: |
+      #     powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
+      #     mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
 
-      - name: Auth Criticalup
-        working-directory: crab-boil
-        run: ./criticalup auth set $CRITICALUP_TOKEN
+      # - name: Unpack archive and make executable
+      #   if: ${{ runner.os != 'Windows' }}
+      #   working-directory: crab-boil
+      #   run: |
+      #     tar xvf criticalup-${{ matrix.target }}.tar.xz
+      #     mv criticalup-${{ matrix.target }}/criticalup criticalup
+      #     chmod +x ./criticalup
+
+      # - name: Auth Criticalup
+      #   working-directory: crab-boil
+      #   run: ./criticalup auth set $CRITICALUP_TOKEN
 
 
-      - name: Install toolchain
-        working-directory: crab-boil
-        run: |
-          ./criticalup install
+      # - name: Install toolchain
+      #   working-directory: crab-boil
+      #   run: |
+      #     ./criticalup install
 
-      - name: Create toolchain link
-        working-directory: crab-boil
-        run: |
-          ./criticalup link create
+      # - name: Create toolchain link
+      #   working-directory: crab-boil
+      #   run: |
+      #     ./criticalup link create
 
       - name: Run `criticalup run` test workflow
         working-directory: crab-boil

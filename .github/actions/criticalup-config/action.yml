@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+---
+
+name: "Install criticalup"
+description: "Configure repo for criticalup use"
+inputs:
+  token:
+    description: The CriticalUp token to use (use a GHA Secret)
+    required: true
+  path:
+    description: The installation path
+    required: true
+  matrix:
+    description: Platforms to run on
+    required: true
+  runner:
+    description: OS to run
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+        path: ${{ path }}
+
+    - name: Unpack archive
+      if: ${{ runner.os == 'Windows' }}
+      working-directory: ${{ path }}
+      run: |
+        powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
+        mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+
+    - name: Unpack archive and make executable
+      if: ${{ runner.os != 'Windows' }}
+      working-directory: ${{ path }}
+      run: |
+        tar xvf criticalup-${{ matrix.target }}.tar.xz
+        mv criticalup-${{ matrix.target }}/criticalup criticalup
+        chmod +x ./criticalup
+
+    - name: Auth Criticalup
+      working-directory: poor-ferris
+      run: ./criticalup auth set $CRITICALUP_TOKEN
+
+    - name: Install toolchain
+      working-directory: ${{ path }}
+      run: |
+        ./criticalup install
+
+    - name: Create toolchain link
+      working-directory: ${{ path }}
+      run: |
+        ./criticalup link create
