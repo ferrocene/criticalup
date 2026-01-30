@@ -27,6 +27,7 @@ pub fn sample_manifest(release: String) -> ProjectManifest {
         "clippy-${rustc-host}".into(),
         "rust-std-${rustc-host}".into(),
         "rustfmt-${rustc-host}".into(),
+        "rust-src".into(),
     ];
 
     let product = ProjectManifestProduct { release, packages };

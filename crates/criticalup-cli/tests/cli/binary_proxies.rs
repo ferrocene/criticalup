@@ -3,7 +3,6 @@
 
 use crate::assert_output;
 use crate::utils::TestEnvironment;
-use std::env;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
