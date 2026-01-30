@@ -153,8 +153,8 @@ jobs:
           ./criticalup clean
       - name: Remove installation of Ferrocene that exists at the root, made by the shared action
         run: |
-          ./criticalup remove
-          ./criticalup clean
+          criticalup remove
+          criticalup clean
 
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
