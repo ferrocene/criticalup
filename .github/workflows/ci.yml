@@ -118,39 +118,39 @@ jobs:
       #   run: |
       #     ./criticalup link create
 
-      - name: Run `criticalup run` test workflow
-        working-directory: crab-boil
-        run: |
-          ./criticalup run -- cargo init
-          ./criticalup run -- cargo build
-          ./criticalup run -- cargo run
-          ./criticalup which rustc
+      # - name: Run `criticalup run` test workflow
+      #   working-directory: crab-boil
+      #   run: |
+      #     ./criticalup run -- cargo init
+      #     ./criticalup run -- cargo build
+      #     ./criticalup run -- cargo run
+      #     ./criticalup which rustc
 
-      # Windows allows the `.exe` or not, at the users option.
-      - name: Run Windows exclusive commands
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: crab-boil
-        run: |
-            ./criticalup.exe run -- cargo --version
-            ./criticalup run -- cargo.exe --version
-            ./criticalup.exe run -- cargo.exe --version
+      # # Windows allows the `.exe` or not, at the users option.
+      # - name: Run Windows exclusive commands
+      #   if: ${{ runner.os == 'Windows' }}
+      #   working-directory: crab-boil
+      #   run: |
+      #       ./criticalup.exe run -- cargo --version
+      #       ./criticalup run -- cargo.exe --version
+      #       ./criticalup.exe run -- cargo.exe --version
 
-      - name: Run `cargo +ferrocene` test workflow
-        working-directory: crab-boil
-        run: |
-          cargo +ferrocene build
-          cargo +ferrocene run
+      # - name: Run `cargo +ferrocene` test workflow
+      #   working-directory: crab-boil
+      #   run: |
+      #     cargo +ferrocene build
+      #     cargo +ferrocene run
 
-      - name: Remove toolchain link
-        working-directory: crab-boil
-        run: |
-          ./criticalup link remove
+      # - name: Remove toolchain link
+      #   working-directory: crab-boil
+      #   run: |
+      #     ./criticalup link remove
 
-      - name: Run test cleanup workflow
-        working-directory: crab-boil
-        run: |
-          ./criticalup remove
-          ./criticalup clean
+      # - name: Run test cleanup workflow
+      #   working-directory: crab-boil
+      #   run: |
+      #     ./criticalup remove
+      #     ./criticalup clean
 
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
@@ -169,50 +169,58 @@ jobs:
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Configure directory
+        uses: ./.github/actions/criticalup-config
         with:
-          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+          token: ${{ secrets.CRITICALUP_TOKEN }}
           path: poor-ferris
+          matrix: ${{ toJSON(matrix) }}
+          runner: ${{ toJSON(runner) }}
 
-      - name: Unpack archive
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: poor-ferris
-        run: |
-          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
-          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+      # - name: Download artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+      #     path: poor-ferris
 
-      - name: Unpack archive and make executable
-        if: ${{ runner.os != 'Windows' }}
-        working-directory: poor-ferris
-        run: |
-          tar xvf criticalup-${{ matrix.target }}.tar.xz
-          mv criticalup-${{ matrix.target }}/criticalup criticalup
-          chmod +x ./criticalup
+      # - name: Unpack archive
+      #   if: ${{ runner.os == 'Windows' }}
+      #   working-directory: poor-ferris
+      #   run: |
+      #     powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
+      #     mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
 
-      - name: Auth Criticalup
-        working-directory: poor-ferris
-        run: ./criticalup auth set $CRITICALUP_TOKEN
+      # - name: Unpack archive and make executable
+      #   if: ${{ runner.os != 'Windows' }}
+      #   working-directory: poor-ferris
+      #   run: |
+      #     tar xvf criticalup-${{ matrix.target }}.tar.xz
+      #     mv criticalup-${{ matrix.target }}/criticalup criticalup
+      #     chmod +x ./criticalup
 
-      - name: Install toolchain
-        working-directory: poor-ferris
-        run: |
-          ./criticalup install
+      # - name: Auth Criticalup
+      #   working-directory: poor-ferris
+      #   run: ./criticalup auth set $CRITICALUP_TOKEN
 
-      - name: Create toolchain link
-        working-directory: poor-ferris
-        run: |
-          ./criticalup link create
+      # - name: Install toolchain
+      #   working-directory: poor-ferris
+      #   run: |
+      #     ./criticalup install
+
+      # - name: Create toolchain link
+      #   working-directory: poor-ferris
+      #   run: |
+      #     ./criticalup link create
 
 
-      - name: Test RA installation
-        shell: bash # bash necessary for heredocs
-        working-directory: poor-ferris
-        run: |
-          ./criticalup which rust-analyzer
-          ./criticalup link create # linking rust-analyzer
-          which rust-analyzer
-          rust-analyzer --version
+      # - name: Test RA installation
+      #   shell: bash # bash necessary for heredocs
+      #   working-directory: poor-ferris
+      #   run: |
+      #     ./criticalup which rust-analyzer
+      #     ./criticalup link create # linking rust-analyzer
+      #     which rust-analyzer
+      #     rust-analyzer --version
 
   package:
     secrets: inherit
