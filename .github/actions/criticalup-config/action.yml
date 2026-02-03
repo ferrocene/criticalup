@@ -63,6 +63,7 @@ runs:
         ./criticalup link create
 
     - name: Run `criticalup run` test workflow
+      shell: bash
       working-directory: crab-boil
       run: |
         ./criticalup run -- cargo init
