@@ -71,6 +71,7 @@ jobs:
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
                 "rust-std-\${rustc-host}",
+             #  "rust-analyzer-\${rustc-host}", # RA has been proxied for version 1.95, it should work for 26.02 stable release
             ]
           EOF
 
@@ -116,6 +117,7 @@ jobs:
           ./criticalup run -- cargo build
           ./criticalup run -- cargo run
           ./criticalup which rustc
+      #   ./criticalup which rust-analyzer
 
       # Windows allows the `.exe` or not, at the users option.
       - name: Run Windows exclusive commands
