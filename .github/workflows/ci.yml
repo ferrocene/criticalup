@@ -177,6 +177,15 @@ jobs:
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
+      - name: Rust-toolchain file
+        shell: bash
+        run: |
+          cat <<- EOF > rust-toolchain.toml
+            [toolchain]
+            channel = "ferrocene"
+            components = ["cargo", "rustfmt", "clippy", "rust-analyzer"]
+            profile = "default"
+          EOF
 
       - name: Find all installed Ferrocene version
         shell: bash
@@ -185,7 +194,6 @@ jobs:
         if: ${{ runner.os == 'ubuntu' }}
           echo $(tree cat ~/.local/share/criticalup/state.json)
           echo $(cat ~/.local/share/criticalup/state.json)
-
 
       # - name: Configure directory
       #   uses: ./.github/actions/criticalup-config
