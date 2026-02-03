@@ -62,6 +62,14 @@ runs:
       run: |
         ./criticalup link create
 
+    - name: Run `criticalup run` test workflow
+      working-directory: crab-boil
+      run: |
+        ./criticalup run -- cargo init
+        ./criticalup run -- cargo build
+        ./criticalup run -- cargo run
+        ./criticalup which rustc
+
     # Windows allows the `.exe` or not at the users option.
     - name: Run Windows exclusive commands
       shell: bash
@@ -77,7 +85,7 @@ runs:
       working-directory: ${{ path }}
       run: |
         cargo +ferrocene build
-        cargo +ferrocene run --bin criticalup
+        cargo +ferrocene run --bin criticalup --version
 
     - name: Remove toolchain link
       shell: bash
