@@ -109,6 +109,23 @@ jobs:
         working-directory: crab-boil
         run: |
           ./criticalup link create
+          
+      # This part of CI will work when 1.95 (26.02) is released as stable
+      - name: Make rust-toolchain file to test rust-analyzer
+        working-directory: crab-boil
+        run: |
+          cat <<- EOF > rust-toolchain.toml
+          [toolchain]
+          channel = "ferrocene"
+          components = ["cargo", "rustfmt", "clippy", "rust-analyzer"]
+          profile = "default"
+          EOF
+
+      - name: Test RA is proxied
+        working-directory: crab-boil
+        run: |
+          which rust-analyzer
+          rust-analyzer --version
 
       - name: Run `criticalup run` test workflow
         working-directory: crab-boil
@@ -117,7 +134,6 @@ jobs:
           ./criticalup run -- cargo build
           ./criticalup run -- cargo run
           ./criticalup which rustc
-      #   ./criticalup which rust-analyzer
 
       # Windows allows the `.exe` or not, at the users option.
       - name: Run Windows exclusive commands
