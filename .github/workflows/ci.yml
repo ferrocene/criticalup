@@ -82,50 +82,6 @@ jobs:
           matrix: ${{ toJSON(matrix) }}
           runner: ${{ toJSON(runner) }}
           
-
-      # - uses: actions/download-artifact@v4
-      #   with:
-      #     name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
-      #     path: crab-boil
-
-      # - name: Unpack archive
-      #   if: ${{ runner.os == 'Windows' }}
-      #   working-directory: crab-boil
-      #   run: |
-      #     powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
-      #     mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
-
-      # - name: Unpack archive and make executable
-      #   if: ${{ runner.os != 'Windows' }}
-      #   working-directory: crab-boil
-      #   run: |
-      #     tar xvf criticalup-${{ matrix.target }}.tar.xz
-      #     mv criticalup-${{ matrix.target }}/criticalup criticalup
-      #     chmod +x ./criticalup
-
-      # - name: Auth Criticalup
-      #   working-directory: crab-boil
-      #   run: ./criticalup auth set $CRITICALUP_TOKEN
-
-
-      # - name: Install toolchain
-      #   working-directory: crab-boil
-      #   run: |
-      #     ./criticalup install
-          
-      # - name: Find all installed Ferrocene version
-      #   shell: bash
-      #   run: |
-      #     echo $(rustup toolchain list)
-      #   if: ${{ runner.os == 'ubuntu' }}
-      #     echo $(tree cat ~/.local/share/criticalup/state.json)
-      #     echo $(cat ~/.local/share/criticalup/state.json)
-
-      # - name: Create toolchain link
-      #   working-directory: crab-boil
-      #   run: |
-      #     ./criticalup link create
-
       - name: Run `criticalup run` test workflow
         working-directory: crab-boil
         run: |
@@ -133,32 +89,6 @@ jobs:
           ./criticalup run -- cargo build
           ./criticalup run -- cargo run --bin criticalup
           ./criticalup which rustc
-
-      # # Windows allows the `.exe` or not, at the users option.
-      # - name: Run Windows exclusive commands
-      #   if: ${{ runner.os == 'Windows' }}
-      #   working-directory: crab-boil
-      #   run: |
-      #       ./criticalup.exe run -- cargo --version
-      #       ./criticalup run -- cargo.exe --version
-      #       ./criticalup.exe run -- cargo.exe --version
-
-      # - name: Run `cargo +ferrocene` test workflow
-      #   working-directory: crab-boil
-      #   run: |
-      #     cargo +ferrocene build
-      #     cargo +ferrocene run
-
-      # - name: Remove toolchain link
-      #   working-directory: crab-boil
-      #   run: |
-      #     ./criticalup link remove
-
-      # - name: Run test cleanup workflow
-      #   working-directory: crab-boil
-      #   run: |
-      #     ./criticalup remove
-      #     ./criticalup clean
 
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
@@ -187,49 +117,13 @@ jobs:
             profile = "default"
           EOF
 
-      # - name: Configure directory
-      #   uses: ./.github/actions/criticalup-config
-      #   with:
-      #     token: ${{ secrets.CRITICALUP_TOKEN }}
-      #     path: poor-ferris
-      #     matrix: ${{ toJSON(matrix) }}
-      #     runner: ${{ toJSON(runner) }}
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Configure directory
+        uses: ./.github/actions/criticalup-config
         with:
-          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+          token: ${{ secrets.CRITICALUP_TOKEN }}
           path: poor-ferris
-
-      - name: Unpack archive
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: poor-ferris
-        run: |
-          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
-          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
-
-      - name: Unpack archive and make executable
-        if: ${{ runner.os != 'Windows' }}
-        working-directory: poor-ferris
-        run: |
-          tar xvf criticalup-${{ matrix.target }}.tar.xz
-          mv criticalup-${{ matrix.target }}/criticalup criticalup
-          chmod +x ./criticalup
-
-      - name: Auth Criticalup
-        working-directory: poor-ferris
-        run: ./criticalup auth set $CRITICALUP_TOKEN
-
-      - name: Install toolchain
-        working-directory: poor-ferris
-        run: |
-          ./criticalup install
-
-      - name: Create toolchain link
-        working-directory: poor-ferris
-        run: |
-          ./criticalup link create
-
+          matrix: ${{ toJSON(matrix) }}
+          runner: ${{ toJSON(runner) }}
 
       - name: Test RA installation
         shell: bash # bash necessary for heredocs
