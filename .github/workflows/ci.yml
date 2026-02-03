@@ -117,7 +117,7 @@ jobs:
         shell: bash
         run: |
           echo $(rustup toolchain list)
-        if: ${{ runner.os == 'ubuntu' }}
+        if: contains(${{ runner.os }}, 'ubuntu')
           echo $(tree cat ~/.local/share/criticalup/state.json)
           echo $(cat ~/.local/share/criticalup/state.json)
 
@@ -191,7 +191,7 @@ jobs:
         shell: bash
         run: |
           echo $(rustup toolchain list)
-        if: ${{ runner.os == 'ubuntu' }}
+        if: contains(${{ runner.os }}, 'ubuntu')
           echo $(tree cat ~/.local/share/criticalup/state.json)
           echo $(cat ~/.local/share/criticalup/state.json)
 
