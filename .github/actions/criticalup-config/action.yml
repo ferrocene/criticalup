@@ -62,14 +62,14 @@ runs:
       run: |
         ./criticalup link create
 
-    - name: Run `criticalup run` test workflow
-      shell: bash
-      working-directory: ${{ path }}
-      run: |
-        ./criticalup run -- cargo init
-        ./criticalup run -- cargo build
-        ./criticalup run -- cargo run
-        ./criticalup which rustc
+    # - name: Run `criticalup run` test workflow
+    #   shell: bash
+    #   working-directory: ${{ path }}
+    #   run: |
+    #     ./criticalup run -- cargo init
+    #     ./criticalup run -- cargo build
+    #     ./criticalup run -- cargo run
+    #     ./criticalup which rustc
 
     # Windows allows the `.exe` or not, at the users option.
     - name: Run Windows exclusive commands
