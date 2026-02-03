@@ -66,7 +66,7 @@ jobs:
             manifest-version = 1
 
             [products.ferrocene]
-            release = "stable-24.11.0"
+            release = "stable-24.11.0" # next stable 26.02
             packages = [
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
