@@ -62,7 +62,7 @@ runs:
       run: |
         ./criticalup link create
 
-    # Windows allows the `.exe` or not, at the users option.
+    # Windows allows the `.exe` or not at the users option.
     - name: Run Windows exclusive commands
       shell: bash
       if: ${{ runner.os == 'Windows' }}
@@ -77,7 +77,7 @@ runs:
       working-directory: ${{ path }}
       run: |
         cargo +ferrocene build
-        cargo +ferrocene run
+        cargo +ferrocene run --bin criticalup
 
     - name: Remove toolchain link
       shell: bash
