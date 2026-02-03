@@ -112,6 +112,14 @@ jobs:
         working-directory: crab-boil
         run: |
           ./criticalup install
+          
+      - name: Find all installed Ferrocene version
+        shell: bash
+        run: |
+          echo $(rustup toolchain list)
+        if: ${{ runner.os == 'ubuntu-latest' }}
+          echo $(tree cat ~/.local/share/criticalup/state.json)
+          echo $(cat ~/.local/share/criticalup/state.json)
 
       - name: Create toolchain link
         working-directory: crab-boil
@@ -173,6 +181,16 @@ jobs:
                 "rust-analyzer-\${rustc-host}"
             ]
           EOF
+
+      - name: Find all installed Ferrocene version
+        shell: bash
+        run: |
+          echo $(rustup toolchain list)
+        if: ${{ runner.os == 'ubuntu-latest' }}
+          echo $(tree cat ~/.local/share/criticalup/state.json)
+          echo $(cat ~/.local/share/criticalup/state.json)
+
+
       # - name: Configure directory
       #   uses: ./.github/actions/criticalup-config
       #   with:
