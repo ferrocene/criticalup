@@ -47,7 +47,7 @@ runs:
 
     - name: Auth Criticalup
       shell: bash
-      working-directory: poor-ferris
+      working-directory: ${{ path }}
       run: ./criticalup auth set $CRITICALUP_TOKEN
 
     - name: Install toolchain
