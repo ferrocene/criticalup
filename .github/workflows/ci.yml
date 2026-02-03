@@ -76,6 +76,7 @@ jobs:
 
       - name: Configure directory
         uses: ./.github/actions/criticalup-config
+        working-directory: crab-boil
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
           path: crab-boil
