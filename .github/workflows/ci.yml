@@ -131,7 +131,7 @@ jobs:
         run: |
           ./criticalup run -- cargo init
           ./criticalup run -- cargo build
-          ./criticalup run -- cargo run
+          ./criticalup run -- cargo run --bin criticalup
           ./criticalup which rustc
 
       # # Windows allows the `.exe` or not, at the users option.
