@@ -121,8 +121,9 @@ jobs:
         shell: bash # bash necessary for heredocs
         working-directory: poor-ferris
         run: |
-          ./criticalup which rust-analyzer
+          ./criticalup install --reinstall
           ./criticalup link create # linking rust-analyzer
+          ./criticalup which rust-analyzer
           which rust-analyzer
           rust-analyzer --version
 
