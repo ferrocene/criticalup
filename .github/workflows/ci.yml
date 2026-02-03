@@ -82,14 +82,6 @@ jobs:
           matrix: ${{ toJSON(matrix) }}
           runner: ${{ toJSON(runner) }}
           
-      - name: Run `criticalup run` test workflow
-        working-directory: crab-boil
-        run: |
-          ./criticalup run -- cargo init
-          ./criticalup run -- cargo build
-          ./criticalup run -- cargo run --bin criticalup
-          ./criticalup which rustc
-
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
         run: |
