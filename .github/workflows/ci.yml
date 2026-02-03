@@ -81,6 +81,10 @@ jobs:
           path: crab-boil
           matrix: ${{ toJSON(matrix) }}
           runner: ${{ toJSON(runner) }}
+
+      - name: Test criticalup is still installed current dir
+        working-directory: crab-boil
+        run: ./criticalup help
           
       - name: Change toolchain and dir to test RA installation
         shell: bash # bash necessary for heredocs
@@ -100,6 +104,7 @@ jobs:
             ]
           EOF
       - name: Rust-toolchain file
+        working-directory: poor-ferris
         shell: bash
         run: |
           cat <<- EOF > rust-toolchain.toml
