@@ -74,6 +74,16 @@ jobs:
             ]
           EOF
 
+      - name: Establish paths inside workflow before calling action
+        shell: bash
+        run: |
+          echo "pwd $(pwd)"
+          echo "github.workspace: ${{ github.workspace }}"
+          echo "runner.temp: ${{ runner.temp }}"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "runner temp env variable $RUNNER_TEMP"
+
+
       - name: Configure directory
         uses: ./.github/actions/criticalup-config
         with:
@@ -81,6 +91,15 @@ jobs:
           path: crab-boil
           matrix: ${{ toJSON(matrix) }}
           runner: ${{ toJSON(runner) }}
+          
+      - name: Establish paths inside workflow after calling action
+        shell: bash
+        run: |
+          echo "pwd $(pwd)"
+          echo "github.workspace: ${{ github.workspace }}"
+          echo "runner.temp: ${{ runner.temp }}"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "runner temp env variable $RUNNER_TEMP"
 
       - name: Test criticalup is still installed current dir
         working-directory: crab-boil
