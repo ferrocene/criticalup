@@ -50,7 +50,6 @@ runs:
     - name: Unpack archive and make executable
       shell: bash
       if: ${{ runner.os != 'Windows' }}
-      working-directory: ${{ path }}
       working-directory: ${{ github.workspace }}/${{ inputs.path }}
       run: |
         tar xvf criticalup-${{ matrix.target }}.tar.xz
@@ -59,7 +58,7 @@ runs:
 
     - name: Auth Criticalup
       shell: bash
-      working-directory: ${{ path }}
+      working-directory: ${{ github.workspace }}/${{ inputs.path }}
       run: ./criticalup auth set $CRITICALUP_TOKEN
 
     - name: Install toolchain
