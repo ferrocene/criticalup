@@ -27,22 +27,19 @@ runs:
       shell: bash
       run: |
         echo "pwd $(pwd)"
-        echo "github.workspace: ${{ github.workspace }}"
-        echo "runner.temp: ${{ runner.temp }}"
-        echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-        echo "runner temp env variable $RUNNER_TEMP"
+        echo "input path: ${{ inputs.path }}"
+
     - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
-        path: ${{ github.workspace}}/${{ path }}
+        path: ${{ inputs.path }}
 
     - name: Unpack archive
       shell: bash
       if: ${{ runner.os == 'Windows' }}
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
-        echo ${{ github.workspace }}
         powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
         echo "working-directory: ${{ github.workspace }}/${{ inputs.path }}"
         mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
@@ -50,7 +47,7 @@ runs:
     - name: Unpack archive and make executable
       shell: bash
       if: ${{ runner.os != 'Windows' }}
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
         tar xvf criticalup-${{ matrix.target }}.tar.xz
         mv criticalup-${{ matrix.target }}/criticalup criticalup
@@ -58,25 +55,24 @@ runs:
 
     - name: Auth Criticalup
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: ./criticalup auth set $CRITICALUP_TOKEN
 
     - name: Install toolchain
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
-        echo ${{ github.workspace }}
         ./criticalup install
 
     - name: Create toolchain link
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
         ./criticalup link create
 
     - name: Run `criticalup run` test workflow
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
         # We cannot run cargo init, it is an existing project
         ./criticalup run -- cargo build
@@ -87,7 +83,7 @@ runs:
     - name: Run Windows exclusive commands
       shell: bash
       if: ${{ runner.os == 'Windows' }}
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
           ./criticalup.exe run -- cargo --version
           ./criticalup run -- cargo.exe --version
@@ -95,21 +91,20 @@ runs:
 
     - name: Run `cargo +ferrocene` test workflow
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
         cargo +ferrocene build
         cargo +ferrocene run --bin criticalup help
 
     - name: Remove toolchain link
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
-        echo ${{ github.workspace }}
         ./criticalup link remove
 
     - name: Run test cleanup workflow
       shell: bash
-      working-directory: ${{ github.workspace }}/${{ inputs.path }}
+      working-directory: ${{ inputs.path }}
       run: |
         ./criticalup remove
         ./criticalup clean
