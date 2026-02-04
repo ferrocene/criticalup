@@ -33,7 +33,7 @@ runs:
       if: ${{ runner.os == 'Windows' }}
       working-directory: ${{ path }}
       run: |
-        echo pwd
+        echo ${{ github.workspace }}
         powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
         mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
 
@@ -56,7 +56,7 @@ runs:
       shell: bash
       working-directory: ${{ path }}
       run: |
-        echo pwd
+        echo ${{ github.workspace }}
         ./criticalup install
 
     - name: Create toolchain link
@@ -95,7 +95,7 @@ runs:
       shell: bash
       working-directory: ${{ path }}
       run: |
-        echo pwd
+        echo ${{ github.workspace }}
         ./criticalup link remove
 
     - name: Run test cleanup workflow

@@ -126,7 +126,7 @@ jobs:
         shell: bash # bash necessary for heredocs
         working-directory: poor-ferris
         run: |
-          echo pwd
+          echo ${{ github.workspace }}
           ./criticalup install --reinstall
           ./criticalup link create # linking rust-analyzer
           ./criticalup which rust-analyzer
