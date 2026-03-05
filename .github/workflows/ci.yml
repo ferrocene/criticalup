@@ -114,7 +114,7 @@ jobs:
             manifest-version = 1
 
             [products.ferrocene]
-            release = "nightly-2026-01-29"
+            release = "beta-26.02-2026-02-21"
             packages = [
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
