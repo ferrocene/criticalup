@@ -111,7 +111,9 @@ jobs:
 
       - name: List artifacts
         shell: nu {0}
-        run: ls 
+        run: |
+          cd artifacts
+          ls 
 
       - name: Release
         uses: softprops/action-gh-release@v2
