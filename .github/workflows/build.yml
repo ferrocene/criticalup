@@ -111,6 +111,16 @@ jobs:
       - name: Build ${{ inputs.release && '(Release)' || '(Debug)'}}
         run: cargo ${{ runner.os == 'Linux' && 'zigbuild' || 'build' }} --package criticalup --target ${{ inputs.target }}${{ inputs.glibc != '' && format('.{0}', inputs.glibc) || '' }} ${{ inputs.release && '--release' || ''}}
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+        with:
+          cosign-release: 'v3.0.4'
+
+      - name: Sign release binaries
+        # for this release we focus on Linux bins
+        if: ${{ runner.os == 'Linux' }}
+        run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup --yes --bundle ${{inputs.target}}.sigstore.json
+        
       - name: Prepare archive
         run: |
           mkdir criticalup-${{ inputs.target }}
