@@ -82,7 +82,6 @@ jobs:
           mkdir artifacts
           open ci/criticalup-installer.ps1 | str replace --all "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a artifacts/criticalup-installer.ps1
           open ci/criticalup-installer.sh | str replace --all "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a artifacts/criticalup-installer.sh
-          
           open ci/install-instructions.md | str replace --all "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a install-instructions.md
 
       - name: Upload powershell installer
