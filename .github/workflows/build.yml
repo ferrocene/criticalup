@@ -53,9 +53,6 @@ jobs:
       package-id: ${{ steps.package.outputs.artifact-id }}
       sha256sum-id: ${{ steps.sha256sum.outputs.artifact-id }}
 
-    permissions:
-      id-token: write
-      
     steps:
       - uses: actions/checkout@v4
 
