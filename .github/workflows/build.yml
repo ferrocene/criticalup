@@ -120,7 +120,7 @@ jobs:
       - name: Sign release binaries
         # for this release we focus on Linux bins
         if: ${{ runner.os == 'Linux' }}
-        run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup --yes --bundle ${{inputs.target}}.sigstore.json
+        run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup --yes --bundle criticalup.sigstore.json
         
       - name: Prepare archive
         shell: bash
@@ -131,8 +131,8 @@ jobs:
           cp CHANGELOG.md criticalup-${{ inputs.target }}/CHANGELOG.md
 
           # Copying signature bundle if it is created
-          if [-f ${{inputs.target}}.sigstore.json]; then
-            cp ${{inputs.target}}.sigstore.json criticalup-${{ inputs.target }}/${{inputs.target}}.sigstore.json
+          if [-f criticalup.sigstore.json]; then
+            cp criticalup.sigstore.json criticalup-${{ inputs.target }}/criticalup.sigstore.json
           fi 
 
       - name: Make archive (tar.xz)
