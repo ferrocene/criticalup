@@ -123,11 +123,17 @@ jobs:
         run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup --yes --bundle ${{inputs.target}}.sigstore.json
         
       - name: Prepare archive
+        shell: bash
         run: |
           mkdir criticalup-${{ inputs.target }}
           cp target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup criticalup-${{ inputs.target }}/criticalup${{ (runner.os == 'Windows' && '.exe') || '' }}
           cp crates/criticalup/README.md criticalup-${{ inputs.target }}/README.md
           cp CHANGELOG.md criticalup-${{ inputs.target }}/CHANGELOG.md
+
+          # Copying signature bundle if it is created
+          if [-f ${{inputs.target}}.sigstore.json]; then
+            cp ${{inputs.target}}.sigstore.json criticalup-${{ inputs.target }}/${{inputs.target}}.sigstore.json
+          fi 
 
       - name: Make archive (tar.xz)
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
