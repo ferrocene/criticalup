@@ -118,9 +118,8 @@ jobs:
           cosign-release: 'v3.0.4'
 
       - name: Sign release binaries
-        if: ${{ inputs.release }}
+        if: ${{ inputs.release && runner.os == 'Linux' }}
         # for this release we focus on Linux bins
-        if: ${{ runner.os == 'Linux' }}
         run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.release && 'release' || 'debug' }}/criticalup --yes --bundle criticalup.sigstore.json
         
       - name: Prepare archive
