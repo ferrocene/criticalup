@@ -38,24 +38,24 @@ jobs:
       glibc: ${{ matrix.glibc }}
       release: true
 
-  # package:
-  #   secrets: inherit
-  #   uses: ./.github/workflows/package.yml
-  #   with:
-  #     sign: true
+  package:
+    secrets: inherit
+    uses: ./.github/workflows/package.yml
+    with:
+      sign: true
 
   deploy-docs:
     secrets: inherit
     needs:
       - build
-      # - package
+      - package
     uses: ./.github/workflows/deploy-docs.yml
 
   release:
     runs-on: ubuntu-latest
     needs:
       - build
-      # - package
+      - package
       - deploy-docs
     steps:
       - uses: actions/checkout@v4
