@@ -38,11 +38,12 @@ jobs:
       glibc: ${{ matrix.glibc }}
       release: true
 
-  package:
-    secrets: inherit
-    uses: ./.github/workflows/package.yml
-    with:
-      sign: true
+  # Commenting out to test #168
+  # package:
+  #   secrets: inherit
+  #   uses: ./.github/workflows/package.yml
+  #   with:
+  #     sign: true
 
   deploy-docs:
     secrets: inherit
