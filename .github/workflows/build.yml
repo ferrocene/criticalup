@@ -120,7 +120,7 @@ jobs:
       - name: Sign release binaries
         if: ${{ inputs.release && runner.os == 'Linux' }}
         # for this release we focus on Linux bins
-        run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.target }}/criticalup --yes --bundle criticalup.sigstore.json
+        run:  cosign sign-blob target/${{ inputs.target }}/${{ inputs.release && 'release' }}/criticalup --yes --bundle criticalup.sigstore.json
 
       - name: Prepare archive
         shell: bash
