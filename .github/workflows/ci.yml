@@ -148,12 +148,11 @@ jobs:
           ./criticalup remove
           ./criticalup clean
 
-  # Commenting out to test #168
-  # package:
-  #   secrets: inherit
-  #   uses: ./.github/workflows/package.yml
-  #   with:
-  #     sign: false
+  package:
+    secrets: inherit
+    uses: ./.github/workflows/package.yml
+    with:
+      sign: false
 
   license:
     name: Check licenses
