@@ -131,7 +131,7 @@ jobs:
           cp CHANGELOG.md criticalup-${{ inputs.target }}/CHANGELOG.md
 
           # Copying signature bundle if it is created
-          if [-f criticalup.sigstore.json]; then
+          if [[ -f criticalup.sigstore.json ]]; then
             cp criticalup.sigstore.json criticalup-${{ inputs.target }}/criticalup.sigstore.json
           fi 
 
