@@ -92,6 +92,19 @@ If the release build fails:
 - Revert the changes from `release/vX.Y.Z` and open a PR to be merged to `main`.
 - Delete the tag from GitHub.
 
+
+## Verifying signatures
+
+We use [`cosign`](https://github.com/sigstore/cosign) to verify signatures on Linux platforms.
+Install cosign. Inside the archive, there is a <binary>.sigstore.json certificate.
+Run:
+
+cosign verify-blob <binary-name> \
+    --certificate-identity-regexp ".*" \
+    --bundle <binary-name>.sigstore.json \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+
 ## Using ferrocene as default toolchain
 
 To use `ferrocene` as the default `rustup` toolchain, it is possible to create a `rust-toolchain.toml` file at the root:
