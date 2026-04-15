@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Linux binaries are signed with [`cosign`](https://github.com/sigstore/cosign). The signature can be verified by the user with the following command, using the cert file provided in the archive:
+
+`cosign verify-blob <linux-binary-name> --certificate-identity-regexp ".*" --bundle <linux-binary-name>.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com`
+
+
 ## 1.6.0 - 2025-09-10
 
 ### Added
