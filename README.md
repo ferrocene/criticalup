@@ -110,7 +110,7 @@ cosign verify-blob <binary-name> \
 To use `ferrocene` as the default `rustup` toolchain, it is possible to create a `rust-toolchain.toml` file at the root:
 
 ```
-> cat rust-toolchain.toml 
+> cat rust-toolchain.toml
 [toolchain]
 channel = "ferrocene"
 components = ["cargo", "rustfmt", "clippy"]
@@ -118,6 +118,35 @@ profile = "default"
 ```
 
 Add the file to `.gitignore`
+
+## Docker image
+
+We provide ./docker/Dockerfile, defining an image that can be used download packages in a multi step docker build.
+Docker with Buidkit enabled is required.
+
+If no configuration file (`criticalup.toml`) is copied into the image, criticalup will initialize one.
+
+The following build-args are available:
+
+FERROCENE_RELEASE  a ferrocene release version
+TARGET_UBUNTU_VERSION an ubuntu version
+CRITICALUP_RELEASE a criticalup release version
+
+The following secret is required:
+criticalup_token
+
+The package tarballs are located in
+` root/.cache/criticalup/artifacts/products/ferrocene/releases/...`
+
+### usage
+
+assuming we have the criticalup TOKEN in an env variable named TOKEN_ENV_VAR
+
+```bash
+docker build --secret id=criticalup_token,env=TOKEN_ENV_VAR --build-arg FERROCENE_RELEASE=stable-26.02.0 . -t ferrocene_builder
+```
+
+and then define a Dockerfile that uses the image in a multi-step setup.
 
 [criticalup-docs]: https://criticalup.ferrocene.dev/
 
