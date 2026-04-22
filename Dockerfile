@@ -7,14 +7,11 @@ ARG TARGET_UBUNTU_VERSION=24.04
 
 #
 # As a multiplatform container we support all these: https://docs.docker.com/reference/dockerfile/#automatic-platform-args-in-the-global-scope
-FROM ubuntu:$TARGET_UBUNTU_VERSION
+FROM ubuntu:$TARGET_UBUNTU_VERSION AS ferrocene_builder
 
-ARG TARGETPLATFORM
 ARG TARGET_UBUNTU_VERSION=20.04
-ARG BUILDPLATFORM
 ARG CRITICALUP_RELEASE=1.6.0
 ARG FERROCENE_RELEASE
-ARG RUNNER_VERSION
 
 USER root
 
@@ -55,25 +52,14 @@ RUN --mount=type=secret,id=criticalup_token,env=CRITICALUP_TOKEN <<-EOF
 
   cat criticalup.toml
 
-  if [[ "$TARGETPLATFORM" = "linux/amd64" ]]; then
-    ARCH="x86_64"
-  elif [[ "$TARGETPLATFORM" = "linux/arm64" ]]; then
-    ARCH="aarch64"
-  else
-    echo "Unknown target platform $TARGETPLATFORM"
-    exit 1
-  fi
-
-  # add musl targets for those releases that support them
-  VERSION_NUMBER=$(echo "$FERROCENE_RELEASE"  | cut -f 2 -d "-")
-  if [[ "$VERSION_NUMBER" > "25.08.0" ]]; then
-    sed "/^]/i\\    \"rust-std-$ARCH-unknown-linux-musl\"," -i criticalup.toml
-  fi;
-
-  cat criticalup.toml
   criticalup auth set $CRITICALUP_TOKEN
   criticalup install
   criticalup auth remove
 EOF
 
 CMD ["sh", "-c", "echo 'This image is intended for multi-stage builds only.' >&2; exit 1"]
+
+FROM ubuntu:$TARGET_UBUNTU_VERSION AS example
+
+COPY --from=0 /root/.cache/criticalup/artifacts artifacts
+CMD ["/usr/bin/ls", "-R", "artifacts"]

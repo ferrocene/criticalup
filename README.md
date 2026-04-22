@@ -121,32 +121,49 @@ Add the file to `.gitignore`
 
 ## Docker image
 
-We provide ./docker/Dockerfile, defining an image that can be used download packages in a multi step docker build.
+We provide ./docker/Dockerfile, defining an image `ferrocene_builder` that can be used download packages in a multi step/multi arch docker build.
 Docker with Buidkit enabled is required.
 
-If no configuration file (`criticalup.toml`) is copied into the image, criticalup will initialize one.
+If no configuration file is copied into the image in a modified Docker file definition (`ADD criticalup.toml .`), criticalup will initialize one.
+On being built, the image prints out the used criticalup.toml. If doubts, pass the (`--no-cache --progress=plain`) flags to the build command  to confirm which configuration is being used.
 
 The following build-args are available:
 
-FERROCENE_RELEASE  a ferrocene release version
-TARGET_UBUNTU_VERSION an ubuntu version
-CRITICALUP_RELEASE a criticalup release version
+`FERROCENE_RELEASE`  a Ferrocene release version
+`TARGET_UBUNTU_VERSION` an Ubuntu version
+`CRITICALUP_RELEASE` a criticalup release version
 
-The following secret is required:
-criticalup_token
+Passing the criticalup secret token is required:
+`criticalup_token` a criticalup token
 
-The package tarballs are located in
+The downloaded package tarballs are located in
 ` root/.cache/criticalup/artifacts/products/ferrocene/releases/...`
 
 ### usage
 
-assuming we have the criticalup TOKEN in an env variable named TOKEN_ENV_VAR
+The [CriticalUp Documentation][criticalup-docs] Authenticating section describes how to generate the criticalup token.
+Assuming we have the criticalup token in an env variable named CRITICALUP_TOKEN.
+
+#### build example image
+
+Build example image, that uses Ferrocene_builder image to copy Ferrocene packages from.
 
 ```bash
-docker build --secret id=criticalup_token,env=TOKEN_ENV_VAR --build-arg FERROCENE_RELEASE=stable-26.02.0 . -t ferrocene_builder
+docker build --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.02.0 . -t example
 ```
 
-and then define a Dockerfile that uses the image in a multi-step setup.
+
+`docker run example` recursively lists the downloaded Ferrocene packages.
+
+#### build ferrocene_builder image
+
+Build only the ferrocene_builder image, and then define a Dockerfile that uses the image in a multi-step setup.
+
+```bash
+docker build --from ferrocene_builder --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.02.0 . -t ferrocene_builder
+```
+
+
 
 [criticalup-docs]: https://criticalup.ferrocene.dev/
 
