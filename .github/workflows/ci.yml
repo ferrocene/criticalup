@@ -70,11 +70,12 @@ jobs:
             manifest-version = 1
 
             [products.ferrocene]
-            release = "stable-24.11.0"
+            release = "stable-24.11.0" # next stable 26.02
             packages = [
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
                 "rust-std-\${rustc-host}",
+             #  "rust-analyzer-\${rustc-host}", # RA has been proxied for version 1.95, it should work for 26.02 stable release
             ]
           EOF
 
@@ -112,6 +113,23 @@ jobs:
         working-directory: crab-boil
         run: |
           ./criticalup link create
+          
+      # This part of CI will work when 1.95 (26.02) is released as stable
+      - name: Make rust-toolchain file to test rust-analyzer
+        working-directory: crab-boil
+        run: |
+          cat <<- EOF > rust-toolchain.toml
+          [toolchain]
+          channel = "ferrocene"
+          components = ["cargo", "rustfmt", "clippy", "rust-analyzer"]
+          profile = "default"
+          EOF
+
+      - name: Test RA is proxied
+        working-directory: crab-boil
+        run: |
+          which rust-analyzer
+          rust-analyzer --version
 
       - name: Run `criticalup run` test workflow
         working-directory: crab-boil
