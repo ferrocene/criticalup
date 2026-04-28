@@ -78,74 +78,83 @@ jobs:
             ]
           EOF
 
-      - uses: actions/download-artifact@v4
+      - name: Establish paths inside workflow before calling action
+        shell: bash
+        run: |
+          echo "pwd $(pwd)"
+          echo "github.workspace: ${{ github.workspace }}"
+          echo "runner.temp: ${{ runner.temp }}"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "runner temp env variable $RUNNER_TEMP"
+
+
+      - name: Configure directory
+        uses: ./.github/actions/criticalup-config
         with:
-          name: criticalup-${{ matrix.target }}.${{ runner.os == 'Windows' && 'zip' || 'tar.xz' }}
+          token: ${{ secrets.CRITICALUP_TOKEN }}
           path: crab-boil
-
-      - name: Unpack archive
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: crab-boil
+          matrix: ${{ toJSON(matrix) }}
+          runner: ${{ toJSON(runner) }}
+          
+      - name: Establish paths inside workflow after calling action
+        shell: bash
         run: |
-          powershell -c "Expand-Archive criticalup-${{ matrix.target }}.zip"
-          mv criticalup-${{ matrix.target }}/criticalup.exe criticalup.exe
+          echo "pwd $(pwd)"
+          echo "github.workspace: ${{ github.workspace }}"
+          echo "runner.temp: ${{ runner.temp }}"
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "runner temp env variable $RUNNER_TEMP"
 
-      - name: Unpack archive and make executable
-        if: ${{ runner.os != 'Windows' }}
+      - name: Test criticalup is still installed current dir
         working-directory: crab-boil
+        run: ./criticalup help
+          
+      - name: Change toolchain and dir to test RA installation
+        shell: bash # bash necessary for heredocs
         run: |
-          tar xvf criticalup-${{ matrix.target }}.tar.xz
-          mv criticalup-${{ matrix.target }}/criticalup criticalup
-          chmod +x ./criticalup
+          mkdir poor-ferris 
+          cd poor-ferris
+          cat <<- EOF > criticalup.toml
+            manifest-version = 1
 
-      - name: Auth Criticalup
-        working-directory: crab-boil
-        run: ./criticalup auth set $CRITICALUP_TOKEN
-
-
-      - name: Install toolchain
-        working-directory: crab-boil
+            [products.ferrocene]
+            release = "nightly-2026-01-29"
+            packages = [
+                "cargo-\${rustc-host}",
+                "rustc-\${rustc-host}",
+                "rust-std-\${rustc-host}",
+                "rust-analyzer-\${rustc-host}"
+            ]
+          EOF
+      - name: Rust-toolchain file
+        working-directory: poor-ferris
+        shell: bash
         run: |
-          ./criticalup install
+          cat <<- EOF > rust-toolchain.toml
+            [toolchain]
+            channel = "ferrocene"
+            components = ["cargo", "rustfmt", "clippy", "rust-analyzer"]
+            profile = "default"
+          EOF
 
-      - name: Create toolchain link
-        working-directory: crab-boil
-        run: |
-          ./criticalup link create
+      - name: Configure directory
+        uses: ./.github/actions/criticalup-config
+        with:
+          token: ${{ secrets.CRITICALUP_TOKEN }}
+          path: poor-ferris
+          matrix: ${{ toJSON(matrix) }}
+          runner: ${{ toJSON(runner) }}
 
-      - name: Run `criticalup run` test workflow
-        working-directory: crab-boil
+      - name: Test RA installation
+        shell: bash # bash necessary for heredocs
+        working-directory: poor-ferris
         run: |
-          ./criticalup run -- cargo init
-          ./criticalup run -- cargo build
-          ./criticalup run -- cargo run
-          ./criticalup which rustc
-
-      # Windows allows the `.exe` or not, at the users option.
-      - name: Run Windows exclusive commands
-        if: ${{ runner.os == 'Windows' }}
-        working-directory: crab-boil
-        run: |
-            ./criticalup.exe run -- cargo --version
-            ./criticalup run -- cargo.exe --version
-            ./criticalup.exe run -- cargo.exe --version
-
-      - name: Run `cargo +ferrocene` test workflow
-        working-directory: crab-boil
-        run: |
-          cargo +ferrocene build
-          cargo +ferrocene run
-
-      - name: Remove toolchain link
-        working-directory: crab-boil
-        run: |
-          ./criticalup link remove
-
-      - name: Run test cleanup workflow
-        working-directory: crab-boil
-        run: |
-          ./criticalup remove
-          ./criticalup clean
+          echo ${{ github.workspace }}
+          ./criticalup install --reinstall
+          ./criticalup link create # linking rust-analyzer
+          ./criticalup which rust-analyzer
+          which rust-analyzer
+          rust-analyzer --version
 
   package:
     secrets: inherit
