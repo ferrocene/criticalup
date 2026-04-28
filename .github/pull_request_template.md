@@ -1,0 +1,1 @@
+- []  PRs are merged via `bors try`, without option to squash. Squash your commits in the PR before running `bors try`
