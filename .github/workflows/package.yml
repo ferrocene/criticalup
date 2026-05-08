@@ -34,10 +34,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Uses Ferrocene from shareable actions
-        uses: ferrous-systems/shared-github-actions/use-ferrocene@main
+        uses: ferrous-systems/shared-github-actions/use-ferrocene@daf0e64d44739e26443a8751183df1e9a2c91eb2
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rustup: false  
+          uninstall-rustup: false
           toolchain-link: true
 
       - name: Install WiX
@@ -80,7 +80,7 @@ jobs:
         shell: pwsh
         run: |
           ls -l ${{ github.workspace }}
-      
+
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
         with:
