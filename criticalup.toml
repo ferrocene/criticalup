@@ -4,11 +4,12 @@
 manifest-version = 1
 
 [products.ferrocene]
-release = "stable-25.08.0"
+release = "stable-26.02.0"
 packages = [
-    "cargo-${rustc-host}",
     "rustc-${rustc-host}",
-    "clippy-${rustc-host}",
-    "rustfmt-${rustc-host}",
     "rust-std-${rustc-host}",
+    "cargo-${rustc-host}",
+    "rustfmt-${rustc-host}",
+    "clippy-${rustc-host}",
+    "rust-src"
 ]

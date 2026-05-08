@@ -56,11 +56,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Uses Ferrocene from shareable actions
-        uses: ferrous-systems/shared-github-actions/use-ferrocene@main 
+        uses: ferrous-systems/shared-github-actions/use-ferrocene@CU-869d7bhxd_Update-action-to-enable-passing-a-criticaluptoml-configuration_Ernesto-Miguez
         with:
           token: ${{ secrets.CRITICALUP_TOKEN }}
-          uninstall-rustup: false
-          toolchain-link: true
 
       - name: Install zig
         if: ${{ runner.os == 'Linux' }}
@@ -133,7 +131,7 @@ jobs:
           # Copying signature bundle if it is created
           if [[ -f criticalup.sigstore.json ]]; then
             cp criticalup.sigstore.json criticalup-${{ inputs.target }}/criticalup.sigstore.json
-          fi 
+          fi
 
       - name: Make archive (tar.xz)
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
