@@ -46,11 +46,11 @@ async fn simple_run_command_did_not_run_install() {
 }
 
 #[tokio::test]
-#[ignore = "This test will be improved upon at a later date"]
 async fn simple_run_command_existing_package() {
     let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
     std::fs::create_dir_all(test_env.root().join("bin")).unwrap();
+    let manifest = current_dir.path().join("criticalup.toml");
 
     let project_manifest = "
         manifest-version = 1
@@ -58,11 +58,7 @@ async fn simple_run_command_existing_package() {
         release = \"nightly\"
         packages = [\"sample\"]
         ";
-    std::fs::write(
-        current_dir.path().join("criticalup.toml"),
-        project_manifest.as_bytes(),
-    )
-    .unwrap();
+    std::fs::write(&manifest, project_manifest.as_bytes(),) .unwrap();
 
     let installation_id =
         ProjectManifest::load(current_dir.path().join("criticalup.toml").as_path())
@@ -104,20 +100,9 @@ async fn simple_run_command_existing_package() {
     let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
     f.write_all(b"").unwrap();
 
-    let mut c = std::process::Command::new(
-        test_env
-            .root()
-            .join("toolchains")
-            .join(&installation_id)
-            .join("bin")
-            .join("sample")
-            .as_os_str()
-            .to_str()
-            .unwrap(),
-    );
-    std::io::stdout()
-        .write_all(&c.output().unwrap().stdout)
-        .unwrap();
-
-    // assert_output!(test_env.cmd().args(["run", "sample"]));
+    assert_output!(test_env.cmd().args(["run",
+        "--project",
+        manifest.to_str().unwrap(),
+        "sample",
+    ]));
 }
