@@ -58,7 +58,7 @@ async fn simple_run_command_existing_package() {
         release = \"nightly\"
         packages = [\"sample\"]
         ";
-    std::fs::write(&manifest, project_manifest.as_bytes(),) .unwrap();
+    std::fs::write(&manifest, project_manifest.as_bytes()).unwrap();
 
     let installation_id =
         ProjectManifest::load(current_dir.path().join("criticalup.toml").as_path())
@@ -100,9 +100,167 @@ async fn simple_run_command_existing_package() {
     let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
     f.write_all(b"").unwrap();
 
-    assert_output!(test_env.cmd().args(["run",
+    assert_output!(test_env
+        .cmd()
+        .args(["run", "--project", manifest.to_str().unwrap(), "sample",]));
+}
+
+#[tokio::test]
+async fn cargo_clippy_command_clippy_package_missing() {
+    let test_env = TestEnvironment::prepare().await;
+    let current_dir = tempdir().unwrap();
+    std::fs::create_dir_all(test_env.root().join("bin")).unwrap();
+    let manifest = current_dir.path().join("criticalup.toml");
+
+    let project_manifest = "
+        manifest-version = 1
+        [products.ferrocene]
+        release = \"nightly\"
+        packages = [\"cargo\", \"clippy\"]
+        ";
+    std::fs::write(&manifest, project_manifest.as_bytes()).unwrap();
+
+    let installation_id =
+        ProjectManifest::load(current_dir.path().join("criticalup.toml").as_path())
+            .unwrap()
+            .products()
+            .first()
+            .unwrap()
+            .installation_id()
+            .0;
+    // Create a sample state file referencing the binary proxy.
+    std::fs::write(
+        test_env.root().join("state.json"),
+        serde_json::json!({
+            "version": 1,
+            "installations": {
+                &installation_id: {
+                    "manifests": ["/path/to/manifest/a", "/path/to/manifest/b"],
+                    "binary_proxies": {
+                    },
+                },
+            },
+        })
+        .to_string()
+        .as_bytes(),
+    )
+    .unwrap();
+
+    // Create a cargo mocking binary.
+    crate::binary_proxies::compile_to(
+        &test_env
+            .root()
+            .join("toolchains")
+            .join(&installation_id)
+            .join("bin")
+            .join("cargo"),
+        r#"fn main() { println!("success: cargo binary was called via run command"); }"#,
+    );
+    let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
+    f.write_all(b"").unwrap();
+
+    // clippy is missing, in strict and no-strict mode this should return a warning message in the snapshot
+    assert_output!(test_env.cmd().args([
+        "run",
         "--project",
         manifest.to_str().unwrap(),
-        "sample",
+        "--strict",
+        "cargo",
+        "clippy",
+    ]));
+
+    assert_output!(test_env.cmd().args([
+        "run",
+        "--project",
+        manifest.to_str().unwrap(),
+        "cargo",
+        "clippy",
+    ]));
+}
+
+#[tokio::test]
+async fn cargo_clippy_command_existing_packages() {
+    let test_env = TestEnvironment::prepare().await;
+    let current_dir = tempdir().unwrap();
+    std::fs::create_dir_all(test_env.root().join("bin")).unwrap();
+    let manifest = current_dir.path().join("criticalup.toml");
+
+    let project_manifest = "
+        manifest-version = 1
+        [products.ferrocene]
+        release = \"nightly\"
+        packages = [\"cargo\", \"clippy\"]
+        ";
+    std::fs::write(&manifest, project_manifest.as_bytes()).unwrap();
+
+    let installation_id =
+        ProjectManifest::load(current_dir.path().join("criticalup.toml").as_path())
+            .unwrap()
+            .products()
+            .first()
+            .unwrap()
+            .installation_id()
+            .0;
+
+    // Create a sample state file referencing the binary proxy.
+    std::fs::write(
+        test_env.root().join("state.json"),
+        serde_json::json!({
+            "version": 1,
+            "installations": {
+                &installation_id: {
+                    "manifests": ["/path/to/manifest/a", "/path/to/manifest/b"],
+                    "binary_proxies": {
+                    },
+                },
+            },
+        })
+        .to_string()
+        .as_bytes(),
+    )
+    .unwrap();
+
+    // Create a cargo mocking binary.
+    crate::binary_proxies::compile_to(
+        &test_env
+            .root()
+            .join("toolchains")
+            .join(&installation_id)
+            .join("bin")
+            .join("cargo"),
+        r#"fn main() { println!("success: cargo binary was called via run command"); }"#,
+    );
+    let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
+    f.write_all(b"").unwrap();
+
+    // Create a clippy mocking binary.
+    crate::binary_proxies::compile_to(
+        &test_env
+            .root()
+            .join("toolchains")
+            .join(&installation_id)
+            .join("bin")
+            .join("cargo-clippy"),
+        r#"fn main() { println!("success: cargo-clippy binary was called via run command"); }"#,
+    );
+
+    // both cargo and clippy binaries are present,
+    // this will run cargo binary, in strict and non strict mode.
+    // No warning about not intsalled binary is emited.
+    assert_output!(test_env.cmd().args([
+        "run",
+        "--project",
+        manifest.to_str().unwrap(),
+        "--strict",
+        "cargo",
+        "clippy",
+    ]));
+
+    assert_output!(test_env.cmd().args([
+        "run",
+        "--project",
+        manifest.to_str().unwrap(),
+        "cargo",
+        "clippy",
     ]));
 }

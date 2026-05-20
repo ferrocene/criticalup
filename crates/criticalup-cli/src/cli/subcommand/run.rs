@@ -9,6 +9,7 @@ use crate::cli::CommandExecute;
 use crate::errors::Error;
 use crate::spawn::spawn_command;
 use crate::Context;
+use std::collections::HashMap;
 use std::env::current_dir;
 use std::path::PathBuf;
 // We *deliberately* use a sync Command here, since we are spawning a process to replace the current one.
@@ -112,6 +113,23 @@ impl CommandExecute for Run {
                 return Err(Error::BinaryNotInstalled(
                     binary.to_string_lossy().to_string(),
                 ));
+            }
+        }
+
+        // Warns if ARG is 'clippy' or 'fmt' in `criticalup run cargo <ARG>` and the subcommand backing executable is not part of the
+        // criticalup installation.
+
+        let mut cargo_subcommand_map = HashMap::new();
+        cargo_subcommand_map.insert("clippy", "cargo-clippy");
+        cargo_subcommand_map.insert("fmt", "rustfmt");
+
+        for arg in args {
+            if let Some(backing_binary) = cargo_subcommand_map.get(arg.as_str()) {
+                if !bin_paths.iter().any(|x| x.join(backing_binary).exists()) {
+                    tracing::warn!("'{0}' is not installed for this project, and may run from binaries outside the criticalup installation.\n \
+                    To prevent this, please make sure that the correct package for '{0}' is listed in the packages section of your \n\
+                    project's criticalup.toml and run 'criticalup install' command again.\n",  backing_binary);
+                }
             }
         }
 

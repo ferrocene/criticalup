@@ -1,0 +1,18 @@
+---
+source: crates/criticalup-cli/tests/cli/run.rs
+expression: repr
+---
+exit: exit status: 0
+
+stdout
+------
+success: cargo binary was called via run command
+------
+
+stderr
+------
+ WARN 'cargo-clippy' is not installed for this project, and may run from binaries outside the criticalup installation.
+ To prevent this, please make sure that the correct package for 'cargo-clippy' is listed in the packages section of your 
+project's criticalup.toml and run 'criticalup install' command again.
+
+------
