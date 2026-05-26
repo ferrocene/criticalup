@@ -4,6 +4,7 @@
 use crate::assert_output;
 use crate::utils::TestEnvironment;
 use criticalup_core::project_manifest::ProjectManifest;
+use std::env::consts::EXE_SUFFIX;
 use std::io::Write;
 use tempfile::tempdir;
 
@@ -69,6 +70,7 @@ async fn simple_run_command_existing_package() {
             .installation_id()
             .0;
     // Create a sample state file referencing the binary proxy.
+
     std::fs::write(
         test_env.root().join("state.json"),
         serde_json::json!({
@@ -94,7 +96,7 @@ async fn simple_run_command_existing_package() {
             .join("toolchains")
             .join(&installation_id)
             .join("bin")
-            .join("sample"),
+            .join(format!("sample{}", EXE_SUFFIX)),
         r#"fn main() { println!("success: sample binary was called via run command"); }"#,
     );
     let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
@@ -137,6 +139,7 @@ async fn cargo_clippy_command_clippy_package_missing() {
                 &installation_id: {
                     "manifests": ["/path/to/manifest/a", "/path/to/manifest/b"],
                     "binary_proxies": {
+                        "cargo": format!("bin/cargo{}", EXE_SUFFIX),
                     },
                 },
             },
@@ -146,6 +149,10 @@ async fn cargo_clippy_command_clippy_package_missing() {
     )
     .unwrap();
 
+    let mut f =
+        std::fs::File::create(test_env.root().join(format!("bin/cargo{}", EXE_SUFFIX))).unwrap();
+    f.write_all(b"").unwrap();
+
     // Create a cargo mocking binary.
     crate::binary_proxies::compile_to(
         &test_env
@@ -153,11 +160,9 @@ async fn cargo_clippy_command_clippy_package_missing() {
             .join("toolchains")
             .join(&installation_id)
             .join("bin")
-            .join("cargo"),
+            .join(format!("cargo{}", EXE_SUFFIX)),
         r#"fn main() { println!("success: cargo binary was called via run command"); }"#,
     );
-    let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
-    f.write_all(b"").unwrap();
 
     // clippy is missing, in strict and no-strict mode this should return a warning message in the snapshot
     assert_output!(test_env.cmd().args([
@@ -211,6 +216,8 @@ async fn cargo_clippy_command_existing_packages() {
                 &installation_id: {
                     "manifests": ["/path/to/manifest/a", "/path/to/manifest/b"],
                     "binary_proxies": {
+                        "cargo": format!("bin/cargo{}", EXE_SUFFIX),
+                        "clippy": format!("bin/cargo-clippy{}", EXE_SUFFIX),
                     },
                 },
             },
@@ -221,32 +228,42 @@ async fn cargo_clippy_command_existing_packages() {
     .unwrap();
 
     // Create a cargo mocking binary.
+
     crate::binary_proxies::compile_to(
         &test_env
             .root()
             .join("toolchains")
             .join(&installation_id)
             .join("bin")
-            .join("cargo"),
+            .join(format!("cargo{}", EXE_SUFFIX)),
         r#"fn main() { println!("success: cargo binary was called via run command"); }"#,
     );
-    let mut f = std::fs::File::create(test_env.root().join("bin/sample")).unwrap();
-    f.write_all(b"").unwrap();
 
-    // Create a clippy mocking binary.
     crate::binary_proxies::compile_to(
         &test_env
             .root()
             .join("toolchains")
             .join(&installation_id)
             .join("bin")
-            .join("cargo-clippy"),
+            .join(format!("cargo-clippy{}", EXE_SUFFIX)),
         r#"fn main() { println!("success: cargo-clippy binary was called via run command"); }"#,
     );
 
+    let mut f =
+        std::fs::File::create(test_env.root().join(format!("bin/cargo{}", EXE_SUFFIX))).unwrap();
+    f.write_all(b"").unwrap();
+
+    let mut t = std::fs::File::create(
+        test_env
+            .root()
+            .join(format!("bin/cargo-clippy{}", EXE_SUFFIX)),
+    )
+    .unwrap();
+    t.write_all(b"").unwrap();
+
     // both cargo and clippy binaries are present,
     // this will run cargo binary, in strict and non strict mode.
-    // No warning about not intsalled binary is emited.
+    // No warning about not installed binary is emitted.
     assert_output!(test_env.cmd().args([
         "run",
         "--project",

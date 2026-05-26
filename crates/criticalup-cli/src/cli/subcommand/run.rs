@@ -10,6 +10,7 @@ use crate::errors::Error;
 use crate::spawn::spawn_command;
 use crate::Context;
 use std::collections::HashMap;
+use std::env::consts::EXE_SUFFIX;
 use std::env::current_dir;
 use std::path::PathBuf;
 // We *deliberately* use a sync Command here, since we are spawning a process to replace the current one.
@@ -120,8 +121,8 @@ impl CommandExecute for Run {
         // criticalup installation.
 
         let mut cargo_subcommand_map = HashMap::new();
-        cargo_subcommand_map.insert("clippy", "cargo-clippy");
-        cargo_subcommand_map.insert("fmt", "rustfmt");
+        cargo_subcommand_map.insert("clippy", format!("cargo-clippy{}", EXE_SUFFIX));
+        cargo_subcommand_map.insert("fmt", format!("rustfmt{}", EXE_SUFFIX));
 
         for arg in args {
             if let Some(backing_binary) = cargo_subcommand_map.get(arg.as_str()) {
