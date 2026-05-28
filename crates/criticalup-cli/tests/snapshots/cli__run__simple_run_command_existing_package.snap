@@ -1,0 +1,12 @@
+---
+source: crates/criticalup-cli/tests/cli/run.rs
+expression: repr
+---
+exit: exit status: 0
+
+stdout
+------
+success: sample binary was called via run command
+------
+
+empty stderr
