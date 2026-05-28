@@ -70,7 +70,7 @@ jobs:
             manifest-version = 1
 
             [products.ferrocene]
-            release = "stable-24.11.0"
+            release = "stable-26.02.0"
             packages = [
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
