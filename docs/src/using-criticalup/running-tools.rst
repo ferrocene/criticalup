@@ -75,7 +75,7 @@ If you already have ``rustup`` installed, you can add a ``ferrocene`` toolchain:
 Alternatively:
 
 .. code-block::
-   
+
    rustup toolchain link ferrocene "$(criticalup link show)"
 
 To verify the link was created, validate there is a 'ferrocene' line in the toolchain list:
@@ -92,8 +92,8 @@ To remove the link:
 
 Example usage:
 
-.. code-block:: 
-   
+.. code-block::
+
    cargo +ferrocene build --release
    cargo +ferrocene test
 
@@ -129,7 +129,7 @@ your ``PATH``:
 
 .. code-block::
 
-   export PATH="$PATH:$HOME/.local/share/criticalup/proxy/bin"
+   export PATH="$HOME/.local/share/criticalup/proxy/bin:$PATH"
 
 If you're using a different shell, such as
 `nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
@@ -138,13 +138,13 @@ consult the shell's documentation on how to add to the path.
 macOS
 """""
 
-Proxies are located at ``~/Library/Application Support/criticalup/proxy/bin/``. 
+Proxies are located at ``~/Library/Application Support/criticalup/proxy/bin/``.
 
 You can add the following line to your ``~/.zshrc`` to add the binary proxies to your ``PATH``:
 
 .. code-block::
 
-   export PATH="$PATH:$HOME/Library/Application Support/criticalup/proxy/bin"
+   export PATH="$HOME/Library/Application Support/criticalup/proxy/bin:$PATH:"
 
 If you're using a different shell, such as
 `nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
@@ -155,9 +155,9 @@ Windows
 
 Proxies are located at ``%appdata%\criticalup\proxy\bin\``, typically this is ``~\AppData\Roaming\criticalup\proxy\bin\``.
 
-On Windows 11, you can add the folder to your system path by hitting the Windows key and searching 
+On Windows 11, you can add the folder to your system path by hitting the Windows key and searching
 'Edit environment variables for your account', then selecting the control panel. If you can't find
-it, you can use the 'Run' dialog to directly launch it: 
+it, you can use the 'Run' dialog to directly launch it:
 
 .. code-block::
 
