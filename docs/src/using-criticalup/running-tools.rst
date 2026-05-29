@@ -58,7 +58,7 @@ toolchain.
 
 It's important to note that these binaries share the same binary names as any Rust toolchain that
 may already be installed. If you already have Rust installed (for example, via ``rustup``) you
-should either to remove it, use Ferrocene via ``criticalup run``, or add Ferrocene as a ``rustup``
+should either remove it, use Ferrocene via ``criticalup run``, or add Ferrocene as a ``rustup``
 toolchain.
 
 Optionally, Ferrocene can be used as a ``rustup`` toolchain that may feel familiar to some developers.
