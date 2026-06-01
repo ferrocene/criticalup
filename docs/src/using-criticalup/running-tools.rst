@@ -30,10 +30,25 @@ CriticalUp will scan the working directory, then any parents, to discover the re
    it will search the parent directory, then the parent of that, up to the root
    directory of the system.
 
+
+Any binary package installed via CriticalUp you can be run with the command ``criticalup run <binary>``
+
 .. code-block::
 
    cd project
    criticalup run rustc --help
+
+.. important::
+
+  Ferrocene binaries share the same binary names as any Rust toolchain that may already be installed.
+
+If necessary, to make sure you **only execute the specified binary if it is part of the installation**, run the command with the ``--strict`` flag.
+
+.. code-block::
+
+   cd project
+   criticalup run --strict rustc --help
+
 
 
 Locating Tools
@@ -53,20 +68,21 @@ Using the Binary Proxies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 CriticalUp creates a number of binary proxies which can be used to run the appropriate Ferrocene
-binaries for a given workspace. These can be added to your shell path on any OS, or used as a ``rustup``
-toolchain.
+binaries for a given workspace. These can be added to your shell path on any OS. See :ref:`on-your-shell-path` for more details.
+They can also be used as a rustup toolchain, as described in the next section :ref:`as-a-rustup-toolchain`.
 
-It's important to note that these binaries share the same binary names as any Rust toolchain that
-may already be installed. If you already have Rust installed (for example, via ``rustup``) you
-should either remove it, use Ferrocene via ``criticalup run``, or add Ferrocene as a ``rustup``
-toolchain.
+.. important::
 
-Optionally, Ferrocene can be used as a ``rustup`` toolchain that may feel familiar to some developers.
+  To prevent executing an unintended binary, If you already have Rust installed via ``rustup`` you **should** add the CriticalUp installation as a ``rustup`` toolchain.
+
+
+.. _as-a-rustup-toolchain:
 
 As a ``rustup`` toolchain
 -------------------------
 
-If you already have ``rustup`` installed, you can add a ``ferrocene`` toolchain:
+Ferrocene can be used as a ``rustup`` toolchain that may feel familiar to some developers.
+
 
 .. code-block::
 
@@ -114,6 +130,9 @@ by creating a ``rust-toolchain.toml``:
 Then, by default, the Ferrocene toolchain created above should be used. Other
 ``rustup`` toolchains can still be used, for example, ``cargo +stable run``.
 
+
+
+.. _on-your-shell-path:
 
 On your shell path
 ------------------
