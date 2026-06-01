@@ -30,10 +30,25 @@ CriticalUp will scan the working directory, then any parents, to discover the re
    it will search the parent directory, then the parent of that, up to the root
    directory of the system.
 
+
+Any binary package installed via CriticalUp you can be run with the command ``criticalup run <binary>``
+
 .. code-block::
 
    cd project
    criticalup run rustc --help
+
+.. important::
+
+  Ferrocene binaries share the same binary names as any Rust toolchain that may already be installed.
+
+If necessary, to make sure you **only execute the specified binary if it is part of the installation**, run the command with the ``--strict`` flag.
+
+.. code-block::
+
+   cd project
+   criticalup run --strict rustc --help
+
 
 
 Locating Tools
@@ -53,20 +68,21 @@ Using the Binary Proxies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 CriticalUp creates a number of binary proxies which can be used to run the appropriate Ferrocene
-binaries for a given workspace. These can be added to your shell path on any OS, or used as a ``rustup``
-toolchain.
+binaries for a given workspace. These can be added to your shell path on any OS. See :ref:`on-your-shell-path` for more details.
+They can also be used as a rustup toolchain, as described in the next section :ref:`as-a-rustup-toolchain`.
 
-It's important to note that these binaries share the same binary names as any Rust toolchain that
-may already be installed. If you already have Rust installed (for example, via ``rustup``) you
-should either to remove it, use Ferrocene via ``criticalup run``, or add Ferrocene as a ``rustup``
-toolchain.
+.. important::
 
-Optionally, Ferrocene can be used as a ``rustup`` toolchain that may feel familiar to some developers.
+  To prevent executing an unintended binary, If you already have Rust installed via ``rustup`` you **should** add the CriticalUp installation as a ``rustup`` toolchain.
+
+
+.. _as-a-rustup-toolchain:
 
 As a ``rustup`` toolchain
 -------------------------
 
-If you already have ``rustup`` installed, you can add a ``ferrocene`` toolchain:
+Ferrocene can be used as a ``rustup`` toolchain that may feel familiar to some developers.
+
 
 .. code-block::
 
@@ -75,7 +91,7 @@ If you already have ``rustup`` installed, you can add a ``ferrocene`` toolchain:
 Alternatively:
 
 .. code-block::
-   
+
    rustup toolchain link ferrocene "$(criticalup link show)"
 
 To verify the link was created, validate there is a 'ferrocene' line in the toolchain list:
@@ -92,8 +108,8 @@ To remove the link:
 
 Example usage:
 
-.. code-block:: 
-   
+.. code-block::
+
    cargo +ferrocene build --release
    cargo +ferrocene test
 
@@ -115,6 +131,9 @@ Then, by default, the Ferrocene toolchain created above should be used. Other
 ``rustup`` toolchains can still be used, for example, ``cargo +stable run``.
 
 
+
+.. _on-your-shell-path:
+
 On your shell path
 ------------------
 
@@ -129,7 +148,7 @@ your ``PATH``:
 
 .. code-block::
 
-   export PATH="$PATH:$HOME/.local/share/criticalup/proxy/bin"
+   export PATH="$HOME/.local/share/criticalup/proxy/bin:$PATH"
 
 If you're using a different shell, such as
 `nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
@@ -138,13 +157,13 @@ consult the shell's documentation on how to add to the path.
 macOS
 """""
 
-Proxies are located at ``~/Library/Application Support/criticalup/proxy/bin/``. 
+Proxies are located at ``~/Library/Application Support/criticalup/proxy/bin/``.
 
 You can add the following line to your ``~/.zshrc`` to add the binary proxies to your ``PATH``:
 
 .. code-block::
 
-   export PATH="$PATH:$HOME/Library/Application Support/criticalup/proxy/bin"
+   export PATH="$HOME/Library/Application Support/criticalup/proxy/bin:$PATH:"
 
 If you're using a different shell, such as
 `nushell <https://www.nushell.sh/book/configuration.html#path-configuration>`_, you may need to
@@ -155,9 +174,9 @@ Windows
 
 Proxies are located at ``%appdata%\criticalup\proxy\bin\``, typically this is ``~\AppData\Roaming\criticalup\proxy\bin\``.
 
-On Windows 11, you can add the folder to your system path by hitting the Windows key and searching 
+On Windows 11, you can add the folder to your system path by hitting the Windows key and searching
 'Edit environment variables for your account', then selecting the control panel. If you can't find
-it, you can use the 'Run' dialog to directly launch it: 
+it, you can use the 'Run' dialog to directly launch it:
 
 .. code-block::
 
