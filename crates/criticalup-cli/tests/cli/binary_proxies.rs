@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
+
 const PROJECT_MANIFEST: &str = "
 manifest-version = 1
 
@@ -22,10 +23,11 @@ const INSTALLATION_ID: &str = "1f67f84fa2c0e3d1b99bf72f971b7a10eef29d91b50d9d9f8
 async fn invoking_outside_of_project() {
     let test_env = TestEnvironment::prepare().await;
     let current_dir = tempdir().unwrap();
+    let kept = current_dir.keep();
     assert_output!(test_env
         .binary_proxy("rustc")
         .env_remove("CRITICALUP_CURRENT_PROJ_MANIFEST_CANONICAL_PATH")
-        .current_dir(current_dir.into_path()));
+        .current_dir(&kept));
 }
 
 #[tokio::test]
