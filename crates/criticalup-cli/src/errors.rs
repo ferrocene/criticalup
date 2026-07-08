@@ -11,7 +11,7 @@ use std::string::FromUtf8Error as Utf8Error;
 use tokio::task::JoinError;
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum Error {
+pub enum Error {
     #[error(transparent)]
     Lib(#[from] LibError),
     #[error(transparent)]
