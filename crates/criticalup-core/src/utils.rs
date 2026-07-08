@@ -35,7 +35,11 @@ impl Sha256Hasher {
 
     /// Provides the final hash value
     pub(crate) fn finalize(self) -> String {
-        format!("{:x}", self.0.finalize())
+        self.0
+            .finalize()
+            .into_iter()
+            .map(|v| format!("{:02x}", v))
+            .collect()
     }
 }
 

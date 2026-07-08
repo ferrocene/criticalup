@@ -246,8 +246,15 @@ impl DownloadServerClient {
                 fs::read(cache_key).map_err(|e| Error::Read(cache_key.to_path_buf(), e))?;
             let mut hasher = Md5::new();
             hasher.update(cache_content);
-            let etag_md5 = format!(r#""{:x}""#, hasher.finalize());
-            req = req.header("If-None-Match", HeaderValue::from_str(&etag_md5).unwrap());
+            let etag_md5: String = hasher
+                .finalize()
+                .into_iter()
+                .map(|v| format!("{:02x}", v))
+                .collect();
+            req = req.header(
+                "If-None-Match",
+                HeaderValue::from_str(&format!(r#""{}""#, etag_md5)).unwrap(),
+            );
             tracing::trace!(cache_key = %cache_key.display(), etag = %etag_md5, "Got cached");
         }
         let req_built = req.build()?;
@@ -370,7 +377,12 @@ mod tests {
         let test_slug = "Cute dogs with boopable snoots";
         let mut hasher = Md5::new();
         hasher.update(test_slug);
-        let test_hash = HeaderValue::from_str(&format!(r#""{:x}""#, hasher.finalize())).unwrap();
+        let hash: String = hasher
+            .finalize()
+            .into_iter()
+            .map(|v| format!("{:02x}", v))
+            .collect();
+        let test_hash = HeaderValue::from_str(&format!(r#""{hash}""#)).unwrap();
         if let Some(parent) = test_path.parent() {
             fs::create_dir_all(parent).unwrap()
         }

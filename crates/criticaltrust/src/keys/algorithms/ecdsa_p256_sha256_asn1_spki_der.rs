@@ -4,8 +4,8 @@
 use crate::keys::algorithms::Algorithm;
 use crate::keys::newtypes::{PayloadBytes, PrivateKeyBytes, PublicKeyBytes, SignatureBytes};
 use crate::Error;
-use elliptic_curve::Generate;
 use elliptic_curve::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey};
+use elliptic_curve::Generate;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use p256::{PublicKey, SecretKey};
