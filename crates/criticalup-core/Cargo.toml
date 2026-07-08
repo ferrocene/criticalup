@@ -22,7 +22,7 @@ toml_edit.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 md-5.workspace = true
-anyhow = "1.0.100"
+anyhow = "1.0.103"
  
 [dev-dependencies]
 mock-download-server = { path = "../mock-download-server" }
