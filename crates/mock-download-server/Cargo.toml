@@ -7,7 +7,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.97"
+anyhow = "1.0.103"
 criticaltrust = { path = "../criticaltrust", features = ["hash-revocation"] }
 serde.workspace = true
 serde_json.workspace = true
