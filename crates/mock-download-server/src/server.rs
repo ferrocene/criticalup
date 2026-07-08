@@ -17,6 +17,7 @@ use criticaltrust::manifests::{
 use criticaltrust::signatures::SignedPayload;
 use sha2::{Digest, Sha256};
 use std::fs::File;
+use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
@@ -275,7 +276,9 @@ fn collect_files(package: &mut Package, dir: &Path) {
 fn hash_file(path: &Path) -> Vec<u8> {
     let mut sha256 = Sha256::new();
     let mut contents = File::open(path).unwrap();
-    std::io::copy(&mut contents, &mut sha256).unwrap();
+    let mut buf = vec![];
+    contents.read_to_end(&mut buf).unwrap();
+    sha256.update(&buf);
     sha256.finalize().to_vec()
 }
 

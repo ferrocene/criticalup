@@ -8,7 +8,6 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tempfile::tempdir;
 
-
 const PROJECT_MANIFEST: &str = "
 manifest-version = 1
 
