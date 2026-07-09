@@ -369,6 +369,6 @@ async fn delete_cache_dir() {
         .map(|v| v.join("criticalup-test"))
         .unwrap();
     if cache_dir_test.exists() {
-        tokio::fs::remove_dir_all(&cache_dir_test).await.unwrap();
+        let _ = tokio::fs::remove_dir_all(&cache_dir_test).await;
     }
 }
