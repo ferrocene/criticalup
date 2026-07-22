@@ -79,8 +79,7 @@ To cut a release:
 - Run `cargo test` and `cargo clippy --tests --locked -- -Dwarnings` to make sure there no
   failures.
 - Commit and push this branch and open a PR against `main`, on GitHub.
-- Wait for approval(s) from reviewer(s).
-- Once the PR is approved, comment `bors merge` to merge the PR.
+- Once the PR is approved, a reviewer will comment `@handlebors r+` to merge the PR.
 - After the PR is merged, checkout `main` branch and update it (`git pull`) with the latest changes.
 - Create a tag `git tag 'vX.Y.Z'`.
 - Push the tag `git push origin vX.Y.Z`. This should trigger the release build in GitHub Actions and publish the release
