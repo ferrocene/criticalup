@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: The Ferrocene Developers
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Maximum duration of CI workflows before they are considered timed out.
+# (Required)
+timeout = 1800 # 30 mins
+
+# Whether to enable the merge queue or not.
+# When enabled, approved PRs will be automatically merged.
+# (Optional, defaults to false)
+merge_queue_enabled = true
+
+# Whether merge conflicts should be reported on PRs.
+# (Optional, defaults to false)
+report_merge_conflicts = true
+
+# Labels that will block approval when present on a PR
+# (Optional)
+labels_blocking_approval = ["final-comment-period", "proposed-final-comment-period"]
+
+# Labels that should be set on a PR after an event happens.
+# "+<label>" adds the label, while "-<label>" removes the label after the event.
+# Supported events:
+# - approved: A PR was approved
+# - unapproved: A PR was unapproved
+# - try_failed: Try build has failed
+# - auto_build_succeeded: Auto build has succeeded, the PR was merged
+# - auto_build_failed: Auto build has failed
+# (Optional)
+[labels]
+approved = ["+approved"]
+unapproved = ["-approved"]
+try_failed = []
+auto_build_succeeded = []
+auto_build_failed = []
+conflict = ["+conflict"]
