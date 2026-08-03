@@ -79,6 +79,8 @@ jobs:
                 "cargo-\${rustc-host}",
                 "rustc-\${rustc-host}",
                 "rust-std-\${rustc-host}",
+                "rust-analyzer-\${rustc-host}",
+                "rust-src",
             ]
           EOF
 
@@ -116,6 +118,12 @@ jobs:
         working-directory: crab-boil
         run: |
           ./criticalup link create
+
+      - name: Test RA is proxied
+        working-directory: crab-boil
+        run: |
+          which rust-analyzer
+          rust-analyzer +ferrocene --version
 
       - name: Run `criticalup run` test workflow
         working-directory: crab-boil
