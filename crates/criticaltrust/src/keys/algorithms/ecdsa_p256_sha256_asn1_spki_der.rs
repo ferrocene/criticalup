@@ -5,6 +5,7 @@ use crate::keys::algorithms::Algorithm;
 use crate::keys::newtypes::{PayloadBytes, PrivateKeyBytes, PublicKeyBytes, SignatureBytes};
 use crate::Error;
 use elliptic_curve::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey};
+use elliptic_curve::Generate;
 use p256::ecdsa::signature::{Signer, Verifier};
 use p256::ecdsa::{Signature, SigningKey, VerifyingKey};
 use p256::{PublicKey, SecretKey};
@@ -46,7 +47,7 @@ impl Algorithm for EcdsaP256Sha256Asn1SpkiDer {
     }
 
     fn generate_private_key(&self) -> Result<PrivateKeyBytes<'static>, Error> {
-        let key = SecretKey::random(&mut rand::rngs::OsRng);
+        let key = SecretKey::generate();
         Ok(PrivateKeyBytes::owned(
             key.to_pkcs8_der()
                 .expect("generated private key cannot be encoded")
