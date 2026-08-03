@@ -11,4 +11,6 @@ packages = [
     "clippy-${rustc-host}",
     "rustfmt-${rustc-host}",
     "rust-std-${rustc-host}",
+    "rust-analyzer-${rustc-host}",
+    "rust-src",
 ]
