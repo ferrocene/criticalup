@@ -148,7 +148,7 @@ Assuming we have the criticalup token in an env variable named CRITICALUP_TOKEN.
 Build example image, that uses Ferrocene_builder image to copy Ferrocene packages from.
 
 ```bash
-docker build --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.02.0 . -t example
+docker build --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.05.0 . -t example
 ```
 
 
@@ -159,7 +159,7 @@ docker build --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERRO
 Build only the ferrocene_builder image, and then define a Dockerfile that uses the image in a multi-step setup.
 
 ```bash
-docker build --from ferrocene_builder --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.02.0 . -t ferrocene_builder
+docker build --from ferrocene_builder --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.05.0 . -t ferrocene_builder
 ```
 
 
