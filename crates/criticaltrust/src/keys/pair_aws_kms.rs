@@ -93,7 +93,10 @@ mod tests {
     use super::*;
     use aws_sdk_kms::config::Credentials;
     use aws_sdk_kms::types::KeyUsageType;
-    use rand::{rngs::OsRng, RngCore};
+    use rand::{
+        rand_core::{Rng, UnwrapErr},
+        rngs::SysRng,
+    };
     use std::process::Command;
     use std::sync::Once;
     // We want to have tests for all of criticaltrust, which makes testing the integration with AWS
@@ -134,7 +137,8 @@ mod tests {
     impl Localstack {
         async fn init() -> Self {
             let image = pull_localstack_docker_image();
-            let container_name = format!("criticaltrust-localstack-{}", OsRng.next_u64());
+            let mut rng = UnwrapErr(SysRng);
+            let container_name = format!("criticaltrust-localstack-{}", rng.next_u64());
 
             run(Command::new("docker")
                 .arg("create")
