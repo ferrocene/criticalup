@@ -36,7 +36,7 @@ pub(crate) fn spawn_command(mut command: Command) -> Result<(), Error> {
     use windows_sys::Win32::Foundation::{FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 
-    unsafe extern "system" fn ctrlc_handler(_: u32) -> i32 {
+    unsafe extern "system" fn ctrlc_handler(_: u32) -> windows_sys::core::BOOL {
         // Do nothing; let the child process handle it.
         TRUE
     }
