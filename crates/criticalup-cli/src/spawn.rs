@@ -33,10 +33,10 @@ pub(crate) fn spawn_command(mut command: Command) -> Result<(), Error> {
 #[cfg(windows)]
 pub(crate) fn spawn_command(mut command: Command) -> Result<(), Error> {
     use std::path::PathBuf;
-    use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
+    use windows_sys::Win32::Foundation::{FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 
-    unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
+    unsafe extern "system" fn ctrlc_handler(_: u32) -> windows_sys::core::BOOL {
         // Do nothing; let the child process handle it.
         TRUE
     }

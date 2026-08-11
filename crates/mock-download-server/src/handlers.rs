@@ -39,7 +39,12 @@ pub(crate) async fn handle_v1_package(
         let mut hasher = md5::Md5::new();
 
         hasher.update(&bytes);
-        let etag_string = format!("{:x}", hasher.finalize());
+
+        let etag_string: String = hasher
+            .finalize()
+            .into_iter()
+            .map(|v| format!("{:02x}", v))
+            .collect();
 
         let etag = headers::ETag::from_str(&format!(r#""{etag_string}""#)).unwrap();
 

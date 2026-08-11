@@ -18,11 +18,11 @@ name = "cli"
 path = "tests/cli/main.rs"
 
 [dependencies]
-clap = { version = "4.5.32", features = ["std", "derive", "help", "usage"] }
+clap = { version = "4.6.1", features = ["std", "derive", "help", "usage"] }
 criticaltrust = { path = "../criticaltrust" }
 criticalup-core = { path = "../criticalup-core" }
 futures.workspace = true
-opener = { version = "0.7.2"}
+opener = { version = "0.8.5"}
 serde_json.workspace = true
 tar.workspace = true
 tempfile.workspace = true
@@ -33,20 +33,20 @@ toml_edit.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-tree.workspace = true
-url = "2.5.4"
+url = "2.5.8"
 walkdir.workspace = true
 xz2 = { workspace = true, features = ["static"] }
 hyper.workspace = true
 
 [dev-dependencies]
 dirs.workspace = true
-insta = { version = "1.42.2", features = ["filters"] }
+insta = { version = "1.48.0", features = ["filters"] }
 mock-download-server = { path = "../mock-download-server" }
-regex = "1.11.1"
-serde = { version = "1.0.219", features = ["derive"] }
+regex = "1.12.4"
+serde = { version = "1.0.228", features = ["derive"] }
 tempfile.workspace = true
-toml = "0.8.20"
+toml = "1.1.2"
 
 [target.x86_64-pc-windows-msvc.dependencies]
 winapi = "0.3.9"
-windows-sys = { version = "0.59.0", features = ["Win32_Foundation", "Win32_System_Console"] }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_Console"] }
