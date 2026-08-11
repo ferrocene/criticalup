@@ -3,7 +3,7 @@
 
 mod binary_proxies;
 mod cli;
-mod errors;
+pub mod errors;
 mod spawn;
 
 use crate::errors::Error;
