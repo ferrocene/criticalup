@@ -5,6 +5,7 @@
 
 All notable changes to this project will be documented in this file.
 
+(unreleased)=
 ## [Unreleased]
 
 - Linux binaries are signed with [`cosign`](https://github.com/sigstore/cosign). The signature can be verified by the user with the following command, using the cert file provided in the archive:
@@ -12,18 +13,21 @@ All notable changes to this project will be documented in this file.
 `cosign verify-blob <linux-binary-name> --certificate-identity-regexp ".*" --bundle <linux-binary-name>.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com`
 
 
+(version-1.6.0)=
 ## [1.6.0] - 2025-09-10
 
 ### Added
 
 - Added an optional --download-server-url <URL> flag to the `install` subcommand to specify the base URL of the download server.
 
+(version-1.5.1)=
 ## [1.5.1] - 2025-07-28
 
 ### Fixed
 
 - Resolved an issue on aarch64-apple-darwin where liblzma was required to be installed on the user's system. The dependency is now statically linked.
 
+(version-1.5.0)=
 ## [1.5.0] - 2025-07-17
 
 ### Changed
@@ -51,6 +55,7 @@ All notable changes to this project will be documented in this file.
 - Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
   our team was unsatisfied with its behavior and opted not to mature it.
 
+(version-1.4.0)=
 ## [1.4.0] - 2025-03-05
 
 ### Fixed
@@ -65,6 +70,7 @@ All notable changes to this project will be documented in this file.
 - New subcommand `init` creates a simple project manifest file in the current directory. A flag `--print` can
   be passed to not save the file and only print the contents.
 
+(version-1.3.0)=
 ## [1.3.0] - 2025-01-30
 
 ### Changed
@@ -84,6 +90,7 @@ All notable changes to this project will be documented in this file.
 
 - Running Clean command now ensures that there are no leftover unused binary proxies.
 
+(version-1.2.0)=
 ## [1.2.0] - 2024-11-25
 
 ### Changed
@@ -99,6 +106,7 @@ All notable changes to this project will be documented in this file.
 - Bug when using `--offline` mode to install with expired revocation info ends in installation failure. To
   support proper `--offline` mode, the expiration date on revocation info hash must be ignored.
 
+(version-1.1.0)=
 ## [1.1.0] - 2024-08-28
 
 ### Added
@@ -118,12 +126,14 @@ All notable changes to this project will be documented in this file.
 - Moved `criticalup` to an async runtime (`tokio`), this resulted in resolving some intermittent
   networking issues on low bandwidth or unreliable connections.
 
+(version-1.0.2)=
 ## [1.0.2] - 2024-07-11
 
 ### Added
 
 - Retry downloads in case of network issue (#28).
 
+(version-1.0.1)=
 ## [1.0.1] - 2024-05-29
 
 ### Fixed
@@ -134,6 +144,7 @@ All notable changes to this project will be documented in this file.
 
 - Update dependencies for all crates in the project workspace (#10).
 
+(version-1.0.0)=
 ## [1.0.0] - 2024-05-27
 
 ### Added
