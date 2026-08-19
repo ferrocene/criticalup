@@ -12,19 +12,19 @@ All notable changes to this project will be documented in this file.
 `cosign verify-blob <linux-binary-name> --certificate-identity-regexp ".*" --bundle <linux-binary-name>.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com`
 
 
-## 1.6.0 - 2025-09-10
+## Version [1.6.0] - 2025-09-10
 
 ### Added
 
 - Added an optional --download-server-url <URL> flag to the `install` subcommand to specify the base URL of the download server.
 
-## [1.5.1] - 2025-07-28
+## Version [1.5.1] - 2025-07-28
 
 ### Fixed
 
 - Resolved an issue on aarch64-apple-darwin where liblzma was required to be installed on the user's system. The dependency is now statically linked.
 
-## [1.5.0] - 2025-07-17
+## Version [1.5.0] - 2025-07-17
 
 ### Changed
 
@@ -51,7 +51,7 @@ All notable changes to this project will be documented in this file.
 - Removed an experimental feature that attempted to integrate with Docker secrets. After more testing,
   our team was unsatisfied with its behavior and opted not to mature it.
 
-## [1.4.0] - 2025-03-05
+## Version [1.4.0] - 2025-03-05
 
 ### Fixed
 
@@ -65,7 +65,7 @@ All notable changes to this project will be documented in this file.
 - New subcommand `init` creates a simple project manifest file in the current directory. A flag `--print` can
   be passed to not save the file and only print the contents.
 
-## [1.3.0] - 2025-01-30
+## Version [1.3.0] - 2025-01-30
 
 ### Changed
 
@@ -84,7 +84,7 @@ All notable changes to this project will be documented in this file.
 
 - Running Clean command now ensures that there are no leftover unused binary proxies.
 
-## [1.2.0] - 2024-11-25
+## Version [1.2.0] - 2024-11-25
 
 ### Changed
 
@@ -99,7 +99,7 @@ All notable changes to this project will be documented in this file.
 - Bug when using `--offline` mode to install with expired revocation info ends in installation failure. To
   support proper `--offline` mode, the expiration date on revocation info hash must be ignored.
 
-## [1.1.0] - 2024-08-28
+## Version [1.1.0] - 2024-08-28
 
 ### Added
 
@@ -118,13 +118,13 @@ All notable changes to this project will be documented in this file.
 - Moved `criticalup` to an async runtime (`tokio`), this resulted in resolving some intermittent
   networking issues on low bandwidth or unreliable connections.
 
-## [1.0.2] - 2024-07-11
+## Version [1.0.2] - 2024-07-11
 
 ### Added
 
 - Retry downloads in case of network issue (#28).
 
-## [1.0.1] - 2024-05-29
+## Version [1.0.1] - 2024-05-29
 
 ### Fixed
 
@@ -134,7 +134,7 @@ All notable changes to this project will be documented in this file.
 
 - Update dependencies for all crates in the project workspace (#10).
 
-## [1.0.0] - 2024-05-27
+## Version [1.0.0] - 2024-05-27
 
 ### Added
 
