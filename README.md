@@ -98,11 +98,12 @@ We use [`cosign`](https://github.com/sigstore/cosign) to verify signatures on Li
 Install cosign. Inside the archive, there is a <binary>.sigstore.json certificate.
 Run:
 
+```bash
 cosign verify-blob <binary-name> \
     --certificate-identity-regexp ".*" \
     --bundle <binary-name>.sigstore.json \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com
-
+  ```
 
 ## Using ferrocene as default toolchain
 
@@ -120,49 +121,53 @@ Add the file to `.gitignore`
 
 ## Docker image
 
-We provide ./docker/Dockerfile, defining an image `ferrocene_builder` that can be used download packages in a multi step/multi arch docker build.
-Docker with Buidkit enabled is required.
+Requires BuildKit builder backend.
 
-If no configuration file is copied into the image in a modified Docker file definition (`ADD criticalup.toml .`), criticalup will initialize one.
-On being built, the image prints out the used criticalup.toml. If doubts, pass the (`--no-cache --progress=plain`) flags to the build command  to confirm which configuration is being used.
+`./Dockerfile` defines a `ferrocene_builder` target for downloading Ferrocene packages.
 
-The following build-args are available:
+Such an image build with this target becomes useful in a multi-step build, serving final images that use the Ferrocene packages.
 
-`FERROCENE_RELEASE`  a Ferrocene release version
-`TARGET_UBUNTU_VERSION` an Ubuntu version
-`CRITICALUP_RELEASE` a criticalup release version
+The ./Dockerfile copies a `criticalup.toml` configuration from the build context.
 
-Passing the criticalup secret token is required:
-`criticalup_token` a criticalup token
+During the build, the image prints the `criticalup.toml` configuration being used. If you are unsure which configuration is being used, pass the `--no-cache --progress=plain` flags to the Docker build command to verify it.
 
-The downloaded package tarballs are located in
-` root/.cache/criticalup/artifacts/products/ferrocene/releases/...`
+### Build arguments
 
-### usage
+The following optional build arguments are available:
 
-The [CriticalUp Documentation][criticalup-docs] Authenticating section describes how to generate the criticalup token.
-Assuming we have the criticalup token in an env variable named CRITICALUP_TOKEN.
+- `TARGET_UBUNTU_VERSION` — the Ubuntu version. Defaults to 24.04
+- `CRITICALUP_RELEASE` — the `criticalup` release version. Defaults to the latest available version.
 
-#### build example image
+### Authentication
 
-Build example image, that uses Ferrocene_builder image to copy Ferrocene packages from.
+A `criticalup` authentication token is required. Pass it as the `criticalup_token` secret.
+
+### Downloaded packages
+
+The downloaded package tarballs are located in the image, under:
+
+`/root/.cache/criticalup/artifacts/products/ferrocene/releases/...`
+
+### Usage
+
+#### Adquire a token
+
+The [CriticalUp documentation](...) describes how to generate a `criticalup` token.
+
+Assuming the `criticalup` token is stored in an environment variable named `CRITICALUP_TOKEN`:
+
+#### Example image
+
+The `ferrocene_builder` image is intended to be used as part of a multi-step build. At the end of the Dockerfile we
+define an example target image that, when run, lists the downloaded Ferrocene packages.
 
 ```bash
-docker build --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.05.0 . -t example
+docker build \
+  --secret id=criticalup_token,env=CRITICALUP_TOKEN \
+  -t example .
+
+docker run example
 ```
-
-
-`docker run example` recursively lists the downloaded Ferrocene packages.
-
-#### build ferrocene_builder image
-
-Build only the ferrocene_builder image, and then define a Dockerfile that uses the image in a multi-step setup.
-
-```bash
-docker build --from ferrocene_builder --secret id=criticalup_token,env=CRITICALUP_TOKEN --build-arg FERROCENE_RELEASE=stable-26.05.0 . -t ferrocene_builder
-```
-
-
 
 [criticalup-docs]: https://criticalup.ferrocene.dev/
 

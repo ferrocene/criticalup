@@ -11,11 +11,12 @@ FROM ubuntu:$TARGET_UBUNTU_VERSION AS ferrocene_builder
 
 ARG TARGET_UBUNTU_VERSION=20.04
 ARG CRITICALUP_RELEASE=1.6.0
-ARG FERROCENE_RELEASE
 
 USER root
 
 SHELL [ "bash", "-c" ]
+
+ADD ./criticalup.toml .
 
 RUN <<-EOF
     set -xe
@@ -38,17 +39,12 @@ ENV LANG=C.UTF-8
 
 ENV PATH="root/.cargo/bin:$PATH"
 
-# install ferrocene
+# Install Ferrocene
 
 RUN --mount=type=secret,id=criticalup_token,env=CRITICALUP_TOKEN <<-EOF
   set -xe
 
   curl --proto '=https' --tlsv1.2 -LsSf https://github.com/ferrocene/criticalup/releases/download/v${CRITICALUP_RELEASE}/criticalup-installer.sh | sh
-
-  # If no criticalup.toml is added to the build, init criticalup.toml with the default configuration
-  if [[ ! -e criticalup.toml ]]; then
-    criticalup init --release $FERROCENE_RELEASE
-  fi
 
   cat criticalup.toml
 
