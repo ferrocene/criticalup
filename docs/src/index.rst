@@ -43,6 +43,7 @@ CriticalUp User Documentation
 
    criticalup_toml
    changelog
+   examples/docker
 
 Indices and tables
 ------------------
