@@ -103,19 +103,6 @@ cosign verify-blob <binary-name> \
     --bundle <binary-name>.sigstore.json \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
-
-## rust-toolchain.toml
-
-This is an example `rust-toolchain.toml` suitable for development.
-It is added to `.gitignore` to prevent this configuration from having effects on the CI tasks.
-
-```
-> cat rust-toolchain.toml
-[toolchain]
-channel = "<same rustc version as latest ferrocene>"
-components = ["rustfmt", "clippy"]
-```
-
 ## Docker image
 
 We provide ./docker/Dockerfile, defining an image `ferrocene_builder` that can be used download packages in a multi step/multi arch docker build.
