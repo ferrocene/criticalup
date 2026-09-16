@@ -103,21 +103,6 @@ cosign verify-blob <binary-name> \
     --bundle <binary-name>.sigstore.json \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
-
-## Using ferrocene as default toolchain
-
-To use `ferrocene` as the default `rustup` toolchain, it is possible to create a `rust-toolchain.toml` file at the root:
-
-```
-> cat rust-toolchain.toml
-[toolchain]
-channel = "ferrocene"
-components = ["cargo", "rustfmt", "clippy"]
-profile = "default"
-```
-
-Add the file to `.gitignore`
-
 ## Docker image
 
 We provide ./docker/Dockerfile, defining an image `ferrocene_builder` that can be used download packages in a multi step/multi arch docker build.
