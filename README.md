@@ -112,7 +112,7 @@ It is added to `.gitignore` to prevent this configuration from having effects on
 ```
 > cat rust-toolchain.toml
 [toolchain]
-channel = "<same cargo version as latest ferrocene>"
+channel = "<same rustc version as latest ferrocene>"
 components = ["rustfmt", "clippy"]
 ```
 
