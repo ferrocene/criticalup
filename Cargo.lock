@@ -954,7 +954,7 @@ dependencies = [
 
 [[package]]
 name = "criticalup"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "criticaltrust",
  "criticalup-cli",
@@ -963,7 +963,7 @@ dependencies = [
 
 [[package]]
 name = "criticalup-cli"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "clap",
  "criticaltrust",
@@ -1019,7 +1019,7 @@ dependencies = [
 
 [[package]]
 name = "criticalup-dev"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "criticaltrust",
  "criticalup-cli",
