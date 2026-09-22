@@ -59,12 +59,12 @@ jobs:
       - deploy-docs
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install `cargo-binstall`
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Install nu shell
-        run: cargo binstall nu
+        run: cargo binstall nu@0.107.0
 
       - name: Get metadata
         id: metadata
@@ -82,7 +82,7 @@ jobs:
           mkdir artifacts
           open ci/criticalup-installer.ps1 | str replace --all "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a artifacts/criticalup-installer.ps1
           open ci/criticalup-installer.sh | str replace --all "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a artifacts/criticalup-installer.sh
-          
+
           open ci/install-instructions.md | str replace --all "%REPLACE_VERSION%" "${{ steps.metadata.outputs.VERSION }}" | save -a install-instructions.md
 
       - name: Upload powershell installer
