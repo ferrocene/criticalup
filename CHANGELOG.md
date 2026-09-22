@@ -7,18 +7,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## Version [1.7.0] - 2026-09-08
+- Linux binaries are signed with [`cosign`](https://github.com/sigstore/cosign). The signature can be verified by the user with the following command, using the cert file provided in the archive:
 
-### Added
+`cosign verify-blob <linux-binary-name> --certificate-identity-regexp ".*" --bundle <linux-binary-name>.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com`
 
-- Added Linux binaries signing with [`cosign`](https://github.com/sigstore/cosign).
-- Added `rust-src` package to the criticalup init defaults.
-
-### Changed
-
-- Altered the location of the default cache path for Ferrocene releases.
-  Previously releases were in the `artifacts/products/ferrocene` folder of the cache dir,
-  Now they are in `artifacts/products/ferrocene/releases`. Previous cache files will be migrated when the new version is run.
 
 ## Version [1.6.0] - 2025-09-10
 
@@ -153,9 +145,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/ferrocene/criticalup/compare/v1.7.0...HEAD
-
-[1.7.0]: https://github.com/ferrocene/criticalup/compare/v1.6.0...1.7.0
+[Unreleased]: https://github.com/ferrocene/criticalup/compare/v1.6.0...HEAD
 
 [1.6.0]: https://github.com/ferrocene/criticalup/compare/v1.5.1...1.6.0
 
