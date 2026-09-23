@@ -82,6 +82,33 @@ jobs:
         run: |
           ls -l ${{ github.workspace }}
 
+      # This is a workaround to make sure the runners' temurin java is used by the
+      # sslcom/esigner-codesign@develop action. In its absence, the action will
+      # pull an aws `coretto` version which java trustore lacks the necessary root certificates.
+      # We set the right java in PATH and populate JAVA_VERSION, used by the mentioned action
+      # to decide to use the existing java installation or download a different one.
+      - name: Setup java
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          echo "the current JAVA_HOME is $JAVA_HOME"
+          echo "$JAVA_HOME\bin" >> "$GITHUB_PATH"
+          echo "JAVA_VERSION=17" >> "$GITHUB_ENV"
+          java -version
+
+      # This is a workaround to make sure the runners' temurin java is used by the
+      # sslcom/esigner-codesign@develop action. In its absence, the action will
+      # pull an aws `coretto` version which java trustore lacks the necessary root certificates.
+      # We hardcoded the version in previous state, and we want to confirm it is aligned with the binary's version.
+      - name: Confirm JAVA_VERSION is aligned with the reported java version from binary
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+            if ! java -version 2>&1 | grep "version" | grep "$JAVA_VERSION"; then
+              echo "java major version from the java command is different from the one set in $JAVA_VERSION, update the '$JAVA_VERSION' to the new major version"
+              exit 1
+            else
+              echo "the java major version set in JAVA_VERSION is $JAVA_VERSION, and matches major version reported by the java binary"
+            fi
+
       - name: Sign Artifact with CodeSignTool
         uses: sslcom/esigner-codesign@develop
         with:
