@@ -64,7 +64,7 @@ jobs:
         run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Install nu shell
-        run: cargo binstall nu
+        run: cargo binstall nu@0.107.0
 
       - name: Get metadata
         id: metadata
@@ -111,7 +111,7 @@ jobs:
           merge-multiple: true
 
       - name: Release
-        uses: softprops/action-gh-release@aec2ec56f94eb8180ceec724245f64ef008b89f5
+        uses: softprops/action-gh-release@v2
         with:
           prerelease: true
           draft: true
