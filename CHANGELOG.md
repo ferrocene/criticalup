@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## Version [1.7.2] - 2026-10-21
+
+### Fixed
+
+- Address remaining webpki-roots dependency vulnerable to [eMudhra intermediate CA compromise](https://emudhra.we-have-a-problem.com/) https://rustsec.org/advisories/RUSTSEC-2026-0381.html
+
 ## Version [1.7.1] - 2026-10-21
 
 ### Fixed
@@ -159,7 +165,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]: https://github.com/ferrocene/criticalup/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/ferrocene/criticalup/compare/v1.7.2...HEAD
+
+[1.7.2]: https://github.com/ferrocene/criticalup/compare/v1.7.1...v1.7.2
 
 [1.7.1]: https://github.com/ferrocene/criticalup/compare/v1.7.0...v1.7.1
 
