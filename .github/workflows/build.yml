@@ -114,9 +114,9 @@ jobs:
 
       - name: Install cosign
         if: ${{ inputs.release }}
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+        uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
         with:
-          cosign-release: 'v3.0.4'
+          cosign-release: 'v3.1.6'
 
       - name: Sign release binaries
         if: ${{ inputs.release && runner.os == 'Linux' }}
